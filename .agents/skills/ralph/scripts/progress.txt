@@ -837,3 +837,14 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - useQuery (not useSuspenseQuery) is better for dynamic search pages where query changes frequently
   - Category "skill" routes to /skills/[id], other categories route to /artifacts/[category]/[id]
 ---
+
+## 2026-03-17 - US-047
+- Implemented `mergeFragments()` in `packages/api/src/lib/merge.ts`
+- Pure function that parses markdown into heading trees, matches headings by normalized text across fragments, merges body content in fragment order, deduplicates identical lines, handles level-offset matching, inserts unmatched headings at best structural position, and post-processes blank lines
+- Files changed: `packages/api/src/lib/merge.ts` (new)
+- **Learnings for future iterations:**
+  - The merge algorithm is a pure function with no dependencies on the rest of the codebase, making it easy to test in isolation
+  - Preamble (content before first heading) is handled as a level-0 section
+  - Empty lines are not deduplicated (only non-empty trimmed lines are)
+  - `collapseBlankLines` uses regex to replace 4+ newlines (3+ blank lines) with 3 newlines (2 blank lines)
+---

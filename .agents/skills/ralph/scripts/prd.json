@@ -883,7 +883,7 @@
         "Typecheck passes"
       ],
       "priority": 47,
-      "passes": false,
+      "passes": true,
       "notes": "This is the core algorithm for the composition builder. It must be a pure function for easy testing. The level-offset matching is the most complex part - see the PRD for detailed examples."
     },
     {
