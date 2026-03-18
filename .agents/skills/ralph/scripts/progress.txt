@@ -225,3 +225,17 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - @inquirer/search source callback parameter needs explicit type annotation `(input: string | undefined)`
   - Commands go in apps/cli/src/commands/ directory and are registered via registerXCommand(program) pattern
 ---
+
+## 2026-03-17 - US-015
+- Implemented restore-from-manifest workflow in add command (ms add with no args)
+- Added `restoreFromManifest()` function that iterates manifest skills, checks local hash, and re-installs from cache
+- Added `sourceToGitHub()` helper to parse manifest "owner/repo" source strings into GitHubSource
+- Integrates migration: if no manifest found, tries skills-lock.json migration before restore
+- Shows per-skill status (installed / already up to date / failed) and summary
+- Empty manifest or missing manifest prints helpful usage message
+- Files changed: apps/cli/src/commands/add.ts
+- **Learnings for future iterations:**
+  - Manifest entry `source` field stores "owner/repo" format, needs helper to convert back to GitHubSource
+  - Use computeSkillHash to compare local install against manifest computedHash for skip logic
+  - node:fs/promises stat() is a clean way to check directory existence without reading content
+---

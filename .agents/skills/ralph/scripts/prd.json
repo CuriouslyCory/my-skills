@@ -278,7 +278,7 @@
         "Typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "This enables the npm install workflow: clone a repo, run ms add, and all skills from the manifest are installed."
     },
     {
