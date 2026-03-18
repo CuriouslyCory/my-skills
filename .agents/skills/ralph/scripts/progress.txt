@@ -28,6 +28,9 @@
 - Drizzle query builder types are not reassignable — use ternary or separate queries for conditional where clauses
 - createTRPCContext accepts optional repoPath for filesystem operations; default is process.cwd()
 - Derive DB type as `typeof db` from @curiouslycory/db/client (don't import BetterSQLite3Database directly)
+- tsup `noExternal` bundles workspace packages; `external` keeps CJS deps (simple-git) out of ESM output
+- All workspace packages need `version` fields for pnpm pack to resolve workspace:* protocols
+- CLI workspace deps (shared-types, git-service) go in devDependencies since tsup bundles them; simple-git goes in dependencies since it stays external
 - Dialog component available at @curiouslycory/ui/dialog (Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription)
 - FragmentSelectionTable accepts optional props: initialSelection, initialOrder, compositionId, compositionName, compositionDescription
 - Import toast from @curiouslycory/ui/toast, not directly from sonner (sonner types not available in web app)
@@ -1112,4 +1115,18 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - CodexAdapter uses smol-toml parse/stringify for TOML management — import parse from smol-toml in tests
   - detectAgents uses marker files/directories; test by creating them in temp dirs
   - Pre-existing lint failure (eslint config not found in apps/cli) — not caused by adapter tests
+---
+
+## 2026-03-17 - US-062
+- What was implemented: CLI packaging and bin entry verification for npm publishing
+- Files changed:
+  - apps/cli/package.json — removed `private: true`, added `files: ["dist/"]`, moved workspace deps to devDependencies, added `simple-git` as direct dependency
+  - apps/cli/tsup.config.ts — added `noExternal` for workspace packages and `external` for simple-git to bundle workspace code while keeping CJS deps external
+  - All packages/*/package.json and tooling/*/package.json — added `version: "0.0.0"` so pnpm pack can resolve workspace:* protocols
+  - pnpm-lock.yaml — updated after dependency changes
+- **Learnings for future iterations:**
+  - tsup treats workspace packages as external by default; use `noExternal` to bundle them into the CLI output
+  - simple-git (CJS) can't be bundled into ESM output — must be kept as `external` and listed as a direct dependency
+  - pnpm pack requires all workspace:* referenced packages to have `version` fields, even for devDependencies
+  - Workspace packages that are bundled by tsup should be in devDependencies (not dependencies) to avoid workspace protocol resolution errors during pack
 ---

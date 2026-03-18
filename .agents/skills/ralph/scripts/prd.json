@@ -1162,7 +1162,7 @@
         "Typecheck passes"
       ],
       "priority": 62,
-      "passes": false,
+      "passes": true,
       "notes": "This is the final verification that the CLI is ready for npm publish. The pack command creates the tarball that would be uploaded to npm."
     },
     {
