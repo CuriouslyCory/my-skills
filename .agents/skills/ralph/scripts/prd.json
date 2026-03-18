@@ -387,7 +387,7 @@
         "Typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "Use fs.symlink for creating symlinks, fs.unlink for removing. On Windows, consider using fs.symlink with 'junction' type as fallback."
     },
     {

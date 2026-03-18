@@ -323,3 +323,18 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - resolveAgents checks config.defaultAgents first, then manifest.agents, then falls back to interactive detection
   - @inquirer/checkbox choices use `checked` property for pre-selection
 ---
+
+## 2026-03-17 - US-021
+- Created apps/cli/src/adapters/native.ts with NativeAdapter (no-op install/remove/sync since core installer handles file placement)
+- Created apps/cli/src/adapters/symlink.ts with SymlinkAdapter (creates/removes symlinks from agent-specific dirs to .agents/skills/<name>/)
+- Updated registry.ts to use AGENT_NATIVE_SUPPORT from shared-types, import from native.ts
+- Deleted old native-adapter.ts (was redundant with core skill-installer)
+- Updated index.ts barrel to export NativeAdapter from native.ts and SymlinkAdapter
+- Typecheck passes (17/17 tasks)
+- Files changed: apps/cli/src/adapters/native.ts (new), symlink.ts (new), registry.ts, index.ts, native-adapter.ts (deleted)
+- **Learnings for future iterations:**
+  - NativeAdapter is a no-op because skill-installer.ts already copies files to .agents/skills/<name>/
+  - SymlinkAdapter uses AGENT_SKILLS_DIR map for per-agent symlink paths (.claude/skills/, .cursor/skills/, etc.)
+  - Use lstat() not stat() to detect symlinks (stat follows symlinks, lstat doesn't)
+  - symlink() with "dir" type needed for directory symlinks (important on Windows)
+---
