@@ -1078,3 +1078,18 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Use `import type` for db instance imports to satisfy consistent-type-imports lint rule
   - Pre-existing lint errors exist in API package (merge.ts, composition.ts, etc.) - not related to new code
 ---
+
+## 2026-03-17 - US-060
+- Implemented comprehensive CLI test suite for core modules (38 tests, all passing)
+- Created test directory structure: apps/cli/tests/{core,services,adapters,commands,fixtures}
+- Files created:
+  - apps/cli/tests/core/config.test.ts (7 tests: load defaults, merge from file, env overrides, invalid JSON, save/overwrite)
+  - apps/cli/tests/core/manifest.test.ts (11 tests: load/save/addSkill/removeSkill/getSkill, immutability, empty/null cases)
+  - apps/cli/tests/core/skill-hasher.test.ts (5 tests: hash computation, determinism, different content, nested dirs, ordering)
+  - apps/cli/tests/services/source-parser.test.ts (11 tests: local paths, GitHub URLs, shorthand, error cases)
+  - apps/cli/tests/core/migration.test.ts (4 tests: migration from skills-lock, both files exist, neither exists, only manifest)
+- **Learnings for future iterations:**
+  - config.ts uses module-level constants from homedir(); vi.mock("node:os") + vi.resetModules() needed to redirect to temp dirs
+  - vitest globals:true in vitest.config.ts means describe/it/expect are auto-imported but vi must still be imported explicitly
+  - All tests use real temp directories (mkdtemp) with cleanup in afterEach for isolation
+---

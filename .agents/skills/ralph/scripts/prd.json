@@ -1126,7 +1126,7 @@
         "Typecheck passes"
       ],
       "priority": 60,
-      "passes": false,
+      "passes": true,
       "notes": "Use vitest. Create test fixtures with sample SKILL.md files and manifest files. Each test should be independent with its own temp directory."
     },
     {
