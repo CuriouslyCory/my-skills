@@ -733,7 +733,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 39,
-      "passes": false,
+      "passes": true,
       "notes": "Use the existing shadcn/ui sidebar component pattern if available in the ui package, otherwise create one."
     },
     {

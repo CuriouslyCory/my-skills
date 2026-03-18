@@ -28,6 +28,8 @@
 - Drizzle query builder types are not reassignable — use ternary or separate queries for conditional where clauses
 - createTRPCContext accepts optional repoPath for filesystem operations; default is process.cwd()
 - Derive DB type as `typeof db` from @curiouslycory/db/client (don't import BetterSQLite3Database directly)
+- Web app uses (dashboard) route group for pages with sidebar/header; (auth) group for auth pages without shell
+- @radix-ui/react-icons must be added as direct dep in web app (not inherited from packages/ui)
 - tRPC routers can't set cookies — use Next.js Server Actions (apps/web/src/auth/actions.ts) for cookie operations
 - Web app uses (auth) route group for login page; middleware.ts handles auth redirects
 - Shared lib functions go in packages/api/src/lib/ directory
@@ -670,4 +672,27 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Web app lint rule restricts process.env usage — use `import { env } from '~/env'` instead
   - Next.js middleware can import from workspace packages (jose is Edge-compatible)
   - (auth) route group pattern keeps auth pages separate without affecting URL structure
+---
+
+## 2026-03-17 - US-039
+- What was implemented: Web app layout and navigation with sidebar, header, and responsive mobile menu
+- Files changed:
+  - apps/web/src/app/_components/sidebar.tsx (new - sidebar with nav items, active state, mobile overlay)
+  - apps/web/src/app/_components/header.tsx (new - header with search input and hamburger menu button)
+  - apps/web/src/app/_components/app-shell.tsx (new - combines sidebar + header + main content area)
+  - apps/web/src/app/(dashboard)/layout.tsx (new - dashboard route group layout wrapping AppShell)
+  - apps/web/src/app/(dashboard)/page.tsx (moved from app/page.tsx, updated imports)
+  - apps/web/src/app/(dashboard)/skills/page.tsx (new stub)
+  - apps/web/src/app/(dashboard)/artifacts/page.tsx (new stub)
+  - apps/web/src/app/(dashboard)/compositions/page.tsx (new stub)
+  - apps/web/src/app/(dashboard)/git/page.tsx (new stub)
+  - apps/web/src/app/(dashboard)/settings/page.tsx (new stub)
+  - apps/web/src/app/(dashboard)/search/page.tsx (new stub)
+  - apps/web/src/app/layout.tsx (updated metadata, removed ThemeToggle)
+  - apps/web/package.json (added @radix-ui/react-icons)
+- **Learnings for future iterations:**
+  - @radix-ui/react-icons is in packages/ui but not auto-available in web app — must add as direct dependency
+  - Use (dashboard) route group for pages with sidebar/header; (auth) group stays separate without shell
+  - Sidebar CSS variables (--sidebar, --sidebar-foreground, etc.) are pre-defined in theme.css
+  - Active nav highlighting uses pathname.startsWith(href) for nested routes, exact match for "/"
 ---
