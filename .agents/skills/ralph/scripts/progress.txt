@@ -18,6 +18,7 @@
 - CLI commands go in apps/cli/src/commands/ and use registerXCommand(program) pattern
 - @inquirer/search is a default export; source callback needs explicit type: `(input: string | undefined)`
 - @inquirer/confirm and @inquirer/checkbox are default exports; use dynamic import for conditional usage
+- SkillFrontmatter uses `compatibility` for agent IDs; SkillEntry (manifest) uses `agents` — don't confuse them
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -276,4 +277,20 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - @inquirer/checkbox returns array of selected values; set opts.yes=true after interactive selection to avoid double-confirming
   - Use fs.rm with { recursive: true, force: true } for directory removal
   - removeSkill from manifest.ts is a pure function - call saveManifest after to persist
+---
+
+## 2026-03-17 - US-018
+- Created apps/cli/src/commands/list.ts with registerListCommand() function
+- Registered on Commander program with alias 'ls'
+- ms list reads .my-skills.json and displays installed skills as formatted chalk table (NAME, SOURCE, HASH columns)
+- --global flag scans ~/.agents/skills/ directories and reads SKILL.md frontmatter
+- --agent <name> flag filters to skills with matching agent in agents/compatibility array
+- --json flag outputs machine-readable JSON array (no ANSI codes)
+- Shows 'No skills installed' if manifest is empty or missing
+- Registered in apps/cli/src/program.ts
+- Files changed: apps/cli/src/commands/list.ts (new), apps/cli/src/program.ts
+- **Learnings for future iterations:**
+  - SkillFrontmatter uses `compatibility` field (not `agents`) for agent IDs — SkillEntry (manifest) uses `agents`
+  - For global skill listing, scan directories + parse SKILL.md since there's no global manifest file
+  - chalk.bold for table headers, String.padEnd for column alignment
 ---

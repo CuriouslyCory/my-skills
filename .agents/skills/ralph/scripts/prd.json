@@ -336,7 +336,7 @@
         "Typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "For --global, scan ~/.agents/skills/ directories and read SKILL.md frontmatter since there may not be a global manifest."
     },
     {
