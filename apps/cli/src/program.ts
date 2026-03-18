@@ -2,6 +2,7 @@ import { Command } from "commander";
 
 import packageJson from "../package.json" with { type: "json" };
 import { registerAddCommand } from "./commands/add.js";
+import { registerListCommand } from "./commands/list.js";
 import { registerRemoveCommand } from "./commands/remove.js";
 
 export function createProgram(): Command {
@@ -13,6 +14,7 @@ export function createProgram(): Command {
     .version(packageJson.version);
 
   registerAddCommand(program);
+  registerListCommand(program);
   registerRemoveCommand(program);
 
   return program;
