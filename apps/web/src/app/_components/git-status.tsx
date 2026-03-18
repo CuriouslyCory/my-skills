@@ -314,22 +314,24 @@ export function GitStatus() {
                       {group} ({files.length})
                     </span>
                   </div>
-                  <Table>
-                    <TableBody>
-                      {files.map((f) => (
-                        <TableRow key={f.path}>
-                          <TableCell className="font-mono text-sm">
-                            {f.path}
-                          </TableCell>
-                          <TableCell className="w-40 text-right">
-                            <Badge variant={statusVariant(f.index, f.workingDir)}>
-                              {statusLabel(f.index, f.workingDir)}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableBody>
+                        {files.map((f) => (
+                          <TableRow key={f.path}>
+                            <TableCell className="font-mono text-sm">
+                              {f.path}
+                            </TableCell>
+                            <TableCell className="w-40 text-right">
+                              <Badge variant={statusVariant(f.index, f.workingDir)}>
+                                {statusLabel(f.index, f.workingDir)}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               );
             })}
@@ -343,7 +345,7 @@ export function GitStatus() {
           <CardTitle className="text-lg">Recent Commits</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="rounded-md">
+          <div className="overflow-x-auto rounded-md">
             <Table>
               <TableHeader>
                 <TableRow>

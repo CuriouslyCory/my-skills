@@ -198,7 +198,7 @@ function FavoritesSection() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form onSubmit={handleAdd} className="flex items-end gap-3">
+        <form onSubmit={handleAdd} className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1 space-y-1">
             <Label htmlFor="favName">Name</Label>
             <Input

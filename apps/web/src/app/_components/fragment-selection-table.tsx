@@ -282,10 +282,10 @@ export function FragmentSelectionTable({
   );
 
   return (
-    <div className="flex gap-6">
+    <div className="flex flex-col gap-6 lg:flex-row">
       {/* Data Table */}
       <div className="min-w-0 flex-1">
-        <div className="rounded-md border">
+        <div className="overflow-x-auto rounded-md border">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -336,7 +336,7 @@ export function FragmentSelectionTable({
       </div>
 
       {/* Selection Sidebar + Preview */}
-      <div className="flex w-80 shrink-0 flex-col gap-4">
+      <div className="flex w-full flex-col gap-4 lg:w-80 lg:shrink-0">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -458,9 +458,9 @@ function UpdateCompositionButton({
 
 export function FragmentSelectionTableSkeleton() {
   return (
-    <div className="flex gap-6">
+    <div className="flex flex-col gap-6 lg:flex-row">
       <div className="min-w-0 flex-1">
-        <div className="rounded-md border">
+        <div className="overflow-x-auto rounded-md border">
           <div className="p-4">
             {Array.from({ length: 5 }).map((_, i) => (
               <div
@@ -480,7 +480,7 @@ export function FragmentSelectionTableSkeleton() {
           </div>
         </div>
       </div>
-      <div className="w-72 shrink-0">
+      <div className="w-full lg:w-72 lg:shrink-0">
         <Card>
           <CardHeader>
             <div className="bg-muted h-4 w-24 animate-pulse rounded-sm" />
