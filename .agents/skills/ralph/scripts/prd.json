@@ -260,7 +260,7 @@
         "Typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "This is the core add flow without flags. Use source-parser, cache service, skill-resolver, skill-installer, and manifest module. The interactive picker uses @inquirer/search."
     },
     {

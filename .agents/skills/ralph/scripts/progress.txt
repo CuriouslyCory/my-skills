@@ -15,6 +15,8 @@
 - Import package.json in ESM with `with { type: "json" }` assertion
 - CLI app needs @types/node in devDependencies for node: module imports and process global
 - CLI doesn't have simple-git as direct dep; extend GitService with new methods rather than importing simple-git in CLI
+- CLI commands go in apps/cli/src/commands/ and use registerXCommand(program) pattern
+- @inquirer/search is a default export; source callback needs explicit type: `(input: string | undefined)`
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -207,4 +209,19 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Reuse saveManifest from manifest.ts for consistent atomic write pattern
   - skills-lock.json has simpler entries than .my-skills.json (no installedAt, no agents)
   - Use node:fs/promises access() to check file existence without reading content
+---
+
+## 2026-03-17 - US-014
+- Created apps/cli/src/commands/add.ts with registerAddCommand() function
+- Registered on Commander program with aliases 'a', 'i', 'install'
+- ms add owner/repo/skill-name: parses source, fetches repo, resolves skill, installs to .agents/skills/<name>/, updates manifest
+- ms add owner/repo (no skill name): discovers skills, presents @inquirer/search interactive picker
+- Shows ora spinner during fetch and install, chalk success/error messages
+- Checks manifest for existing install and suggests 'ms update' instead
+- Updated apps/cli/src/program.ts to register the add command
+- Files changed: apps/cli/src/commands/add.ts (new), apps/cli/src/program.ts
+- **Learnings for future iterations:**
+  - @inquirer/search is a default export, not a named export (use `import search from "@inquirer/search"`)
+  - @inquirer/search source callback parameter needs explicit type annotation `(input: string | undefined)`
+  - Commands go in apps/cli/src/commands/ directory and are registered via registerXCommand(program) pattern
 ---
