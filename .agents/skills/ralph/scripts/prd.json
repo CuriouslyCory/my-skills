@@ -651,7 +651,7 @@
         "Typecheck passes"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "notes": "FTS5 queries use raw SQL via db.run(sql`...`). The snippet() function wraps matches in <mark> tags. Initialize FTS tables (from US-006) on app startup."
     },
     {

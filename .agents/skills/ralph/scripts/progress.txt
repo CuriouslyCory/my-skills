@@ -591,3 +591,22 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - When a shared function returns a type not explicitly exported, declaration emit fails with "cannot be named" error — export the return type interface
   - The scanAndSync function handles both skills and artifacts in a single pass, removing all stale entries regardless of category
 ---
+
+## 2026-03-17 - US-035
+- Created packages/api/src/router/search.ts with search.query procedure
+- search.query accepts query string, optional category filter, limit (default 20), offset
+- Empty query returns recent items ordered by updatedAt desc
+- Non-empty query builds FTS5 MATCH with prefix matching (each term quoted and appended with *)
+- Returns results with highlighted snippets via FTS5 snippet() function with `<mark>` tags
+- Results ordered by FTS5 rank for relevance
+- Registered search router in app router (packages/api/src/root.ts)
+- Added initFTS(sqlite) call to packages/db/src/client.ts so FTS tables are created at startup
+- Typecheck passes (17/17 tasks)
+- Files changed: packages/api/src/router/search.ts (new), packages/api/src/root.ts, packages/db/src/client.ts
+- **Learnings for future iterations:**
+  - Drizzle better-sqlite3 wrapper exposes db.all<T>(sql`...`) for raw queries returning typed rows
+  - FTS5 snippet() takes: table, column_index (-1 for best), open_tag, close_tag, ellipsis, max_tokens
+  - FTS5 MATCH terms should be quoted to handle special chars; append * for prefix matching
+  - initFTS must be called before any FTS queries — adding to client.ts ensures it runs at module load time
+  - Raw SQL results use snake_case column names (dir_path, created_at) — map to camelCase in return
+---
