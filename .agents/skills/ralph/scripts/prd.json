@@ -223,7 +223,7 @@
         "Typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "The resolver reads from the cache, the installer writes to the project. They are separate concerns. Use fs.cp with recursive option for directory copying."
     },
     {

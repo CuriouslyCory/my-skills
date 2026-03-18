@@ -180,3 +180,17 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Added resetHard to GitService to support cache refresh workflow; extend GitService when new git operations are needed
   - discoverSkills skips node_modules and .git directories during recursive walk
 ---
+
+## 2026-03-17 - US-012
+- Created apps/cli/src/core/skill-resolver.ts with resolveSkill(skillName, cachePath) function
+- Resolver walks cached repo recursively for SKILL.md files, matches by frontmatter name
+- Returns ResolvedSkill: { name, sourcePath, frontmatter, content, files[] }
+- Created apps/cli/src/core/skill-installer.ts with installSkill(skill, targetDir) function
+- Installer uses fs.cp with recursive option to copy entire skill directory to targetDir/<skill-name>/
+- Returns computed SHA-256 hash of installed skill via computeSkillHash
+- Files changed: apps/cli/src/core/skill-resolver.ts (new), apps/cli/src/core/skill-installer.ts (new)
+- **Learnings for future iterations:**
+  - fs.cp with { recursive: true } is the simplest way to copy an entire directory tree
+  - ResolvedSkill type is reused by skill-installer — keep the type in skill-resolver and import it
+  - collectAllFiles in skill-resolver returns sorted list for deterministic output
+---
