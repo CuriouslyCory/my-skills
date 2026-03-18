@@ -498,7 +498,7 @@
         "Typecheck passes"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": "The find command is the discovery tool. It aggregates skills from all favorite repos + installed skills into one searchable list."
     },
     {

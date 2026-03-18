@@ -432,3 +432,22 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - sourceToGitHub helper is duplicated across update.ts and check.ts — candidate for extraction to shared utils
   - Check command is read-only: no manifest writes, no file changes, no adapter calls
 ---
+
+## 2026-03-17 - US-027
+- Created apps/cli/src/commands/find.ts with registerFindCommand() function
+- Registered on Commander program with alias 'f'
+- ms find (no query) launches @inquirer/search interactive fuzzy-find across all indexed skills
+- ms find <query> pre-fills the search with the query string
+- Search index built from: installed skills (manifest) + all skills from cached favorite repos
+- Favorite repos fetched if not cached or cache is stale (1 hour TTL via isCacheStale)
+- Each result shows: skill name, description, source repo, '[installed]' badge if already installed
+- Fuzzy match filters against name and description
+- Selecting an uninstalled result prompts 'Install skill-name from owner/repo?' via @inquirer/confirm
+- Delegates to add command via program.parseAsync for actual installation
+- Reads favoriteRepos from global config (~/.my-skills/config.json)
+- Files changed: apps/cli/src/commands/find.ts (new), apps/cli/src/program.ts
+- **Learnings for future iterations:**
+  - program.parseAsync(["add", source], { from: "user" }) delegates to existing commands cleanly
+  - favoriteToGitHub reuses parseSource from source-parser.ts to validate favorite repo strings
+  - getCachedRepoPath returns null when repo is not cached; isCacheStale checks TTL from cache metadata
+---
