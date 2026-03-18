@@ -796,3 +796,25 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - The skill.create mutation returns the created row with id; redirect to /skills/${id}
   - ESLint forbids non-null assertions; use early return guard instead
 ---
+
+## 2026-03-17 - US-045
+- Built artifact browse, detail, and edit pages mirroring the existing skill page patterns
+- Created ArtifactList component with category tab filtering (All/Agents/Prompts/Claude.mds)
+- Created ArtifactEditor component wrapping FrontmatterForm + PlateEditor for create/edit
+- Created ArtifactDetail component with metadata sidebar, markdown content, and version history
+- Route structure: /artifacts (list), /artifacts/[category]/[id] (detail), /artifacts/[category]/[id]/edit, /artifacts/[category]/new
+- Files created:
+  - apps/web/src/app/_components/artifact-list.tsx
+  - apps/web/src/app/_components/artifact-editor.tsx
+  - apps/web/src/app/(dashboard)/artifacts/page.tsx (updated)
+  - apps/web/src/app/(dashboard)/artifacts/[category]/[id]/page.tsx
+  - apps/web/src/app/(dashboard)/artifacts/[category]/[id]/artifact-detail.tsx
+  - apps/web/src/app/(dashboard)/artifacts/[category]/[id]/edit/page.tsx
+  - apps/web/src/app/(dashboard)/artifacts/[category]/[id]/edit/edit-artifact.tsx
+  - apps/web/src/app/(dashboard)/artifacts/[category]/new/page.tsx
+- **Learnings for future iterations:**
+  - Artifact pages follow identical patterns to skill pages but use trpc.artifact.* instead of trpc.skill.*
+  - No tabs UI component exists in the UI package; use Button with variant toggling for tab-like behavior
+  - Artifact routes include [category] segment to support category-specific create/edit URLs
+  - The artifact router's create mutation requires a `category` field that the skill router doesn't need
+---

@@ -843,7 +843,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 45,
-      "passes": false,
+      "passes": true,
       "notes": "Same UI patterns as skills pages but scoped to the artifacts/ directory. Reuse the FrontmatterForm and PlateEditor components."
     },
     {
