@@ -944,7 +944,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 50,
-      "passes": false,
+      "passes": true,
       "notes": "This is the left panel of the composition builder. The right panel (preview) is added in a subsequent story."
     },
     {

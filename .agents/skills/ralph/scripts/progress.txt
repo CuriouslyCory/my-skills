@@ -43,6 +43,10 @@
 - Plate.js MarkdownPlugin API types are untyped (any); use eslint-disable for serialize/deserialize calls
 - react-markdown + remark-gfm installed in web app for markdown rendering
 - packages/api uses vitest for testing; tests go in src/lib/__tests__/ directory
+- Table (@curiouslycory/ui/table) and Checkbox (@curiouslycory/ui/checkbox) components are available for data tables
+- @tanstack/react-table installed in web app for shadcn/ui DataTable pattern; use createColumnHelper for type-safe columns
+- React Compiler warns about useReactTable incompatibility — this is expected, not a lint error to fix
+- skills table `description` field is notNull — don't use `?? fallback` with it (triggers @typescript-eslint/no-unnecessary-condition)
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -894,4 +898,24 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - `inArray` operator is available from `@curiouslycory/db` (re-exported from drizzle-orm/sql)
   - compositions.fragments and compositions.order store JSON-stringified arrays — parse with JSON.parse()
   - Router pattern: `satisfies TRPCRouterRecord` at end, import from `@trpc/server`
+---
+
+## 2026-03-17 - US-050
+- Created /compositions/new page with data table for selecting claudemd artifacts
+- Built fragment selection data table using @tanstack/react-table with shadcn/ui DataTable pattern
+- Table columns: checkbox (with select all), name, description, tags (as badges), updated date
+- Sidebar panel shows selected fragment count and names with "Clear all" button
+- Created Table and Checkbox UI components in packages/ui/src/
+- Files changed:
+  - packages/ui/src/table.tsx (created)
+  - packages/ui/src/checkbox.tsx (created)
+  - packages/ui/package.json (added table, checkbox exports)
+  - apps/web/package.json (added @tanstack/react-table)
+  - apps/web/src/app/(dashboard)/compositions/new/page.tsx (created)
+  - apps/web/src/app/_components/fragment-selection-table.tsx (created)
+- **Learnings for future iterations:**
+  - @tanstack/react-table triggers React Compiler warning about useReactTable — this is expected and harmless
+  - skills table description is notNull — don't use `?? fallback` (triggers no-unnecessary-condition lint error)
+  - Radix Checkbox import: `import { Checkbox as RadixCheckbox } from "radix-ui"` then use RadixCheckbox.Root
+  - Use `getRowId: (row) => row.id` in useReactTable config to use entity IDs instead of row indices for selection state
 ---
