@@ -104,6 +104,14 @@ export class GitService {
     await this.git.checkout(ref);
   }
 
+  async resetHard(ref?: string): Promise<void> {
+    const args = ["--hard"];
+    if (ref) {
+      args.push(ref);
+    }
+    await this.git.reset(args);
+  }
+
   async showFileAtCommit(filePath: string, commitHash: string): Promise<string> {
     return this.git.show([`${commitHash}:${filePath}`]);
   }
