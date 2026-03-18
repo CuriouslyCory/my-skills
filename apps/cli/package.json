@@ -24,6 +24,7 @@
     "@curiouslycory/git-service": "workspace:*",
     "@curiouslycory/shared-types": "workspace:*",
     "@inquirer/checkbox": "^4.1.5",
+    "@inquirer/confirm": "^6.0.10",
     "@inquirer/search": "^3.0.12",
     "chalk": "^5.4.1",
     "commander": "^13.1.0",

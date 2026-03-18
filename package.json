@@ -25,6 +25,7 @@
   "devDependencies": {
     "@curiouslycory/prettier-config": "workspace:*",
     "@turbo/gen": "^2.5.8",
+    "@types/node": "catalog:",
     "dotenv-cli": "^10.0.0",
     "prettier": "catalog:",
     "turbo": "^2.5.8",
@@ -35,5 +36,8 @@
       "better-sqlite3"
     ]
   },
-  "prettier": "@curiouslycory/prettier-config"
+  "prettier": "@curiouslycory/prettier-config",
+  "dependencies": {
+    "@inquirer/confirm": "^6.0.10"
+  }
 }
