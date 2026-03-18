@@ -186,7 +186,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "GitHub URL parsing should handle both https://github.com/owner/repo and https://github.com/owner/repo.git formats. The owner/repo shorthand always assumes GitHub."
     },
     {

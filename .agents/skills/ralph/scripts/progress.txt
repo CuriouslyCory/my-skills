@@ -150,3 +150,17 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Use spread + destructuring for immutable record manipulation in pure functions
   - node:crypto createHash is available without additional deps in Node 18+
 ---
+
+## 2026-03-17 - US-010
+- Created apps/cli/src/services/source-parser.ts with parseSource() function
+- Parses three source formats: GitHub URLs, owner/repo shorthand, and local paths
+- Exports SkillSource union type (GitHubSource | LocalSource)
+- GitHub URL parsing handles both with and without .git suffix
+- Shorthand owner/repo and owner/repo/skill-name both supported
+- Local paths (./path, ../path, /path) resolved to absolute paths
+- Throws descriptive error for unparseable sources
+- Files changed: apps/cli/src/services/source-parser.ts (new)
+- **Learnings for future iterations:**
+  - Services directory (apps/cli/src/services/) is for business logic modules separate from core config/manifest
+  - Source parsing uses regex for URL matching; shorthand regex excludes paths starting with . or /
+---
