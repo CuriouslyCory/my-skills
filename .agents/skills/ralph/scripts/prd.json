@@ -751,7 +751,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 40,
-      "passes": false,
+      "passes": true,
       "notes": "Use Next.js App Router with RSC for initial data fetch. Use shadcn/ui Card, Badge components."
     },
     {

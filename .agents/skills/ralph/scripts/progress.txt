@@ -33,6 +33,9 @@
 - tRPC routers can't set cookies — use Next.js Server Actions (apps/web/src/auth/actions.ts) for cookie operations
 - Web app uses (auth) route group for login page; middleware.ts handles auth redirects
 - Shared lib functions go in packages/api/src/lib/ directory
+- New UI components need source file in packages/ui/src/ AND export entry in packages/ui/package.json (alphabetical order)
+- Card (@curiouslycory/ui/card) and Badge (@curiouslycory/ui/badge) components are available for use
+- skill.list returns tags as JSON-stringified array string — parse with JSON.parse() before rendering
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -695,4 +698,22 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Use (dashboard) route group for pages with sidebar/header; (auth) group stays separate without shell
   - Sidebar CSS variables (--sidebar, --sidebar-foreground, etc.) are pre-defined in theme.css
   - Active nav highlighting uses pathname.startsWith(href) for nested routes, exact match for "/"
+---
+
+## 2026-03-17 - US-040
+- Built skill browse page at apps/web/src/app/(dashboard)/skills/page.tsx
+- Created SkillList client component with tag filtering and skill card grid
+- Created Card component (packages/ui/src/card.tsx) and Badge component (packages/ui/src/badge.tsx)
+- Added card and badge exports to packages/ui/package.json
+- Uses server-side prefetch pattern: prefetch(trpc.skill.list.queryOptions()) + HydrateClient + Suspense
+- Skills displayed as cards in responsive grid (1/2/3 columns) with name, description, category badge, tag badges
+- Tag filter chips at top, toggle selection, filter skills by any matching tag
+- Empty state: "No skills found. Add skills to the skills/ directory."
+- Cards link to /skills/[id] detail page
+- Files changed: apps/web/src/app/(dashboard)/skills/page.tsx, apps/web/src/app/_components/skill-list.tsx, packages/ui/src/badge.tsx, packages/ui/src/card.tsx, packages/ui/package.json
+- **Learnings for future iterations:**
+  - Card and Badge shadcn/ui components now exist in packages/ui (exported as @curiouslycory/ui/card and @curiouslycory/ui/badge)
+  - skill.list returns tags as JSON-stringified array — parse with JSON.parse() before using
+  - New UI components need both the source file AND an export entry in packages/ui/package.json (alphabetical order)
+  - Lint failures in api, auth, git-service, shared-types, cli packages are pre-existing — only check ui and web lint for UI changes
 ---
