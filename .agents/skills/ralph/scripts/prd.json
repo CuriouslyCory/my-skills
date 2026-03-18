@@ -112,7 +112,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "FTS5 is SQLite-specific. Use db.run(sql`...`) with raw SQL since Drizzle cannot model virtual tables. The triggers use content= syntax to keep FTS in sync automatically."
     },
     {

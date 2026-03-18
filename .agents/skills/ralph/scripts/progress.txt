@@ -10,6 +10,7 @@
 - better-sqlite3 requires native build; add to pnpm.onlyBuiltDependencies in root package.json
 - When db schema changes, downstream packages (api, web) may need @types/better-sqlite3 in devDependencies for declaration emit
 - Turbo caches dist/ output; after schema changes, delete .turbo + dist/ to force fresh declaration emit for downstream consumers
+- FTS5 virtual tables/triggers use raw better-sqlite3 db.exec(), not Drizzle ORM; initFTS takes Database.Database instance
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -88,4 +89,16 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Turbo aggressively caches build outputs; when schema shape changes, stale dist/.d.ts files can cause false type errors in consumers - clear .turbo + dist to force rebuild
   - SQLite uses integer timestamps with `(unixepoch())` default, not Postgres `now()`
   - drizzle-orm/better-sqlite3 `drizzle()` accepts `{ client, schema }` - no casing option needed for explicit column names
+---
+
+## 2026-03-17 - US-006
+- Created packages/db/src/fts.ts with initFTS(db) function
+- FTS5 virtual table `skills_fts` with columns: name, description, tags, content
+- AFTER INSERT, AFTER UPDATE, AFTER DELETE triggers to keep FTS in sync with skills table
+- Exported initFTS from packages/db/src/index.ts
+- Files changed: packages/db/src/fts.ts (new), packages/db/src/index.ts
+- **Learnings for future iterations:**
+  - FTS5 virtual tables and triggers must use raw better-sqlite3 `db.exec()` since Drizzle ORM doesn't model virtual tables
+  - initFTS takes the raw `Database.Database` instance, not the Drizzle wrapper
+  - FTS5 UPDATE sync requires DELETE old + INSERT new pattern (no direct UPDATE on FTS5 tables)
 ---
