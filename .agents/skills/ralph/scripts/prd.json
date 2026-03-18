@@ -862,7 +862,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 46,
-      "passes": false,
+      "passes": true,
       "notes": "The FTS5 snippet() function returns HTML with highlighted matches. Render carefully to avoid XSS (sanitize or use dangerouslySetInnerHTML on trusted content only)."
     },
     {

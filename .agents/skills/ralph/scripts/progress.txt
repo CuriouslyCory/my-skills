@@ -818,3 +818,22 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Artifact routes include [category] segment to support category-specific create/edit URLs
   - The artifact router's create mutation requires a `category` field that the skill router doesn't need
 ---
+
+## 2026-03-17 - US-046
+- Built search results page at apps/web/src/app/(dashboard)/search/page.tsx
+- Created SearchResults client component at apps/web/src/app/_components/search-results.tsx
+- Reads ?q= URL param and pre-fills search input
+- Debounced search (300ms) calls search.query tRPC procedure
+- Results show name, category badge, description, content snippet with <mark> highlighted matches
+- Results link to appropriate detail page (skill or artifact based on category)
+- Category filter dropdown with all categories (skill, agent, prompt, claudemd)
+- Shows 'No results found' for empty result sets
+- Loading skeleton while fetching
+- URL updates as user types (debounced)
+- Files changed: apps/web/src/app/_components/search-results.tsx (new), apps/web/src/app/(dashboard)/search/page.tsx
+- **Learnings for future iterations:**
+  - useSearchParams requires Suspense boundary in Next.js app router - wrap client component in Suspense
+  - Search router returns snippet with <mark> tags from FTS5 - use dangerouslySetInnerHTML with Tailwind [&_mark] selector for styling
+  - useQuery (not useSuspenseQuery) is better for dynamic search pages where query changes frequently
+  - Category "skill" routes to /skills/[id], other categories route to /artifacts/[category]/[id]
+---
