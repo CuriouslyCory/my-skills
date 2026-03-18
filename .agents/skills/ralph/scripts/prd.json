@@ -1091,7 +1091,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 58,
-      "passes": false,
+      "passes": true,
       "notes": "Use shadcn/ui Input, Button, Card, Checkbox components."
     },
     {

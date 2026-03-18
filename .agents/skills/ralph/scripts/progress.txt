@@ -1050,3 +1050,18 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - DropdownMenuRadioGroup + DropdownMenuRadioItem provides single-select dropdown behavior with visual indicator for current selection
   - After pull, must call both skill.syncFromDisk and artifact.syncFromDisk to resync the database with changed files
 ---
+
+## 2026-03-17 - US-058
+- Implemented full settings page at /settings with three sections: General, Favorites, Agent Defaults
+- General section: auto-detect agents toggle + symlink behavior selector, saves via config.set mutation
+- Favorites section: add form (name + repo URL), list with remove button + AlertDialog confirmation
+- Agent Defaults section: multi-select checkboxes for all 10 agent types, saves as JSON array via config.set
+- Server page prefetches config.getAll and config.favorites.list queries
+- Files changed:
+  - apps/web/src/app/(dashboard)/settings/page.tsx (updated stub to full server page with HydrateClient/prefetch)
+  - apps/web/src/app/_components/settings-page.tsx (new client component with all sections)
+- **Learnings for future iterations:**
+  - Config is a simple key-value store; complex values (like defaultAgents array) must be JSON.stringify'd before saving and JSON.parse'd when reading
+  - The settings page stub already existed, and the sidebar already had a Settings nav link — no navigation changes needed
+  - CardDescription is available from @curiouslycory/ui/card alongside Card, CardContent, CardHeader, CardTitle
+---
