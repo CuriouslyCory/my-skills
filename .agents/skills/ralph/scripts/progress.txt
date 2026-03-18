@@ -6,6 +6,10 @@
 - sherif postinstall lint enforces alphabetically sorted deps in package.json
 - Web app build requires env vars (auth, db) - typecheck works without them
 - pnpm-workspace.yaml uses catalog/catalogs for version pinning
+- simple-git has strict overloads - branch on defined params rather than passing undefined
+- better-sqlite3 requires native build; add to pnpm.onlyBuiltDependencies in root package.json
+- When db schema changes, downstream packages (api, web) may need @types/better-sqlite3 in devDependencies for declaration emit
+- Turbo caches dist/ output; after schema changes, delete .turbo + dist/ to force fresh declaration emit for downstream consumers
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -28,4 +32,60 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - sherif postinstall enforces alphabetical sorting of deps - fix before committing
   - Web app build needs .env with auth vars; typecheck works without env
   - pnpm-workspace.yaml catalogs pin specific versions used across workspace
+---
+
+## 2026-03-17 - US-002
+- Created @curiouslycory/shared-types package at packages/shared-types/
+- Implemented Zod schemas: ArtifactCategorySchema, AgentIdSchema, SkillFrontmatterSchema, SkillEntrySchema, ManifestSchema, ConfigSchema
+- Exported TypeScript types via z.infer<> for all schemas
+- Exported constants: CATEGORY_DIR_MAP, DEPLOY_PATH_MAP, AGENT_NATIVE_SUPPORT
+- Files changed: packages/shared-types/package.json, tsconfig.json, src/index.ts
+- **Learnings for future iterations:**
+  - Follow validators package pattern for simple type-only packages (zod dep, compiled-package tsconfig)
+  - Use `catalog:` for zod dependency version to match workspace catalog
+  - sherif alphabetical ordering applies to all package.json files including new ones
+---
+
+## 2026-03-17 - US-003
+- Added gray-matter dependency to @curiouslycory/shared-types
+- Created packages/shared-types/src/frontmatter.ts with parseSkillFrontmatter and buildSkillContent
+- parseSkillFrontmatter uses gray-matter to parse YAML frontmatter, validates with SkillFrontmatterSchema
+- buildSkillContent uses matter.stringify to produce valid SKILL.md with --- delimited YAML
+- Re-exported both functions from src/index.ts
+- Files changed: packages/shared-types/src/frontmatter.ts (new), packages/shared-types/src/index.ts, packages/shared-types/package.json, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - gray-matter is not in the workspace catalog; pnpm add uses latest version directly
+  - gray-matter.stringify(body, data) produces valid frontmatter round-trips
+  - Keep utility modules in separate files and re-export from index.ts for clean separation
+---
+
+## 2026-03-17 - US-004
+- Created @curiouslycory/git-service package at packages/git-service/
+- Implemented GitService class wrapping simple-git with methods: clone, fetch, pull, status, log, diff, commit, push, branches, checkout, showFileAtCommit
+- clone() supports { depth: 1 } for shallow clones
+- Exported simple-git types: StatusResult, LogResult, DefaultLogFields, DiffResult, BranchSummary
+- Files changed: packages/git-service/package.json, tsconfig.json, src/index.ts, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - simple-git fetch() has multiple overloads - need to branch on which params are provided rather than passing undefined
+  - simple-git is not in workspace catalog; pnpm add uses latest version directly
+  - Follow existing package pattern: compiled-package tsconfig, same scripts block, same devDependencies
+---
+
+## 2026-03-17 - US-005
+- Replaced Supabase/Postgres with SQLite via better-sqlite3 and drizzle-orm/better-sqlite3
+- Created 5 tables: skills, variations, favorites, compositions, config (all using SQLite column types)
+- client.ts reads DB_DIALECT (only sqlite supported) and DB_PATH (default: ./data/my-skills.db), auto-creates data directory
+- Removed auth-schema.ts (Postgres-specific auth tables no longer needed)
+- Updated index.ts exports: alias from drizzle-orm/sqlite-core instead of pg-core
+- Updated drizzle.config.ts for sqlite dialect
+- Added better-sqlite3 to pnpm.onlyBuiltDependencies in root package.json
+- Updated downstream consumers: api post router simplified, auth adapter changed to sqlite provider, web posts component simplified
+- Added @types/better-sqlite3 to api devDependencies (needed for declaration emit)
+- Files changed: packages/db/package.json, src/schema.ts, src/client.ts, src/index.ts, drizzle.config.ts, src/auth-schema.ts (deleted), packages/api/package.json, packages/api/src/router/post.ts, packages/auth/src/index.ts, apps/web/src/app/_components/posts.tsx, apps/web/src/app/page.tsx, package.json, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - better-sqlite3 needs native build scripts approved via pnpm.onlyBuiltDependencies in root package.json
+  - When changing db dialect, downstream packages that emit declarations need @types for the new driver
+  - Turbo aggressively caches build outputs; when schema shape changes, stale dist/.d.ts files can cause false type errors in consumers - clear .turbo + dist to force rebuild
+  - SQLite uses integer timestamps with `(unixepoch())` default, not Postgres `now()`
+  - drizzle-orm/better-sqlite3 `drizzle()` accepts `{ client, schema }` - no casing option needed for explicit column names
 ---

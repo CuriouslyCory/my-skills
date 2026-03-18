@@ -29,6 +29,7 @@
     "@curiouslycory/eslint-config": "workspace:*",
     "@curiouslycory/prettier-config": "workspace:*",
     "@curiouslycory/tsconfig": "workspace:*",
+    "@types/better-sqlite3": "^7.6.13",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:"

@@ -29,15 +29,15 @@
     "with-env": "dotenv -e ../../.env --"
   },
   "dependencies": {
-    "@vercel/postgres": "^0.10.0",
+    "better-sqlite3": "^11.9.1",
     "drizzle-orm": "^0.44.7",
-    "drizzle-zod": "^0.8.3",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@curiouslycory/eslint-config": "workspace:*",
     "@curiouslycory/prettier-config": "workspace:*",
     "@curiouslycory/tsconfig": "workspace:*",
+    "@types/better-sqlite3": "^7.6.13",
     "drizzle-kit": "^0.31.5",
     "eslint": "catalog:",
     "prettier": "catalog:",

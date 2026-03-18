@@ -42,7 +42,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "This package is dependency-free (only zod). Other packages will import from it. Use zod .infer<> for TypeScript types derived from schemas."
     },
     {
@@ -58,7 +58,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Use gray-matter library for parsing. The frontmatter format follows the agent skills spec: --- delimited YAML with name and description as required fields."
     },
     {
@@ -75,7 +75,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Use simple-git npm package. This is used by both the CLI (for cache management) and the web app (for git UI operations)."
     },
     {
@@ -95,7 +95,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Modify the existing @acme/db package from create-t3-turbo. Replace the Supabase/Postgres setup with SQLite. Keep the adapter pattern seam by reading DB_DIALECT but only implement sqlite for now. Add data/ to .gitignore."
     },
     {
