@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 
 import { cn } from "@curiouslycory/ui";
 import { Badge } from "@curiouslycory/ui/badge";
@@ -15,7 +15,9 @@ import {
   TableHeader,
   TableRow,
 } from "@curiouslycory/ui/table";
+import { toast } from "@curiouslycory/ui/toast";
 
+import { CommitDialog } from "~/app/_components/commit-dialog";
 import { DiffViewer } from "~/app/_components/diff-viewer";
 import { useTRPC } from "~/trpc/react";
 
@@ -94,6 +96,7 @@ function CommitDiffRow({ commitHash }: { commitHash: string }) {
 
 export function GitStatus() {
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [expandedCommit, setExpandedCommit] = useState<string | null>(null);
 
@@ -105,6 +108,19 @@ export function GitStatus() {
     trpc.git.log.queryOptions({
       maxCount: PAGE_SIZE,
       offset: page * PAGE_SIZE,
+    }),
+  );
+
+  const pushMutation = useMutation(
+    trpc.git.push.mutationOptions({
+      onSuccess: () => {
+        toast.success("Pushed successfully");
+        void queryClient.invalidateQueries({ queryKey: trpc.git.status.queryKey() });
+        void queryClient.invalidateQueries({ queryKey: trpc.git.log.queryKey() });
+      },
+      onError: (error) => {
+        toast.error(`Push failed: ${error.message}`);
+      },
     }),
   );
 
@@ -126,10 +142,34 @@ export function GitStatus() {
             {status.isClean ? "Clean" : "Dirty"}
           </Badge>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex items-center justify-between">
           <p className="text-sm">
             Branch: <span className="font-mono font-medium">{status.current}</span>
           </p>
+          <div className="flex gap-2">
+            <CommitDialog
+              files={status.files.map((f) => ({
+                path: f.path,
+                index: f.index,
+                workingDir: f.workingDir,
+              }))}
+              disabled={status.files.length === 0}
+            />
+            <Button
+              variant="outline"
+              onClick={() => pushMutation.mutate()}
+              disabled={pushMutation.isPending}
+            >
+              {pushMutation.isPending ? (
+                <>
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Pushing...
+                </>
+              ) : (
+                "Push"
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
