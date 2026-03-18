@@ -43,6 +43,7 @@ import {
 } from "@curiouslycory/ui/table";
 
 import { useTRPC } from "~/trpc/react";
+import { CompositionPreview } from "./composition-preview";
 
 type Artifact = RouterOutputs["artifact"]["list"][number];
 
@@ -253,6 +254,14 @@ export function FragmentSelectionTable() {
     }
   }, []);
 
+  const selectedFragmentIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, v]) => v)
+        .map(([k]) => k),
+    [rowSelection],
+  );
+
   return (
     <div className="flex gap-6">
       {/* Data Table */}
@@ -307,8 +316,8 @@ export function FragmentSelectionTable() {
         </div>
       </div>
 
-      {/* Selection Sidebar */}
-      <div className="w-72 shrink-0">
+      {/* Selection Sidebar + Preview */}
+      <div className="flex w-80 shrink-0 flex-col gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -356,6 +365,11 @@ export function FragmentSelectionTable() {
             )}
           </CardContent>
         </Card>
+
+        <CompositionPreview
+          fragmentIds={selectedFragmentIds}
+          orderedIds={orderedIds}
+        />
       </div>
     </div>
   );
