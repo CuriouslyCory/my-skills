@@ -825,7 +825,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 44,
-      "passes": false,
+      "passes": true,
       "notes": "The create page assembles a new SKILL.md. The edit page loads an existing one. Both use the same FrontmatterForm + PlateEditor components."
     },
     {

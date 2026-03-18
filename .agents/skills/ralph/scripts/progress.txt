@@ -775,3 +775,24 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - @radix-ui/react-icons uses Cross2Icon (not X) for close/remove icons
   - Lint failures in api, auth, git-service, shared-types, cli packages are pre-existing — web and ui lint clean
 ---
+
+## 2026-03-17 - US-044
+- Implemented /skills/new page with FrontmatterForm + PlateEditor for creating skills
+- Implemented /skills/[id]/edit page that loads existing skill data into form + editor
+- Created shared SkillEditor component used by both create and edit pages
+- Added PlateEditorHandle ref API (getMarkdown) to PlateEditor for external save triggers
+- Save calls skill.create/skill.update mutations with toast confirmation and redirect
+- Cancel button returns to previous page (skills list or skill detail)
+- Files changed:
+  - apps/web/src/app/_components/plate-editor.tsx (added forwardRef + imperative handle)
+  - apps/web/src/app/_components/skill-editor.tsx (new shared editor component)
+  - apps/web/src/app/(dashboard)/skills/new/page.tsx (new create page)
+  - apps/web/src/app/(dashboard)/skills/[id]/edit/page.tsx (new edit page wrapper)
+  - apps/web/src/app/(dashboard)/skills/[id]/edit/edit-skill.tsx (edit page client component)
+- **Learnings for future iterations:**
+  - PlateEditor now supports ref-based getMarkdown() via forwardRef + useImperativeHandle
+  - toast is exported from @curiouslycory/ui/toast (sonner-based)
+  - Skill tags are stored as JSON string in DB; need JSON.parse when loading for form
+  - The skill.create mutation returns the created row with id; redirect to /skills/${id}
+  - ESLint forbids non-null assertions; use early return guard instead
+---
