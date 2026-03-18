@@ -1,0 +1,8 @@
+export default function SkillsPage() {
+  return (
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold tracking-tight">Skills</h1>
+      <p className="text-muted-foreground">Browse and manage your skills.</p>
+    </div>
+  );
+}
