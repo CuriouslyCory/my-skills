@@ -715,7 +715,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 38,
-      "passes": false,
+      "passes": true,
       "notes": "Use the @curiouslycory/auth package for JWT operations. The middleware reads the session cookie and verifies it."
     },
     {

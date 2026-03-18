@@ -28,6 +28,8 @@
 - Drizzle query builder types are not reassignable — use ternary or separate queries for conditional where clauses
 - createTRPCContext accepts optional repoPath for filesystem operations; default is process.cwd()
 - Derive DB type as `typeof db` from @curiouslycory/db/client (don't import BetterSQLite3Database directly)
+- tRPC routers can't set cookies — use Next.js Server Actions (apps/web/src/auth/actions.ts) for cookie operations
+- Web app uses (auth) route group for login page; middleware.ts handles auth redirects
 - Shared lib functions go in packages/api/src/lib/ directory
 
 # Ralph Progress Log
@@ -648,4 +650,24 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - tRPC routers support nested objects for sub-routers (e.g., config.favorites.list) — use `satisfies TRPCRouterRecord` on the outer object
   - Drizzle better-sqlite3 doesn't support onConflictDoUpdate with returning() cleanly — use manual upsert (findFirst + update/insert)
   - favorites table has unique constraint on repo_url — handled by DB constraint, no need for manual check
+---
+
+## 2026-03-17 - US-038
+- Implemented auth tRPC router with login/logout mutations and session/isAuthEnabled queries
+- Created login page at apps/web/src/app/(auth)/login/ with client-side form component
+- Created server action for httpOnly cookie management (set/clear session cookie)
+- Created Next.js middleware for auth redirect (unauthenticated users → /login)
+- Auth bypassed when ADMIN_USER env var not set (returns synthetic local session)
+- Typecheck passes (17/17 tasks)
+- Files changed:
+  - packages/api/src/router/auth.ts (modified - added login/logout/isAuthEnabled)
+  - apps/web/src/app/(auth)/login/page.tsx (new)
+  - apps/web/src/app/(auth)/login/login-form.tsx (new)
+  - apps/web/src/auth/actions.ts (new - server action for cookie management)
+  - apps/web/src/middleware.ts (new)
+- **Learnings for future iterations:**
+  - tRPC routers can't set cookies directly — use Next.js Server Actions for cookie operations, called from client after mutation success
+  - Web app lint rule restricts process.env usage — use `import { env } from '~/env'` instead
+  - Next.js middleware can import from workspace packages (jose is Edge-compatible)
+  - (auth) route group pattern keeps auth pages separate without affecting URL structure
 ---
