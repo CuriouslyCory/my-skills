@@ -990,3 +990,19 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - useQueryClient().invalidateQueries() is used to refresh list after delete mutations
   - filter(Boolean) in TypeScript doesn't narrow types well; explicit `f !== undefined` check needed
 ---
+
+## 2026-03-17 - US-054
+- Built /git page with repository status, changed files, and commit log
+- Created git-status.tsx client component with:
+  - Repository status card (branch name + clean/dirty badge)
+  - Changed files grouped by staged/unstaged/untracked with status badges
+  - Commit log table with hash (8 chars), message, author, relative date
+  - Pagination for commit log (20 per page)
+  - Skeleton loading state
+- Updated page.tsx with server-side prefetching via HydrateClient
+- Files changed: apps/web/src/app/(dashboard)/git/page.tsx, apps/web/src/app/_components/git-status.tsx
+- **Learnings for future iterations:**
+  - Git status files have index + workingDir fields; index != ' ' && index != '?' means staged
+  - git.log accepts maxCount and offset for pagination; returns { commits, total }
+  - Page pattern: server page does prefetch(), wraps in HydrateClient + Suspense; client component uses useSuspenseQuery
+---

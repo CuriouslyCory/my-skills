@@ -1018,7 +1018,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 54,
-      "passes": false,
+      "passes": true,
       "notes": "The git page is the control center for repository operations. Build the read-only status view first, mutations in subsequent stories."
     },
     {
