@@ -552,3 +552,24 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - createTRPCContext now accepts optional repoPath; all context providers should pass it from REPO_PATH env var
   - buildSkillContent and parseSkillFrontmatter are exported from @curiouslycory/shared-types for disk read/write operations
 ---
+
+## 2026-03-17 - US-033
+- Created packages/api/src/router/artifact.ts with full CRUD + syncFromDisk for artifacts
+- artifact.list: query with optional category filter, returns only artifact categories (agent/prompt/claudemd)
+- artifact.listByCategory: query filtering by specific artifact category
+- artifact.byId: query returning single artifact by ID
+- artifact.create: protected mutation writing SKILL.md to artifacts/<category>/<name>/ on disk + inserting into DB
+- artifact.update: protected mutation updating SKILL.md on disk + DB record
+- artifact.delete: protected mutation removing artifact directory + DB record
+- artifact.syncFromDisk: protected mutation scanning all artifacts/ subdirectories (agents, prompts, claudemds), upserting to DB, removing stale entries
+- Registered artifact router in app router (packages/api/src/root.ts)
+- Reuses skills DB table with category field for differentiation
+- Uses CATEGORY_DIR_MAP from shared-types for category-to-directory mapping
+- Typecheck passes (17/17 tasks)
+- Files changed: packages/api/src/router/artifact.ts (new), packages/api/src/root.ts
+- **Learnings for future iterations:**
+  - Artifacts reuse the skills DB table — category field distinguishes skill vs agent/prompt/claudemd
+  - CATEGORY_DIR_MAP maps category to subdirectory name (agent→agents, prompt→prompts, claudemd→claudemds)
+  - syncFromDisk stale removal must filter by artifact categories to avoid deleting skill entries
+  - Artifact router follows identical pattern to skill router — same walkDirs helper, same CRUD structure
+---

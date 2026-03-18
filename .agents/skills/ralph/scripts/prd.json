@@ -615,7 +615,7 @@
         "Typecheck passes"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "notes": "Same pattern as skill router but for artifacts directory. Category determines subdirectory: artifacts/agents/, artifacts/prompts/, artifacts/claudemds/."
     },
     {
