@@ -1,29 +1,45 @@
 import type { AgentId } from "@curiouslycory/shared-types";
-import { AgentIdSchema } from "@curiouslycory/shared-types";
+import { AGENT_NATIVE_SUPPORT, AgentIdSchema } from "@curiouslycory/shared-types";
 
-import { NativeAdapter } from "./native-adapter.js";
+import { NativeAdapter } from "./native.js";
 import type { AgentAdapter } from "./types.js";
 
 /** Central registry mapping agent IDs to their adapter implementations. */
 const adapterRegistry = new Map<AgentId, AgentAdapter>();
 
-// Register all agents with NativeAdapter as the initial default.
-// Specialized adapters (Copilot, Codex, Gemini) will replace these in later stories.
-const nativeAgents: Array<{ id: AgentId; displayName: string }> = [
-  { id: "claude-code", displayName: "Claude Code" },
-  { id: "cursor", displayName: "Cursor" },
-  { id: "cline", displayName: "Cline" },
-  { id: "warp", displayName: "Warp" },
-  { id: "amp", displayName: "Amp" },
-  { id: "opencode", displayName: "OpenCode" },
-  { id: "github-copilot", displayName: "GitHub Copilot" },
-  { id: "codex", displayName: "Codex" },
-  { id: "gemini-cli", displayName: "Gemini CLI" },
-  { id: "kimi-code", displayName: "Kimi Code" },
-];
+// Display names for all agents
+const AGENT_DISPLAY_NAMES: Record<AgentId, string> = {
+  "claude-code": "Claude Code",
+  cursor: "Cursor",
+  cline: "Cline",
+  warp: "Warp",
+  amp: "Amp",
+  opencode: "OpenCode",
+  "github-copilot": "GitHub Copilot",
+  codex: "Codex",
+  "gemini-cli": "Gemini CLI",
+  "kimi-code": "Kimi Code",
+};
 
-for (const agent of nativeAgents) {
-  adapterRegistry.set(agent.id, new NativeAdapter(agent.id, agent.displayName));
+// Register native agents (no-op adapters for agents that read .agents/skills/ directly)
+for (const id of AgentIdSchema.options) {
+  if (AGENT_NATIVE_SUPPORT[id]) {
+    adapterRegistry.set(
+      id,
+      new NativeAdapter(id, AGENT_DISPLAY_NAMES[id]),
+    );
+  }
+}
+
+// Non-native agents get NativeAdapter as placeholder until specialized adapters replace them
+// (Copilot, Codex, Gemini adapters in later stories)
+for (const id of AgentIdSchema.options) {
+  if (!adapterRegistry.has(id)) {
+    adapterRegistry.set(
+      id,
+      new NativeAdapter(id, AGENT_DISPLAY_NAMES[id]),
+    );
+  }
 }
 
 // Verify all agent IDs are registered
