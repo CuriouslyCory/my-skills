@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 import { eq } from "@curiouslycory/db";
 import { config, favorites } from "@curiouslycory/db/schema";
 
+import { syncConfigToFile } from "../lib/config-sync";
 import { protectedProcedure, publicProcedure } from "../trpc";
 
 export const configRouter = {
@@ -39,7 +40,11 @@ export const configRouter = {
         });
       }
 
-      return { key: input.key, value: input.value };
+      const result = { key: input.key, value: input.value };
+      syncConfigToFile(ctx.db).catch((err) =>
+        console.error("config-sync failed:", err),
+      );
+      return result;
     }),
 
   favorites: {
@@ -64,6 +69,9 @@ export const configRouter = {
             description: input.description ?? null,
           })
           .returning();
+        syncConfigToFile(ctx.db).catch((err) =>
+          console.error("config-sync failed:", err),
+        );
         return row;
       }),
 
@@ -71,6 +79,9 @@ export const configRouter = {
       .input(z.object({ id: z.string() }))
       .mutation(async ({ ctx, input }) => {
         await ctx.db.delete(favorites).where(eq(favorites.id, input.id));
+        syncConfigToFile(ctx.db).catch((err) =>
+          console.error("config-sync failed:", err),
+        );
         return { success: true };
       }),
   },
