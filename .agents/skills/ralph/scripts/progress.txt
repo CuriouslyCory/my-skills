@@ -239,3 +239,19 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Use computeSkillHash to compare local install against manifest computedHash for skip logic
   - node:fs/promises stat() is a clean way to check directory existence without reading content
 ---
+
+## 2026-03-17 - US-016
+- Implemented all add command flags: --skill, --agent, -y/--yes, -g/--global, --copy, --all, -l/--list
+- --skill <names>: comma-separated skill names, bypasses interactive picker; '*' installs all skills
+- --agent <agents>: comma-separated agent IDs validated against AgentIdSchema; '*' selects all agents
+- -y/--yes: skips confirmation prompts; when used with owner/repo (no --skill), installs all discovered skills
+- -g/--global: installs to ~/.agents/skills/ instead of project .agents/skills/
+- --all: shorthand that sets --skill '*' --agent '*' -y
+- -l/--list: discovers and prints available skills in a repo without installing
+- Refactored single-skill install into installSingleSkill() helper for multi-skill loop
+- Files changed: apps/cli/src/commands/add.ts
+- **Learnings for future iterations:**
+  - Commander option() with .action() passes options as second arg after the positional arg
+  - AgentIdSchema.options gives the array of valid enum values for validation and wildcard expansion
+  - When adding flags, keep the no-flag path identical to preserve backwards compatibility
+---

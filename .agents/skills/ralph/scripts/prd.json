@@ -297,7 +297,7 @@
         "Typecheck passes"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "Flags modify the behavior of the core add flow from US-014. --list just runs discoverSkills and prints the table without installing."
     },
     {
