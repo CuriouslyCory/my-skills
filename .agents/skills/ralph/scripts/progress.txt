@@ -28,6 +28,8 @@
 - Drizzle query builder types are not reassignable — use ternary or separate queries for conditional where clauses
 - createTRPCContext accepts optional repoPath for filesystem operations; default is process.cwd()
 - Derive DB type as `typeof db` from @curiouslycory/db/client (don't import BetterSQLite3Database directly)
+- Import toast from @curiouslycory/ui/toast, not directly from sonner (sonner types not available in web app)
+- Plate.js read-only mode: pass `readOnly` prop to PlateContent; update content dynamically via editor.tf.replaceNodes({at: [], children: true})
 - Web app uses (dashboard) route group for pages with sidebar/header; (auth) group for auth pages without shell
 - @radix-ui/react-icons must be added as direct dep in web app (not inherited from packages/ui)
 - tRPC routers can't set cookies — use Next.js Server Actions (apps/web/src/auth/actions.ts) for cookie operations
@@ -937,4 +939,23 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Track ordered IDs separately from row selection state — sync on selection change by keeping existing order and appending new items
   - useSortable hook provides attributes + listeners to spread on drag handle element, not the list item itself
   - DragHandleDots2Icon from @radix-ui/react-icons works well as a grip/drag handle icon
+---
+
+## 2026-03-17 - US-052
+- Implemented live preview panel for composition builder
+- Created CompositionPreview component with read-only Plate.js editor
+- Preview calls composition.preview tRPC query debounced at 500ms using custom useDebounce hook
+- Added "Copy as Markdown" button with sonner toast confirmation
+- Added CLI command preview text ("ms add claudemd <name>") with "Copy Command" button
+- Preview panel renders below the selection sidebar card
+- Editor content updates reactively when markdown changes via editor.tf.replaceNodes
+- Files changed:
+  - apps/web/src/app/_components/composition-preview.tsx (new)
+  - apps/web/src/app/_components/fragment-selection-table.tsx (modified - integrated preview, widened sidebar to w-80)
+- **Learnings for future iterations:**
+  - Import toast from @curiouslycory/ui/toast, not directly from sonner (sonner types not available in web app)
+  - Plate.js read-only mode: pass `readOnly` prop to PlateContent, no toolbar needed
+  - To update Plate editor content dynamically, use editor.tf.replaceNodes with {at: [], children: true}
+  - Debounce array inputs by serializing to JSON string first, then parsing back after debounce
+  - Turbo's --filter flag works for typecheck but the pnpm lint script passes extra args that break eslint
 ---

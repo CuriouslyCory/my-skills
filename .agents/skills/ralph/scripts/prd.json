@@ -981,7 +981,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 52,
-      "passes": false,
+      "passes": true,
       "notes": "Use the Plate.js editor from US-042 in read-only mode. The preview is the right-most panel in the three-panel composition builder layout."
     },
     {
