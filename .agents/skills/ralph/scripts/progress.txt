@@ -762,3 +762,16 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Lazy loading via next/dynamic should be done at the consumer level, not built into the component itself
   - Manual browser verification needed
 ---
+
+## 2026-03-17 - US-043
+- Built FrontmatterForm component at apps/web/src/app/_components/frontmatter-form.tsx
+- Created Textarea UI component at packages/ui/src/textarea.tsx with export in packages/ui/package.json
+- Form fields: name (with non-empty validation), description (textarea), tags (multi-input with Enter to add, X to remove), author, version
+- Accepts initialValues and onChange callback emitting full SkillFrontmatter object
+- Uses shadcn/ui Input, Textarea, Badge, Button, Label components
+- Files changed: packages/ui/src/textarea.tsx (new), packages/ui/package.json (export added), apps/web/src/app/_components/frontmatter-form.tsx (new)
+- **Learnings for future iterations:**
+  - Textarea component follows same pattern as Input — uses cn() from @curiouslycory/ui for className merging
+  - @radix-ui/react-icons uses Cross2Icon (not X) for close/remove icons
+  - Lint failures in api, auth, git-service, shared-types, cli packages are pre-existing — web and ui lint clean
+---
