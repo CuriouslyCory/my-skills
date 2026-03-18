@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useMemo } from "react";
 import type { PlateEditor as PlateEditorType } from "platejs/react";
 import {
   Plate,
@@ -138,13 +138,17 @@ function EditorToolbar({ editor }: { editor: PlateEditorType }) {
 
 // --- Main editor component ---
 
+export interface PlateEditorHandle {
+  getMarkdown: () => string;
+}
+
 interface PlateEditorProps {
   initialContent?: string;
   onSave?: (markdown: string) => void;
   className?: string;
 }
 
-export function PlateEditor({ initialContent, onSave, className }: PlateEditorProps) {
+export const PlateEditor = forwardRef<PlateEditorHandle, PlateEditorProps>(function PlateEditor({ initialContent, onSave, className }, ref) {
   const plugins = useMemo(
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     () => [
@@ -266,6 +270,14 @@ export function PlateEditor({ initialContent, onSave, className }: PlateEditorPr
       : undefined,
   });
 
+  useImperativeHandle(ref, () => ({
+    getMarkdown: () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const md: string = editor.api.markdown.serialize();
+      return md;
+    },
+  }), [editor]);
+
   const handleSave = useCallback(() => {
     if (!onSave) return;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -291,4 +303,4 @@ export function PlateEditor({ initialContent, onSave, className }: PlateEditorPr
       )}
     </div>
   );
-}
+});
