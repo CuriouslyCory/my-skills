@@ -28,6 +28,8 @@
 - Drizzle query builder types are not reassignable — use ternary or separate queries for conditional where clauses
 - createTRPCContext accepts optional repoPath for filesystem operations; default is process.cwd()
 - Derive DB type as `typeof db` from @curiouslycory/db/client (don't import BetterSQLite3Database directly)
+- Dialog component available at @curiouslycory/ui/dialog (Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription)
+- FragmentSelectionTable accepts optional props: initialSelection, initialOrder, compositionId, compositionName, compositionDescription
 - Import toast from @curiouslycory/ui/toast, not directly from sonner (sonner types not available in web app)
 - Plate.js read-only mode: pass `readOnly` prop to PlateContent; update content dynamically via editor.tf.replaceNodes({at: [], children: true})
 - Web app uses (dashboard) route group for pages with sidebar/header; (auth) group for auth pages without shell
@@ -958,4 +960,33 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - To update Plate editor content dynamically, use editor.tf.replaceNodes with {at: [], children: true}
   - Debounce array inputs by serializing to JSON string first, then parsing back after debounce
   - Turbo's --filter flag works for typecheck but the pnpm lint script passes extra args that break eslint
+---
+
+## 2026-03-17 - US-053
+- Implemented composition save and load system
+- Created Dialog UI component (packages/ui/src/dialog.tsx) following AlertDialog pattern
+- Added SaveCompositionDialog component with name/description form that calls composition.create mutation
+- Updated FragmentSelectionTable to accept initialSelection/initialOrder/compositionId props for loading saved compositions
+- Added UpdateCompositionButton for updating existing compositions
+- Built /compositions list page with table showing name, description, fragment count, date, and delete button with AlertDialog confirmation
+- Built /compositions/[id] detail page that loads saved composition and restores fragment selection checkboxes and order in the builder UI
+- Added outdated detection: composition.list query now checks if any fragment's updatedAt > composition's updatedAt
+- Shows 'outdated' badge (destructive variant) on both the list page and detail page
+- Files changed:
+  - packages/ui/src/dialog.tsx (new - Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription)
+  - packages/ui/package.json (modified - added dialog export)
+  - packages/api/src/router/composition.ts (modified - list query now includes outdated detection)
+  - apps/web/src/app/_components/save-composition-dialog.tsx (new)
+  - apps/web/src/app/_components/composition-list.tsx (new)
+  - apps/web/src/app/_components/composition-detail.tsx (new)
+  - apps/web/src/app/_components/fragment-selection-table.tsx (modified - added props, update button, save dialog)
+  - apps/web/src/app/(dashboard)/compositions/page.tsx (modified - now shows list with prefetch)
+  - apps/web/src/app/(dashboard)/compositions/[id]/page.tsx (new)
+- **Learnings for future iterations:**
+  - Dialog component follows same pattern as AlertDialog but uses DialogPrimitive.Close instead of Action/Cancel
+  - radix-ui v1.4.3 package exports Dialog primitive directly (import { Dialog } from "radix-ui")
+  - FragmentSelectionTable now accepts initialSelection/initialOrder to restore saved state
+  - Outdated detection compares fragment updatedAt timestamps against composition updatedAt
+  - useQueryClient().invalidateQueries() is used to refresh list after delete mutations
+  - filter(Boolean) in TypeScript doesn't narrow types well; explicit `f !== undefined` check needed
 ---

@@ -1000,7 +1000,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 53,
-      "passes": false,
+      "passes": true,
       "notes": "Outdated detection: compare fragment updatedAt timestamps against composition's updatedAt."
     },
     {
