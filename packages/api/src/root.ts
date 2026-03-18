@@ -1,5 +1,6 @@
 import { artifactRouter } from "./router/artifact";
 import { authRouter } from "./router/auth";
+import { configRouter } from "./router/config";
 import { gitRouter } from "./router/git";
 import { postRouter } from "./router/post";
 import { searchRouter } from "./router/search";
@@ -9,6 +10,7 @@ import { createTRPCRouter } from "./trpc";
 export const appRouter = createTRPCRouter({
   artifact: artifactRouter,
   auth: authRouter,
+  config: configRouter,
   git: gitRouter,
   post: postRouter,
   search: searchRouter,
