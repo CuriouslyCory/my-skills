@@ -554,7 +554,7 @@
         "Typecheck passes"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "notes": "The create-t3-turbo scaffold already has a Next.js app with tRPC. Rename it from nextjs to web and ensure the wiring works with the modified db package."
     },
     {

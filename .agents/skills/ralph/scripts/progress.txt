@@ -489,3 +489,16 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Commander subcommands: use program.command("config") then configCmd.command("get <key>") for nested commands
   - DEFAULT_CONFIG is exported from core/config.ts and useful for the "delete" (reset to default) operation
 ---
+
+## 2026-03-17 - US-030
+- Updated apps/web/src/env.ts: removed POSTGRES_URL (no longer needed with SQLite), added REPO_PATH (optional, defaults to process.cwd())
+- Added @curiouslycory/shared-types and @curiouslycory/git-service as workspace dependencies to apps/web
+- tRPC client was already configured from create-t3-turbo scaffold connecting to @curiouslycory/api
+- Web app already renamed from nextjs to web with correct package name @curiouslycory/web
+- Typecheck passes (17/17 tasks)
+- Files changed: apps/web/package.json, apps/web/src/env.ts, package.json, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - The create-t3-turbo scaffold already has tRPC fully wired (client, server RSC, API route handler) — just add deps and fix env
+  - REPO_PATH env var is optional in env.ts; use `env.REPO_PATH ?? process.cwd()` in routers that need filesystem access
+  - Web app env.ts extends authEnv() which requires AUTH_DISCORD_ID/SECRET — skip validation with CI=true or skipValidation for typecheck
+---
