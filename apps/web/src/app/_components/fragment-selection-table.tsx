@@ -1,6 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   createColumnHelper,
@@ -8,6 +25,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 
 import type { RouterOutputs } from "@curiouslycory/api";
 import { cn } from "@curiouslycory/ui";
@@ -48,6 +66,48 @@ function formatDate(date: Date | string | null): string {
   });
 }
 
+function SortableFragmentItem({
+  id,
+  name,
+}: {
+  id: string;
+  name: string;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center gap-2 rounded-md px-2 py-1 text-sm",
+        isDragging && "bg-muted opacity-50",
+      )}
+    >
+      <button
+        className="text-muted-foreground hover:text-foreground shrink-0 cursor-grab touch-none"
+        {...attributes}
+        {...listeners}
+      >
+        <DragHandleDots2Icon className="h-4 w-4" />
+      </button>
+      <span className="min-w-0 flex-1 truncate">{name}</span>
+    </li>
+  );
+}
+
 export function FragmentSelectionTable() {
   const trpc = useTRPC();
   const { data: artifacts } = useSuspenseQuery(
@@ -55,6 +115,7 @@ export function FragmentSelectionTable() {
   );
 
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [orderedIds, setOrderedIds] = useState<string[]>([]);
 
   const columns = [
     columnHelper.display({
@@ -119,18 +180,78 @@ export function FragmentSelectionTable() {
     }),
   ];
 
+  const handleRowSelectionChange = useCallback(
+    (updaterOrValue: React.SetStateAction<Record<string, boolean>>) => {
+      setRowSelection((prev) => {
+        const next =
+          typeof updaterOrValue === "function"
+            ? updaterOrValue(prev)
+            : updaterOrValue;
+
+        // Determine newly selected and deselected IDs
+        const nextSelectedIds = new Set(
+          Object.entries(next)
+            .filter(([, v]) => v)
+            .map(([k]) => k),
+        );
+
+        setOrderedIds((prevOrder) => {
+          // Keep existing order for still-selected items, append new ones at end
+          const kept = prevOrder.filter((id) => nextSelectedIds.has(id));
+          const added = [...nextSelectedIds].filter(
+            (id) => !prevOrder.includes(id),
+          );
+          return [...kept, ...added];
+        });
+
+        return next;
+      });
+    },
+    [],
+  );
+
   const table = useReactTable({
     data: artifacts,
     columns,
     state: { rowSelection },
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: handleRowSelectionChange,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
   });
 
-  const selectedRows = table
-    .getSelectedRowModel()
-    .rows.map((row) => row.original);
+  const artifactMap = useMemo(() => {
+    const map = new Map<string, Artifact>();
+    for (const a of artifacts) {
+      map.set(a.id, a);
+    }
+    return map;
+  }, [artifacts]);
+
+  const orderedSelectedArtifacts = useMemo(
+    () =>
+      orderedIds
+        .map((id) => artifactMap.get(id))
+        .filter((a): a is Artifact => a !== undefined),
+    [orderedIds, artifactMap],
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setOrderedIds((items) => {
+        const oldIndex = items.indexOf(String(active.id));
+        const newIndex = items.indexOf(String(over.id));
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  }, []);
 
   return (
     <div className="flex gap-6">
@@ -191,36 +312,47 @@ export function FragmentSelectionTable() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Selected ({selectedRows.length})
+              Selected ({orderedSelectedArtifacts.length})
             </CardTitle>
-            {selectedRows.length > 0 && (
+            {orderedSelectedArtifacts.length > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setRowSelection({})}
+                onClick={() => {
+                  setRowSelection({});
+                  setOrderedIds([]);
+                }}
               >
                 Clear all
               </Button>
             )}
           </CardHeader>
           <CardContent>
-            {selectedRows.length === 0 ? (
+            {orderedSelectedArtifacts.length === 0 ? (
               <p className="text-muted-foreground text-sm">
                 Select fragments from the table to build your composition.
               </p>
             ) : (
-              <ul className="space-y-2">
-                {selectedRows.map((artifact) => (
-                  <li
-                    key={artifact.id}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <span className="min-w-0 flex-1 truncate">
-                      {artifact.name}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={orderedIds}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <ul className="space-y-1">
+                    {orderedSelectedArtifacts.map((artifact) => (
+                      <SortableFragmentItem
+                        key={artifact.id}
+                        id={artifact.id}
+                        name={artifact.name}
+                      />
+                    ))}
+                  </ul>
+                </SortableContext>
+              </DndContext>
             )}
           </CardContent>
         </Card>

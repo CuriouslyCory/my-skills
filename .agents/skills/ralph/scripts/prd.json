@@ -962,7 +962,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 51,
-      "passes": false,
+      "passes": true,
       "notes": "The ordering determines the merge order for the heading merge algorithm. First fragment takes precedence for heading levels."
     },
     {

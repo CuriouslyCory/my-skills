@@ -47,6 +47,7 @@
 - @tanstack/react-table installed in web app for shadcn/ui DataTable pattern; use createColumnHelper for type-safe columns
 - React Compiler warns about useReactTable incompatibility — this is expected, not a lint error to fix
 - skills table `description` field is notNull — don't use `?? fallback` with it (triggers @typescript-eslint/no-unnecessary-condition)
+- @dnd-kit: use DndContext + SortableContext + useSortable for drag-and-drop lists; spread attributes/listeners on drag handle, not container
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -918,4 +919,22 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - skills table description is notNull — don't use `?? fallback` (triggers no-unnecessary-condition lint error)
   - Radix Checkbox import: `import { Checkbox as RadixCheckbox } from "radix-ui"` then use RadixCheckbox.Root
   - Use `getRowId: (row) => row.id` in useReactTable config to use entity IDs instead of row indices for selection state
+---
+
+## 2026-03-17 - US-051
+- Implemented drag-and-drop reordering for selected fragments in composition builder sidebar
+- Installed @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities in web app
+- Added SortableFragmentItem component with drag handle (DragHandleDots2Icon from radix-ui)
+- Added orderedIds state that syncs with row selection (new selections append, deselections remove)
+- DndContext + SortableContext with verticalListSortingStrategy for reordering
+- Fragment order tracked via orderedIds state array, available for composition.preview calls
+- Files changed:
+  - apps/web/package.json (added @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities)
+  - apps/web/src/app/_components/fragment-selection-table.tsx (added DnD support)
+  - pnpm-lock.yaml (updated)
+- **Learnings for future iterations:**
+  - @dnd-kit/utilities provides CSS.Transform.toString() for sortable transform styles
+  - Track ordered IDs separately from row selection state — sync on selection change by keeping existing order and appending new items
+  - useSortable hook provides attributes + listeners to spread on drag handle element, not the list item itself
+  - DragHandleDots2Icon from @radix-ui/react-icons works well as a grip/drag handle icon
 ---
