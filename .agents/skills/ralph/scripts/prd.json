@@ -573,7 +573,7 @@
         "Typecheck passes"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "notes": "Replace the Better Auth setup from create-t3-turbo with this simpler approach. Auth is optional - disabled by default for local dev."
     },
     {

@@ -22,6 +22,8 @@
 - smol-toml: parse(string) → object, stringify(object) → string; nested tables [a.b] = { a: { b: {} } }
 - Adapters with markdown marker management reuse parseSections/buildManagedSection pattern (see CopilotAdapter, GeminiAdapter)
 - Zod v4 _def doesn't reliably expose typeName; use explicit key sets instead of schema introspection for type detection
+- createTRPCContext takes { headers, session } — resolve session before calling; Session type from @curiouslycory/auth
+- Auth is optional: isAuthEnabled() checks ADMIN_USER env var; when disabled, getSession() returns synthetic local session
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -501,4 +503,28 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - The create-t3-turbo scaffold already has tRPC fully wired (client, server RSC, API route handler) — just add deps and fix env
   - REPO_PATH env var is optional in env.ts; use `env.REPO_PATH ?? process.cwd()` in routers that need filesystem access
   - Web app env.ts extends authEnv() which requires AUTH_DISCORD_ID/SECRET — skip validation with CI=true or skipValidation for typecheck
+---
+
+## 2026-03-17 - US-031
+- Replaced Better Auth with simple cookie-based JWT auth using jose library
+- packages/auth/src/index.ts: exports validate(), createSession(), verifySession(), isAuthEnabled(), Session type
+- validate() checks against ADMIN_USER and ADMIN_PASSWORD env vars
+- createSession() returns HS256 JWT signed with AUTH_SECRET (7-day expiry)
+- verifySession() validates JWT and returns Session | null
+- isAuthEnabled() returns true only when ADMIN_USER is set
+- Updated authEnv() to use optional ADMIN_USER/ADMIN_PASSWORD/AUTH_SECRET (removed Discord vars)
+- Removed Better Auth dependencies from auth package and web app
+- Updated createTRPCContext to accept session directly instead of auth object
+- Updated web app consumers: trpc/server.tsx, api/trpc route, auth/server.ts, auth-showcase component
+- Removed Better Auth catch-all route (apps/web/src/app/api/auth/[...all]/route.ts)
+- Removed Better Auth client (apps/web/src/auth/client.ts)
+- Removed Better Auth CLI script (packages/auth/script/auth-cli.ts)
+- Deleted @curiouslycory/db dependency from auth package (no longer needed)
+- Typecheck passes (17/17 tasks)
+- Files changed: packages/auth/src/index.ts, packages/auth/env.ts, packages/auth/package.json, packages/auth/script/auth-cli.ts (deleted), packages/api/src/trpc.ts, apps/web/package.json, apps/web/src/auth/server.ts, apps/web/src/auth/client.ts (deleted), apps/web/src/trpc/server.tsx, apps/web/src/app/api/trpc/[trpc]/route.ts, apps/web/src/app/api/auth/[...all]/route.ts (deleted), apps/web/src/app/_components/auth-showcase.tsx, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - createTRPCContext now takes { headers, session } instead of { headers, auth } — all tRPC context providers must resolve session before calling
+  - Auth is optional: when ADMIN_USER is not set, getSession() returns a synthetic { user: { username: "local" } } session
+  - jose library: SignJWT().setProtectedHeader().setIssuedAt().setExpirationTime().sign() for creation; jwtVerify(token, secret) for verification
+  - Web app auth/server.ts uses SESSION_COOKIE="my-skills-session" cookie name for JWT token storage
 ---
