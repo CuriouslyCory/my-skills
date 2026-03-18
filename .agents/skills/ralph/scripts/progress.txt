@@ -19,6 +19,8 @@
 - @inquirer/search is a default export; source callback needs explicit type: `(input: string | undefined)`
 - @inquirer/confirm and @inquirer/checkbox are default exports; use dynamic import for conditional usage
 - SkillFrontmatter uses `compatibility` for agent IDs; SkillEntry (manifest) uses `agents` — don't confuse them
+- smol-toml: parse(string) → object, stringify(object) → string; nested tables [a.b] = { a: { b: {} } }
+- Adapters with markdown marker management reuse parseSections/buildManagedSection pattern (see CopilotAdapter, GeminiAdapter)
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -355,4 +357,29 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - CopilotAdapter uses HTML comment markers for section management — same pattern can be reused for any markdown-based config
   - parseSections() splits file into before/managed/after for safe content replacement
   - Registry uses direct instantiation `new CopilotAdapter()` since id/displayName are hardcoded in the class
+---
+
+## 2026-03-17 - US-023
+- Created apps/cli/src/adapters/codex.ts implementing AgentAdapter for OpenAI Codex
+- CodexAdapter reads/writes .codex/config.toml using smol-toml for TOML parsing
+- install() adds [skills.<name>] sections with description and instructions fields
+- remove() removes the [skills.<name>] section, preserving all other TOML content
+- sync() replaces entire skills table with current skills
+- detect() checks for .codex/config.toml or .codex/ directory
+- Creates .codex/ directory and config.toml if they don't exist
+- Created apps/cli/src/adapters/gemini.ts implementing AgentAdapter for Gemini CLI
+- GeminiAdapter writes per-skill TOML command files to .gemini/commands/<skill-name>.toml
+- GeminiAdapter manages <!-- my-skills:start/end --> markers in GEMINI.md for skill references
+- remove() deletes the TOML file and removes reference from GEMINI.md
+- Creates .gemini/commands/ directory and GEMINI.md if needed
+- Added smol-toml as dependency for TOML parsing
+- Updated registry.ts to use CodexAdapter for "codex" and GeminiAdapter for "gemini-cli"
+- Updated index.ts barrel export to include CodexAdapter and GeminiAdapter
+- Typecheck passes (17/17 tasks)
+- Files changed: apps/cli/src/adapters/codex.ts (new), apps/cli/src/adapters/gemini.ts (new), apps/cli/src/adapters/registry.ts, apps/cli/src/adapters/index.ts, apps/cli/package.json, package.json, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - smol-toml has simple API: parse(string) → object, stringify(object) → string
+  - TOML nested tables like [skills.foo] map to nested objects: { skills: { foo: { ... } } }
+  - GeminiAdapter uses dual storage: per-skill TOML files + GEMINI.md reference list
+  - Same parseSections/buildManagedSection pattern from CopilotAdapter reused for GEMINI.md marker management
 ---

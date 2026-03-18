@@ -427,7 +427,7 @@
         "Typecheck passes"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": "Codex uses TOML config, Gemini uses TOML command files. Both need a TOML parser. smol-toml is a lightweight option."
     },
     {
