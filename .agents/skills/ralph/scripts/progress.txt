@@ -1006,3 +1006,19 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - git.log accepts maxCount and offset for pagination; returns { commits, total }
   - Page pattern: server page does prefetch(), wraps in HydrateClient + Suspense; client component uses useSuspenseQuery
 ---
+
+## 2026-03-17 - US-055
+- Created DiffViewer component at apps/web/src/app/_components/diff-viewer.tsx
+- Renders unified git diff with syntax highlighting (green additions, red deletions, blue headers)
+- Integrated into git page: clicking a commit row expands inline diff (lazy-loaded via git.diff query)
+- Integrated into skill detail version history: clicking a commit expands to show diff
+- Integrated into artifact detail version history: same pattern as skills
+- Installed react-diff-viewer-continued (per AC) but used custom unified diff renderer instead for better multi-file diff support
+- git.diff tRPC query already existed from US-054
+- Files changed: apps/web/src/app/_components/diff-viewer.tsx (new), apps/web/src/app/_components/git-status.tsx, apps/web/src/app/(dashboard)/skills/[id]/skill-detail.tsx, apps/web/src/app/(dashboard)/artifacts/[category]/[id]/artifact-detail.tsx, apps/web/package.json, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - react-diff-viewer-continued needs oldValue/newValue split which is complex for multi-file unified diffs; a custom renderer for unified diff format is simpler and more reliable
+  - Use Fragment (not <>) for map() returns with multiple sibling elements needing a key
+  - Pre-existing lint errors exist in composition-detail.tsx, fragment-selection-table.tsx, search-results.tsx — not from US-055 changes
+  - useQuery (not useSuspenseQuery) is appropriate for lazy-loaded data like diffs that only fetch on user interaction
+---

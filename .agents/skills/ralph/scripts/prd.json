@@ -1036,7 +1036,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 55,
-      "passes": false,
+      "passes": true,
       "notes": "react-diff-viewer-continued accepts oldValue and newValue strings. Parse the git diff output to extract the before/after content."
     },
     {
