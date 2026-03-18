@@ -20,6 +20,7 @@
   "dependencies": {
     "@curiouslycory/auth": "workspace:*",
     "@curiouslycory/db": "workspace:*",
+    "@curiouslycory/git-service": "workspace:*",
     "@curiouslycory/shared-types": "workspace:*",
     "@curiouslycory/validators": "workspace:*",
     "@trpc/server": "catalog:",

@@ -269,6 +269,9 @@ importers:
       '@curiouslycory/db':
         specifier: workspace:*
         version: link:../db
+      '@curiouslycory/git-service':
+        specifier: workspace:*
+        version: link:../git-service
       '@curiouslycory/shared-types':
         specifier: workspace:*
         version: link:../shared-types
