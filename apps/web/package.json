@@ -30,6 +30,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-form": "catalog:",
     "@tanstack/react-query": "catalog:",
+    "@tanstack/react-table": "^8.21.3",
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "@trpc/tanstack-react-query": "catalog:",

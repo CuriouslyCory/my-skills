@@ -8,11 +8,13 @@
     "./badge": "./src/badge.tsx",
     "./button": "./src/button.tsx",
     "./card": "./src/card.tsx",
+    "./checkbox": "./src/checkbox.tsx",
     "./dropdown-menu": "./src/dropdown-menu.tsx",
     "./field": "./src/field.tsx",
     "./input": "./src/input.tsx",
     "./label": "./src/label.tsx",
     "./separator": "./src/separator.tsx",
+    "./table": "./src/table.tsx",
     "./theme": "./src/theme.tsx",
     "./textarea": "./src/textarea.tsx",
     "./toast": "./src/toast.tsx"
