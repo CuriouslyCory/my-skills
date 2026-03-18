@@ -11,6 +11,8 @@
 - When db schema changes, downstream packages (api, web) may need @types/better-sqlite3 in devDependencies for declaration emit
 - Turbo caches dist/ output; after schema changes, delete .turbo + dist/ to force fresh declaration emit for downstream consumers
 - FTS5 virtual tables/triggers use raw better-sqlite3 db.exec(), not Drizzle ORM; initFTS takes Database.Database instance
+- CLI app (apps/cli) uses tsup for bundling, not tsc; set outDir: "dist/bin" to match bin field paths
+- Import package.json in ESM with `with { type: "json" }` assertion
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -101,4 +103,22 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - FTS5 virtual tables and triggers must use raw better-sqlite3 `db.exec()` since Drizzle ORM doesn't model virtual tables
   - initFTS takes the raw `Database.Database` instance, not the Drizzle wrapper
   - FTS5 UPDATE sync requires DELETE old + INSERT new pattern (no direct UPDATE on FTS5 tables)
+---
+
+## 2026-03-17 - US-007
+- Scaffolded CLI app at apps/cli/ with Commander.js
+- package.json: name "my-skills", type "module", engines node >=18, bin entries for "ms" and "my-skills"
+- tsup.config.ts: ESM output, node18 target, shebang banner, outDir dist/bin
+- src/program.ts exports createProgram() function with name, version, description
+- src/bin/my-skills.ts entry point that calls createProgram().parse()
+- vitest.config.ts configured with globals: true
+- Dependencies: commander, chalk, ora, @inquirer/search, @inquirer/checkbox, gray-matter
+- Workspace deps: @curiouslycory/shared-types, @curiouslycory/git-service
+- Build produces dist/bin/my-skills.js with shebang, typecheck passes (17/17 tasks)
+- Files changed: apps/cli/package.json, tsconfig.json, tsup.config.ts, vitest.config.ts, src/bin/my-skills.ts, src/program.ts, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - tsup default outDir is "dist" - set outDir: "dist/bin" explicitly to match bin field path
+  - CLI uses tsup (not tsc) for bundling, so tsconfig only needs base.json (not compiled-package)
+  - Import package.json with `with { type: "json" }` assertion for ESM
+  - tsup entry paths map to output filenames: src/bin/my-skills.ts -> dist/bin/my-skills.js
 ---

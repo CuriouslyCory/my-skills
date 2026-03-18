@@ -132,7 +132,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "The CLI is a separate app in apps/cli/. It uses tsup for bundling. The bin entry should have #!/usr/bin/env node shebang via tsup banner option."
     },
     {
