@@ -26,7 +26,6 @@
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "@trpc/tanstack-react-query": "catalog:",
-    "better-auth": "catalog:",
     "next": "^16.0.9",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",

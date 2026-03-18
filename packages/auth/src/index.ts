@@ -1,52 +1,56 @@
-import type { BetterAuthOptions, BetterAuthPlugin } from "better-auth";
-import { expo } from "@better-auth/expo";
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { oAuthProxy } from "better-auth/plugins";
+import { SignJWT, jwtVerify } from "jose";
 
-import { db } from "@curiouslycory/db/client";
-
-export function initAuth<
-  TExtraPlugins extends BetterAuthPlugin[] = [],
->(options: {
-  baseUrl: string;
-  productionUrl: string;
-  secret: string | undefined;
-
-  discordClientId: string;
-  discordClientSecret: string;
-  extraPlugins?: TExtraPlugins;
-}) {
-  const config = {
-    database: drizzleAdapter(db, {
-      provider: "sqlite",
-    }),
-    baseURL: options.baseUrl,
-    secret: options.secret,
-    plugins: [
-      oAuthProxy({
-        productionURL: options.productionUrl,
-      }),
-      expo(),
-      ...(options.extraPlugins ?? []),
-    ],
-    socialProviders: {
-      discord: {
-        clientId: options.discordClientId,
-        clientSecret: options.discordClientSecret,
-        redirectURI: `${options.productionUrl}/api/auth/callback/discord`,
-      },
-    },
-    trustedOrigins: ["expo://"],
-    onAPIError: {
-      onError(error, ctx) {
-        console.error("BETTER AUTH API ERROR", error, ctx);
-      },
-    },
-  } satisfies BetterAuthOptions;
-
-  return betterAuth(config);
+export interface Session {
+  user: {
+    username: string;
+  };
 }
 
-export type Auth = ReturnType<typeof initAuth>;
-export type Session = Auth["$Infer"]["Session"];
+/**
+ * Returns true only when ADMIN_USER env var is set.
+ * When auth is disabled, all requests are treated as authenticated.
+ */
+export function isAuthEnabled(): boolean {
+  return !!process.env.ADMIN_USER;
+}
+
+/**
+ * Validates username and password against ADMIN_USER and ADMIN_PASSWORD env vars.
+ */
+export function validate(username: string, password: string): boolean {
+  return (
+    username === process.env.ADMIN_USER &&
+    password === process.env.ADMIN_PASSWORD
+  );
+}
+
+function getSecret(): Uint8Array {
+  const secret = process.env.AUTH_SECRET ?? "dev-secret-do-not-use-in-prod";
+  return new TextEncoder().encode(secret);
+}
+
+/**
+ * Creates a signed JWT for the given username.
+ */
+export async function createSession(username: string): Promise<string> {
+  return new SignJWT({ username })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("7d")
+    .sign(getSecret());
+}
+
+/**
+ * Verifies a JWT token and returns the decoded session or null.
+ */
+export async function verifySession(
+  token: string,
+): Promise<Session | null> {
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
+    if (typeof payload.username !== "string") return null;
+    return { user: { username: payload.username } };
+  } catch {
+    return null;
+  }
+}

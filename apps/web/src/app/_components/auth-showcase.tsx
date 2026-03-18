@@ -1,58 +1,29 @@
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { isAuthEnabled } from "@curiouslycory/auth";
 
-import { Button } from "@curiouslycory/ui/button";
-
-import { auth, getSession } from "~/auth/server";
+import { getSession } from "~/auth/server";
 
 export async function AuthShowcase() {
+  if (!isAuthEnabled()) {
+    return (
+      <p className="text-center text-sm text-muted-foreground">
+        Auth disabled (no ADMIN_USER set)
+      </p>
+    );
+  }
+
   const session = await getSession();
 
   if (!session) {
     return (
-      <form>
-        <Button
-          size="lg"
-          formAction={async () => {
-            "use server";
-            const res = await auth.api.signInSocial({
-              body: {
-                provider: "discord",
-                callbackURL: "/",
-              },
-            });
-            if (!res.url) {
-              throw new Error("No URL returned from signInSocial");
-            }
-            redirect(res.url);
-          }}
-        >
-          Sign in with Discord
-        </Button>
-      </form>
+      <p className="text-center text-sm text-muted-foreground">
+        Not logged in
+      </p>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4">
-      <p className="text-center text-2xl">
-        <span>Logged in as {session.user.name}</span>
-      </p>
-
-      <form>
-        <Button
-          size="lg"
-          formAction={async () => {
-            "use server";
-            await auth.api.signOut({
-              headers: await headers(),
-            });
-            redirect("/");
-          }}
-        >
-          Sign out
-        </Button>
-      </form>
-    </div>
+    <p className="text-center text-sm">
+      Logged in as {session.user.username}
+    </p>
   );
 }

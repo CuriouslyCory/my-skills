@@ -10,7 +10,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
 
-import type { Auth } from "@curiouslycory/auth";
+import type { Session } from "@curiouslycory/auth";
 import { db } from "@curiouslycory/db/client";
 
 /**
@@ -28,15 +28,10 @@ import { db } from "@curiouslycory/db/client";
 
 export const createTRPCContext = async (opts: {
   headers: Headers;
-  auth: Auth;
+  session: Session | null;
 }) => {
-  const authApi = opts.auth.api;
-  const session = await authApi.getSession({
-    headers: opts.headers,
-  });
   return {
-    authApi,
-    session,
+    session: opts.session,
     db,
   };
 };
