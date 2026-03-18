@@ -39,6 +39,7 @@
   "prettier": "@curiouslycory/prettier-config",
   "dependencies": {
     "@inquirer/confirm": "^6.0.10",
+    "@inquirer/input": "^5.0.10",
     "smol-toml": "^1.6.0"
   }
 }

@@ -184,6 +184,12 @@ importers:
       '@curiouslycory/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@curiouslycory/git-service':
+        specifier: workspace:*
+        version: link:../../packages/git-service
+      '@curiouslycory/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       '@curiouslycory/ui':
         specifier: workspace:*
         version: link:../../packages/ui

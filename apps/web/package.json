@@ -16,6 +16,8 @@
     "@curiouslycory/api": "workspace:*",
     "@curiouslycory/auth": "workspace:*",
     "@curiouslycory/db": "workspace:*",
+    "@curiouslycory/git-service": "workspace:*",
+    "@curiouslycory/shared-types": "workspace:*",
     "@curiouslycory/ui": "workspace:*",
     "@curiouslycory/validators": "workspace:*",
     "@t3-oss/env-nextjs": "^0.13.8",
