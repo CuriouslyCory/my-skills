@@ -20,7 +20,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "This is the foundation. create-t3-turbo includes: Next.js app, packages (api, auth, db, ui), and tooling (eslint, prettier, tailwind, typescript). The nextjs app should be renamed to 'web' in its directory and package.json. Preserve the existing .claude/ and .agents/ directories - do NOT delete them."
     },
     {

@@ -1,4 +1,31 @@
+## Codebase Patterns
+- Monorepo uses pnpm workspaces with apps/*, packages/*, tooling/*
+- Package namespace is @curiouslycory/ (renamed from @acme/)
+- Turbo tasks: build, dev, typecheck, lint, test, clean, format
+- Web app is at apps/web (renamed from nextjs)
+- sherif postinstall lint enforces alphabetically sorted deps in package.json
+- Web app build requires env vars (auth, db) - typecheck works without them
+- pnpm-workspace.yaml uses catalog/catalogs for version pinning
+
 # Ralph Progress Log
-Started: Mon Mar 17 2026
+Started: Tue Mar 17 07:09:06 PM MST 2026
 ---
 
+## 2026-03-17 19:10 - US-001
+- Scaffolded monorepo by cloning create-t3-turbo template
+- Moved scaffold into existing repo, preserving .claude/ and .agents/
+- Renamed @acme/ to @curiouslycory/ across all files
+- Removed expo and tanstack-start apps, renamed nextjs dir to web
+- Created skills/ and artifacts/{agents,prompts,claudemds,compositions} dirs with .gitkeep
+- Updated .gitignore to cover *.db, .my-skills/, data/
+- Updated turbo.json: added test task, updated globalEnv for DB_DIALECT/DB_PATH
+- Updated root package.json with turbo scripts and ralph script
+- Fixed auth package.json alphabetical dep ordering (sherif lint)
+- pnpm install succeeds, typecheck passes (12/12 tasks)
+- **Files changed:** package.json, .gitignore, turbo.json, pnpm-workspace.yaml, pnpm-lock.yaml, apps/web/*, packages/*, tooling/*, skills/.gitkeep, artifacts/*/.gitkeep
+- **Learnings for future iterations:**
+  - create-turbo CLI requires interactive prompt - clone the repo directly instead
+  - sherif postinstall enforces alphabetical sorting of deps - fix before committing
+  - Web app build needs .env with auth vars; typecheck works without env
+  - pnpm-workspace.yaml catalogs pin specific versions used across workspace
+---
