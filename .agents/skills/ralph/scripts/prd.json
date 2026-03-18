@@ -167,7 +167,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Use node:crypto for SHA-256. The manifest is .my-skills.json in the project root. Pure functions make testing easy."
     },
     {

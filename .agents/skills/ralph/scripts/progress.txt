@@ -136,3 +136,17 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - CLI app needs @types/node in devDependencies for node: module imports and process global
   - base.json tsconfig doesn't include node types by default
 ---
+
+## 2026-03-17 - US-009
+- Created apps/cli/src/core/manifest.ts with loadManifest, saveManifest, addSkill, removeSkill, getSkill
+- loadManifest reads .my-skills.json, validates with ManifestSchema, returns null if missing
+- saveManifest writes atomically via .tmp file + rename (same pattern as config.ts)
+- addSkill/removeSkill/getSkill are pure functions for easy testing
+- Created apps/cli/src/core/skill-hasher.ts with computeSkillHash using SHA-256
+- computeSkillHash recursively collects files, sorts alphabetically for determinism, hashes filenames + contents
+- Files changed: apps/cli/src/core/manifest.ts (new), apps/cli/src/core/skill-hasher.ts (new)
+- **Learnings for future iterations:**
+  - Follow config.ts atomic write pattern (write .tmp then rename) for any file that needs safe writes
+  - Use spread + destructuring for immutable record manipulation in pure functions
+  - node:crypto createHash is available without additional deps in Node 18+
+---
