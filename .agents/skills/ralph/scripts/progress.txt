@@ -451,3 +451,21 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - favoriteToGitHub reuses parseSource from source-parser.ts to validate favorite repo strings
   - getCachedRepoPath returns null when repo is not cached; isCacheStale checks TTL from cache metadata
 ---
+
+## 2026-03-17 - US-028
+- Created apps/cli/src/commands/init.ts with registerInitCommand() function
+- Registered on Commander program (alphabetically between find and list)
+- ms init <name> creates .agents/skills/<name>/SKILL.md with frontmatter template via buildSkillContent
+- ms init (no name) prompts for name and description using @inquirer/input (dynamic import)
+- Generated SKILL.md has --- delimited YAML frontmatter with name, description, plus placeholder body
+- Creates directory recursively if it doesn't exist
+- Shows error if skill already exists with suggestion to use --force
+- --force flag overwrites existing skill
+- Added @inquirer/input as dependency
+- Typecheck passes (17/17 tasks)
+- Files changed: apps/cli/src/commands/init.ts (new), apps/cli/src/program.ts, apps/cli/package.json, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - @inquirer/input is a default export, same pattern as @inquirer/confirm and @inquirer/search
+  - buildSkillContent from shared-types generates proper frontmatter SKILL.md content
+  - Use node:fs/promises access() to check file existence for error-before-overwrite pattern
+---

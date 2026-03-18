@@ -518,7 +518,7 @@
         "Typecheck passes"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": "The generated SKILL.md should follow the agent skills spec format with name and description frontmatter."
     },
     {
