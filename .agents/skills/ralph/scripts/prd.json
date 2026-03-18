@@ -594,7 +594,7 @@
         "Typecheck passes"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "notes": "The skill router is the primary API for the web app. syncFromDisk is called on startup and after git pull to keep the DB in sync with the filesystem."
     },
     {

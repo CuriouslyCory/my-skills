@@ -24,6 +24,9 @@
 - Zod v4 _def doesn't reliably expose typeName; use explicit key sets instead of schema introspection for type detection
 - createTRPCContext takes { headers, session } — resolve session before calling; Session type from @curiouslycory/auth
 - Auth is optional: isAuthEnabled() checks ADMIN_USER env var; when disabled, getSession() returns synthetic local session
+- Import drizzle-orm operators (eq, desc, etc.) from @curiouslycory/db re-exports, not directly from drizzle-orm
+- Drizzle query builder types are not reassignable — use ternary or separate queries for conditional where clauses
+- createTRPCContext accepts optional repoPath for filesystem operations; default is process.cwd()
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -527,4 +530,25 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Auth is optional: when ADMIN_USER is not set, getSession() returns a synthetic { user: { username: "local" } } session
   - jose library: SignJWT().setProtectedHeader().setIssuedAt().setExpirationTime().sign() for creation; jwtVerify(token, secret) for verification
   - Web app auth/server.ts uses SESSION_COOKIE="my-skills-session" cookie name for JWT token storage
+---
+
+## 2026-03-17 - US-032
+- Created packages/api/src/router/skill.ts with full CRUD + syncFromDisk
+- skill.list: query with optional category and tags filters, ordered by updatedAt desc
+- skill.byId: query returning single skill by ID
+- skill.create: protected mutation writing SKILL.md to disk + inserting into DB
+- skill.update: protected mutation updating SKILL.md on disk + DB record
+- skill.delete: protected mutation removing skill directory + DB record
+- skill.syncFromDisk: protected mutation scanning skills/ directory, upserting to DB, removing stale entries
+- Added repoPath to tRPC context (from REPO_PATH env var or cwd fallback)
+- Updated web app tRPC context providers (API route + RSC) to pass repoPath
+- Added @curiouslycory/shared-types and gray-matter as dependencies to api package
+- Registered skill router in app router (packages/api/src/root.ts)
+- Typecheck passes (17/17 tasks)
+- Files changed: packages/api/src/router/skill.ts (new), packages/api/src/root.ts, packages/api/src/trpc.ts, packages/api/package.json, apps/web/src/app/api/trpc/[trpc]/route.ts, apps/web/src/trpc/server.tsx, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - Import drizzle-orm operators (eq, desc) from @curiouslycory/db re-exports, not directly from drizzle-orm (module resolution fails for direct imports)
+  - Drizzle query builder types are not reassignable (let query = ... then query = query.where()) — use ternary or separate queries instead
+  - createTRPCContext now accepts optional repoPath; all context providers should pass it from REPO_PATH env var
+  - buildSkillContent and parseSkillFrontmatter are exported from @curiouslycory/shared-types for disk read/write operations
 ---
