@@ -294,3 +294,18 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - For global skill listing, scan directories + parse SKILL.md since there's no global manifest file
   - chalk.bold for table headers, String.padEnd for column alignment
 ---
+
+## 2026-03-17 - US-019
+- Created apps/cli/src/adapters/types.ts with AgentAdapter interface and AdapterSkillEntry type
+- Created apps/cli/src/adapters/native-adapter.ts with NativeAdapter class (default for all agents)
+- Created apps/cli/src/adapters/registry.ts with adapterRegistry Map, getAdapter(), getEnabledAdapters()
+- Created apps/cli/src/adapters/index.ts barrel export
+- All 10 AgentId values registered with NativeAdapter; runtime verification against AgentIdSchema.options
+- Typecheck passes (17/17 tasks)
+- Files changed: apps/cli/src/adapters/types.ts, native-adapter.ts, registry.ts, index.ts (all new)
+- **Learnings for future iterations:**
+  - Adapters directory is apps/cli/src/adapters/ with barrel index.ts
+  - NativeAdapter is the default; specialized adapters (Copilot, Codex, Gemini) will replace specific entries in registry
+  - AdapterSkillEntry mirrors ResolvedSkill from skill-resolver.ts — they're structurally compatible
+  - Registry self-validates at import time by iterating AgentIdSchema.options
+---

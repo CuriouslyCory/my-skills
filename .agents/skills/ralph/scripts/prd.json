@@ -352,7 +352,7 @@
         "Typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "The registry is the central lookup for all adapters. Initially all agents can use NativeAdapter, then we'll add specialized adapters in subsequent stories."
     },
     {
