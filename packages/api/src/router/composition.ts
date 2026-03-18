@@ -9,10 +9,31 @@ import { protectedProcedure, publicProcedure } from "../trpc";
 
 export const compositionRouter = {
   list: publicProcedure.query(async ({ ctx }) => {
-    return ctx.db
+    const rows = await ctx.db
       .select()
       .from(compositions)
       .orderBy(desc(compositions.updatedAt));
+
+    // Check for outdated compositions by comparing fragment updatedAt vs composition updatedAt
+    const results = await Promise.all(
+      rows.map(async (comp) => {
+        const fragmentIds: string[] = JSON.parse(comp.fragments);
+        let outdated = false;
+        if (fragmentIds.length > 0) {
+          const fragments = await ctx.db
+            .select({ updatedAt: skills.updatedAt })
+            .from(skills)
+            .where(inArray(skills.id, fragmentIds));
+
+          outdated = fragments.some(
+            (f) => f.updatedAt && f.updatedAt > comp.updatedAt,
+          );
+        }
+        return { ...comp, outdated };
+      }),
+    );
+
+    return results;
   }),
 
   byId: publicProcedure

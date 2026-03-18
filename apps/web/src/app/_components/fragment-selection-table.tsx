@@ -18,7 +18,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import {
   createColumnHelper,
   flexRender,
@@ -42,8 +42,11 @@ import {
   TableRow,
 } from "@curiouslycory/ui/table";
 
+import { toast } from "@curiouslycory/ui/toast";
+
 import { useTRPC } from "~/trpc/react";
 import { CompositionPreview } from "./composition-preview";
+import { SaveCompositionDialog } from "./save-composition-dialog";
 
 type Artifact = RouterOutputs["artifact"]["list"][number];
 
@@ -109,14 +112,30 @@ function SortableFragmentItem({
   );
 }
 
-export function FragmentSelectionTable() {
+interface FragmentSelectionTableProps {
+  initialSelection?: Record<string, boolean>;
+  initialOrder?: string[];
+  compositionId?: string;
+  compositionName?: string;
+  compositionDescription?: string;
+}
+
+export function FragmentSelectionTable({
+  initialSelection,
+  initialOrder,
+  compositionId,
+  compositionName,
+  compositionDescription,
+}: FragmentSelectionTableProps = {}) {
   const trpc = useTRPC();
   const { data: artifacts } = useSuspenseQuery(
     trpc.artifact.list.queryOptions({ category: "claudemd" }),
   );
 
-  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
-  const [orderedIds, setOrderedIds] = useState<string[]>([]);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>(
+    initialSelection ?? {},
+  );
+  const [orderedIds, setOrderedIds] = useState<string[]>(initialOrder ?? []);
 
   const columns = [
     columnHelper.display({
@@ -370,8 +389,70 @@ export function FragmentSelectionTable() {
           fragmentIds={selectedFragmentIds}
           orderedIds={orderedIds}
         />
+
+        {!compositionId && (
+          <SaveCompositionDialog
+            fragmentIds={selectedFragmentIds}
+            orderedIds={orderedIds}
+            disabled={selectedFragmentIds.length === 0}
+          />
+        )}
+
+        {compositionId && (
+          <UpdateCompositionButton
+            compositionId={compositionId}
+            name={compositionName ?? ""}
+            description={compositionDescription ?? ""}
+            fragmentIds={selectedFragmentIds}
+            orderedIds={orderedIds}
+          />
+        )}
       </div>
     </div>
+  );
+}
+
+function UpdateCompositionButton({
+  compositionId,
+  name,
+  description,
+  fragmentIds,
+  orderedIds,
+}: {
+  compositionId: string;
+  name: string;
+  description: string;
+  fragmentIds: string[];
+  orderedIds: string[];
+}) {
+  const trpc = useTRPC();
+
+  const updateMutation = useMutation(
+    trpc.composition.update.mutationOptions({
+      onSuccess: () => {
+        toast.success("Composition updated");
+      },
+      onError: (error) => {
+        toast.error(`Failed to update: ${error.message}`);
+      },
+    }),
+  );
+
+  return (
+    <Button
+      onClick={() =>
+        updateMutation.mutate({
+          id: compositionId,
+          name,
+          description,
+          fragments: fragmentIds,
+          order: orderedIds,
+        })
+      }
+      disabled={updateMutation.isPending || fragmentIds.length === 0}
+    >
+      {updateMutation.isPending ? "Updating..." : "Update Composition"}
+    </Button>
   );
 }
 
