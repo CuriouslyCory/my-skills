@@ -1093,3 +1093,23 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - vitest globals:true in vitest.config.ts means describe/it/expect are auto-imported but vi must still be imported explicitly
   - All tests use real temp directories (mkdtemp) with cleanup in afterEach for isolation
 ---
+
+## 2026-03-17 23:12 - US-061
+- Implemented unit tests for all 5 adapters (NativeAdapter, SymlinkAdapter, CopilotAdapter, CodexAdapter, GeminiAdapter) and detect.ts
+- Files created:
+  - apps/cli/tests/adapters/native.test.ts (6 tests)
+  - apps/cli/tests/adapters/symlink.test.ts (10 tests)
+  - apps/cli/tests/adapters/copilot.test.ts (16 tests)
+  - apps/cli/tests/adapters/codex.test.ts (14 tests)
+  - apps/cli/tests/adapters/gemini.test.ts (13 tests)
+  - apps/cli/tests/adapters/detect.test.ts (18 tests)
+- Total: 77 new tests, all passing
+- **Learnings for future iterations:**
+  - Adapter tests use real temp directories (mkdtemp/rm pattern), no mocking needed for filesystem operations
+  - NativeAdapter is a no-op adapter — install/remove/sync do nothing, detect always returns true
+  - SymlinkAdapter creates actual symlinks; tests verify with lstat().isSymbolicLink() and readlink()
+  - CopilotAdapter and GeminiAdapter both use HTML comment markers (<!-- my-skills:start/end -->) for managed sections
+  - CodexAdapter uses smol-toml parse/stringify for TOML management — import parse from smol-toml in tests
+  - detectAgents uses marker files/directories; test by creating them in temp dirs
+  - Pre-existing lint failure (eslint config not found in apps/cli) — not caused by adapter tests
+---

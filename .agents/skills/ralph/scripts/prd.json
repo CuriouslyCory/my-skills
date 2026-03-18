@@ -1143,7 +1143,7 @@
         "All tests pass"
       ],
       "priority": 61,
-      "passes": false,
+      "passes": true,
       "notes": "Each adapter test creates a temp project directory with the appropriate marker files, then verifies install/remove operations."
     },
     {
