@@ -1130,3 +1130,23 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - pnpm pack requires all workspace:* referenced packages to have `version` fields, even for devDependencies
   - Workspace packages that are bundled by tsup should be in devDependencies (not dependencies) to avoid workspace protocol resolution errors during pack
 ---
+
+## 2026-03-17 - US-063
+- Implemented responsive design polish across all web app components
+- Files changed:
+  - `apps/web/src/app/_components/app-shell.tsx` - Reduced main content padding on mobile (p-3 sm:p-6)
+  - `apps/web/src/app/_components/fragment-selection-table.tsx` - Composition builder stacks vertically on < lg breakpoint; table has overflow-x-auto
+  - `apps/web/src/app/_components/composition-list.tsx` - Added overflow-x-auto to table wrapper
+  - `apps/web/src/app/_components/git-status.tsx` - Added overflow-x-auto to commit log and changed files tables
+  - `apps/web/src/app/_components/skill-editor.tsx` - Editor header stacks vertically on mobile
+  - `apps/web/src/app/_components/artifact-editor.tsx` - Same header stacking as skill editor
+  - `apps/web/src/app/_components/frontmatter-form.tsx` - Author/version grid goes single column on mobile
+  - `apps/web/src/app/_components/settings-page.tsx` - Favorites form stacks vertically on mobile
+- **Learnings for future iterations:**
+  - Sidebar hamburger menu was already implemented (hidden md:flex for sidebar, md:hidden for hamburger)
+  - Editor toolbar already had flex-wrap - no changes needed
+  - Git page controls already used flex-wrap gap-2 - no changes needed
+  - Use overflow-x-auto on table wrapper divs for horizontal scrolling on small screens
+  - Use flex-col + sm:flex-row pattern for layouts that need to stack on mobile
+  - Use p-3 sm:p-6 pattern for reduced padding on mobile to maximize content space at 320px
+---

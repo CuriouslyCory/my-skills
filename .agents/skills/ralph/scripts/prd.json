@@ -1180,7 +1180,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 63,
-      "passes": false,
+      "passes": true,
       "notes": "Use Tailwind responsive utilities (sm:, md:, lg:). Test by resizing browser window."
     }
   ]
