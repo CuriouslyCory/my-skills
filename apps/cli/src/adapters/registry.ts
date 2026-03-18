@@ -1,7 +1,9 @@
 import type { AgentId } from "@curiouslycory/shared-types";
 import { AGENT_NATIVE_SUPPORT, AgentIdSchema } from "@curiouslycory/shared-types";
 
+import { CodexAdapter } from "./codex.js";
 import { CopilotAdapter } from "./copilot.js";
+import { GeminiAdapter } from "./gemini.js";
 import { NativeAdapter } from "./native.js";
 import type { AgentAdapter } from "./types.js";
 
@@ -33,13 +35,11 @@ for (const id of AgentIdSchema.options) {
 }
 
 // Register specialized adapters for non-native agents
-adapterRegistry.set(
-  "github-copilot",
-  new CopilotAdapter(),
-);
+adapterRegistry.set("github-copilot", new CopilotAdapter());
+adapterRegistry.set("codex", new CodexAdapter());
+adapterRegistry.set("gemini-cli", new GeminiAdapter());
 
-// Remaining non-native agents get NativeAdapter as placeholder until specialized adapters replace them
-// (Codex, Gemini adapters in later stories)
+// Remaining non-native agents get NativeAdapter as placeholder
 for (const id of AgentIdSchema.options) {
   if (!adapterRegistry.has(id)) {
     adapterRegistry.set(

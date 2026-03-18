@@ -1,5 +1,7 @@
 export type { AdapterSkillEntry, AgentAdapter } from "./types.js";
+export { CodexAdapter } from "./codex.js";
 export { CopilotAdapter } from "./copilot.js";
+export { GeminiAdapter } from "./gemini.js";
 export { NativeAdapter } from "./native.js";
 export { SymlinkAdapter } from "./symlink.js";
 export { adapterRegistry, getAdapter, getEnabledAdapters } from "./registry.js";
