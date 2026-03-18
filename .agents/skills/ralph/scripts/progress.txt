@@ -610,3 +610,25 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - initFTS must be called before any FTS queries — adding to client.ts ensures it runs at module load time
   - Raw SQL results use snake_case column names (dir_path, created_at) — map to camelCase in return
 ---
+
+## 2026-03-17 - US-036
+- Created packages/api/src/router/git.ts with full git operations API
+- git.status: query returning current branch, clean/dirty status, file lists (staged, modified, untracked, etc.)
+- git.log: query with optional path filter and pagination (maxCount + offset), defaults to 20 commits
+- git.diff: query for specific commit diff (commit~1..commit) or working tree changes, with optional path filter
+- git.commit: protected mutation staging specified files and creating commit
+- git.push: protected mutation pushing current branch to origin
+- git.pull: protected mutation pulling from origin
+- git.fetch: protected mutation fetching from origin
+- git.branches: query listing all branches with current branch indicator, commit hash, and label
+- git.checkout: protected mutation switching to a branch
+- Added @curiouslycory/git-service as workspace dependency to api package
+- Registered git router in app router (packages/api/src/root.ts)
+- Typecheck passes (17/17 tasks)
+- Files changed: packages/api/src/router/git.ts (new), packages/api/src/root.ts, packages/api/package.json, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - GitService is instantiated per-request with ctx.repoPath — no singleton needed
+  - simple-git StatusResult has working_dir (snake_case) not workingDir — map in response
+  - Log pagination via maxCount+offset: fetch maxCount+offset then slice, since simple-git doesn't support skip
+  - Commit diff uses `commit~1` parent reference for showing a single commit's changes
+---

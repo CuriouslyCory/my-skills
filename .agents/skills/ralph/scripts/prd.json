@@ -675,7 +675,7 @@
         "Typecheck passes"
       ],
       "priority": 36,
-      "passes": false,
+      "passes": true,
       "notes": "The git router wraps the git-service package. repoPath comes from the tRPC context (REPO_PATH env var or cwd)."
     },
     {
