@@ -13,6 +13,7 @@
 - FTS5 virtual tables/triggers use raw better-sqlite3 db.exec(), not Drizzle ORM; initFTS takes Database.Database instance
 - CLI app (apps/cli) uses tsup for bundling, not tsc; set outDir: "dist/bin" to match bin field paths
 - Import package.json in ESM with `with { type: "json" }` assertion
+- CLI app needs @types/node in devDependencies for node: module imports and process global
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -121,4 +122,17 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - CLI uses tsup (not tsc) for bundling, so tsconfig only needs base.json (not compiled-package)
   - Import package.json with `with { type: "json" }` assertion for ESM
   - tsup entry paths map to output filenames: src/bin/my-skills.ts -> dist/bin/my-skills.js
+---
+
+## 2026-03-17 - US-008
+- Created apps/cli/src/core/config.ts with loadConfig() and saveConfig() functions
+- loadConfig() reads ~/.my-skills/config.json, merges with defaults, validates with ConfigSchema
+- saveConfig() writes atomically via .tmp file + rename
+- Environment variables MY_SKILLS_CACHE_DIR and MY_SKILLS_SKILLS_DIR override file config values
+- Defaults: favoriteRepos=[], cacheDir=~/.my-skills/cache, skillsDir=.agents/skills, autoDetectAgents=true, symlinkBehavior=copy
+- Added @types/node to CLI devDependencies (needed for node: imports and process global)
+- Files changed: apps/cli/src/core/config.ts (new), apps/cli/package.json, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - CLI app needs @types/node in devDependencies for node: module imports and process global
+  - base.json tsconfig doesn't include node types by default
 ---

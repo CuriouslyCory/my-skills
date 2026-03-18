@@ -149,7 +149,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Use node:fs/promises and node:os (homedir). The config file is the bridge between CLI and web app."
     },
     {
