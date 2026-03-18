@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
+import { initFTS } from "./fts";
 import * as schema from "./schema";
 
 const dialect = process.env.DB_DIALECT ?? "sqlite";
@@ -23,5 +24,7 @@ if (!existsSync(dir)) {
 
 const sqlite = new Database(dbPath);
 sqlite.pragma("journal_mode = WAL");
+
+initFTS(sqlite);
 
 export const db = drizzle({ client: sqlite, schema });
