@@ -242,7 +242,7 @@
         "Typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "The skills-lock.json format: { version: 1, skills: { 'skill-name': { source, sourceType, computedHash } } }. See existing skills-lock.json in project root for reference."
     },
     {

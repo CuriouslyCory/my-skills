@@ -194,3 +194,17 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - ResolvedSkill type is reused by skill-installer — keep the type in skill-resolver and import it
   - collectAllFiles in skill-resolver returns sorted list for deterministic output
 ---
+
+## 2026-03-17 - US-013
+- Created apps/cli/src/core/migration.ts with migrateFromSkillsLock(projectRoot) function
+- Detects skills-lock.json when .my-skills.json is missing, returns null otherwise
+- Transforms lock entries: copies source, sourceType, computedHash; adds installedAt as ISO timestamp
+- Sets manifest version to 1, agents to empty array
+- Writes .my-skills.json via saveManifest (atomic write), preserves skills-lock.json
+- Prints informative message on successful migration
+- Files changed: apps/cli/src/core/migration.ts (new)
+- **Learnings for future iterations:**
+  - Reuse saveManifest from manifest.ts for consistent atomic write pattern
+  - skills-lock.json has simpler entries than .my-skills.json (no installedAt, no agents)
+  - Use node:fs/promises access() to check file existence without reading content
+---
