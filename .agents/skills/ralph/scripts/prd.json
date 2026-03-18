@@ -789,7 +789,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 42,
-      "passes": false,
+      "passes": true,
       "notes": "Plate.js is a rich-text editor built on Slate. The markdown plugin handles the serialization round-trip. This component is reused by skill edit, artifact edit, and composition preview."
     },
     {

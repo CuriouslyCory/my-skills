@@ -38,6 +38,9 @@
 - skill.list returns tags as JSON-stringified array string — parse with JSON.parse() before rendering
 - @tailwindcss/typography uses @import in Tailwind v4, not a plugin config; prose/dark:prose-invert for markdown content
 - AlertDialog available at @curiouslycory/ui/alert-dialog (uses radix-ui unified package)
+- Plate.js packages: platejs, @platejs/basic-nodes, @platejs/code-block, @platejs/link, @platejs/list, @platejs/markdown (not @udecode/ prefix)
+- Plate.js plugin render config uses `render: { node: ({attributes, children, element}) => JSX }` pattern; avoid PlateElement/PlateLeaf wrappers due to strict generic type constraints
+- Plate.js MarkdownPlugin API types are untyped (any); use eslint-disable for serialize/deserialize calls
 - react-markdown + remark-gfm installed in web app for markdown rendering
 
 # Ralph Progress Log
@@ -739,5 +742,23 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - AlertDialog from radix-ui follows same pattern as DropdownMenu — import from "radix-ui" unified package
   - git.log accepts optional path filter to scope commits to a specific directory
   - prose/dark:prose-invert classes from @tailwindcss/typography handle markdown styling
+  - Manual browser verification needed
+---
+
+## 2026-03-17 - US-042
+- Implemented Plate.js WYSIWYG editor component at apps/web/src/app/_components/plate-editor.tsx
+- Installed platejs, @platejs/basic-nodes, @platejs/code-block, @platejs/link, @platejs/list, @platejs/markdown, lowlight
+- Configured plugins: H1/H2/H3, Bold, Italic, Code, Blockquote, CodeBlock, CodeLine, CodeSyntax, Link, List, Markdown
+- Editor toolbar with formatting buttons for all supported formats
+- Component accepts initialContent (markdown) and onSave callback with markdown serialization
+- Custom render functions for all element/leaf types with proper styling
+- Files changed: apps/web/package.json, pnpm-lock.yaml, apps/web/src/app/_components/plate-editor.tsx
+- **Learnings for future iterations:**
+  - Plate.js packages use @platejs/ namespace (not @udecode/ as in older docs)
+  - PlateElement/PlateLeaf have very strict generic type constraints with the `as` prop — using `render: { node: () => JSX }` in plugin configure avoids type issues
+  - MarkdownPlugin API (serialize/deserialize) is untyped — needs eslint-disable comments for no-unsafe-* rules
+  - pnpm hoists platejs deps to root node_modules — resolve paths via `require.resolve()`, not by looking in apps/web/node_modules
+  - eslint-disable-next-line only covers the immediately next line — be precise about which line has the error
+  - Lazy loading via next/dynamic should be done at the consumer level, not built into the component itself
   - Manual browser verification needed
 ---
