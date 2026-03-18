@@ -34,6 +34,7 @@
     "@curiouslycory/eslint-config": "workspace:*",
     "@curiouslycory/prettier-config": "workspace:*",
     "@curiouslycory/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "tsup": "^8.5.0",
