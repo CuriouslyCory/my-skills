@@ -416,3 +416,19 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - entry.agents stores AgentId[] but typed as string[] in schema — needs `as AgentId[]` cast
   - Use rm with { recursive: true, force: true } before reinstall to ensure clean state
 ---
+
+## 2026-03-17 - US-026
+- Created apps/cli/src/commands/check.ts with registerCheckCommand() function
+- Registered on Commander program (alphabetically between add and list)
+- ms check reads manifest, for each skill: force-fetches latest from remote, resolves skill, computes hash of remote source
+- Displays formatted table with columns: NAME, STATUS (up-to-date/update available/remote unavailable), CURRENT (8-char hash), LATEST (8-char hash)
+- Status colored: green for up-to-date, yellow for update available, red for remote unavailable
+- Shows spinner during fetch operations with per-skill progress text
+- Shows 'No skills installed' if manifest is empty
+- Non-github source types and fetch failures gracefully show "remote unavailable"
+- Files changed: apps/cli/src/commands/check.ts (new), apps/cli/src/program.ts
+- **Learnings for future iterations:**
+  - computeSkillHash can hash any directory, not just installed skills — useful for comparing remote source directories against manifest hash
+  - sourceToGitHub helper is duplicated across update.ts and check.ts — candidate for extraction to shared utils
+  - Check command is read-only: no manifest writes, no file changes, no adapter calls
+---
