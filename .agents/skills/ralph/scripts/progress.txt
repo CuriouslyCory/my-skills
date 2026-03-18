@@ -1036,3 +1036,17 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - useQueryClient + invalidateQueries with `trpc.<router>.<method>.queryKey()` for refreshing after mutations
   - Pre-existing lint failures across all packages due to `--filter` flag being incorrectly passed to eslint CLI; lint individual files with npx eslint directly
 ---
+
+## 2026-03-17 - US-057
+- Built branch selector dropdown using DropdownMenu with RadioGroup for single-select behavior
+- Added Pull and Fetch buttons with loading states and toast notifications
+- Pull triggers skill.syncFromDisk and artifact.syncFromDisk after successful pull to refresh DB
+- Added branches prefetch to git page for SSR hydration
+- Files changed:
+  - apps/web/src/app/_components/git-status.tsx (branch selector, pull/fetch/checkout mutations)
+  - apps/web/src/app/(dashboard)/git/page.tsx (branches prefetch)
+- **Learnings for future iterations:**
+  - All git tRPC endpoints (branches, checkout, pull, fetch, push) were already implemented in the router - just needed UI wiring
+  - DropdownMenuRadioGroup + DropdownMenuRadioItem provides single-select dropdown behavior with visual indicator for current selection
+  - After pull, must call both skill.syncFromDisk and artifact.syncFromDisk to resync the database with changed files
+---
