@@ -14,6 +14,7 @@
 - CLI app (apps/cli) uses tsup for bundling, not tsc; set outDir: "dist/bin" to match bin field paths
 - Import package.json in ESM with `with { type: "json" }` assertion
 - CLI app needs @types/node in devDependencies for node: module imports and process global
+- CLI doesn't have simple-git as direct dep; extend GitService with new methods rather than importing simple-git in CLI
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -163,4 +164,19 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
 - **Learnings for future iterations:**
   - Services directory (apps/cli/src/services/) is for business logic modules separate from core config/manifest
   - Source parsing uses regex for URL matching; shorthand regex excludes paths starting with . or /
+---
+
+## 2026-03-17 - US-011
+- Created apps/cli/src/services/cache.ts with getCachePath, fetchRepo, isCacheStale, getCachedRepoPath, discoverSkills
+- getCachePath reads cacheDir from config, returns ~/.my-skills/cache/<owner>/<repo>/
+- fetchRepo does shallow clone on first fetch, fetch + resetHard("origin/HEAD") on subsequent
+- Stores .my-skills-cache-meta.json with { lastFetched: ISO8601 } in each cache dir
+- isCacheStale compares lastFetched against TTL (default 1 hour)
+- discoverSkills recursively walks repo for SKILL.md files, parses frontmatter, returns { name, description, path }
+- Added resetHard(ref?) method to GitService (packages/git-service/src/index.ts)
+- Files changed: apps/cli/src/services/cache.ts (new), packages/git-service/src/index.ts
+- **Learnings for future iterations:**
+  - CLI doesn't have simple-git as direct dep — use GitService methods instead of importing simple-git directly
+  - Added resetHard to GitService to support cache refresh workflow; extend GitService when new git operations are needed
+  - discoverSkills skips node_modules and .git directories during recursive walk
 ---

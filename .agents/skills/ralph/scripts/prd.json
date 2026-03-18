@@ -206,7 +206,7 @@
         "Typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "discoverSkills should search: root SKILL.md, skills/*/SKILL.md, */SKILL.md, and deeper nested directories. Use recursive directory walking with fs.readdir."
     },
     {
