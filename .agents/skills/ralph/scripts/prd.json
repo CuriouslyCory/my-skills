@@ -770,7 +770,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 41,
-      "passes": false,
+      "passes": true,
       "notes": "Use react-markdown or similar for rendering. The git log is scoped to the skill's directory path."
     },
     {

@@ -36,6 +36,9 @@
 - New UI components need source file in packages/ui/src/ AND export entry in packages/ui/package.json (alphabetical order)
 - Card (@curiouslycory/ui/card) and Badge (@curiouslycory/ui/badge) components are available for use
 - skill.list returns tags as JSON-stringified array string — parse with JSON.parse() before rendering
+- @tailwindcss/typography uses @import in Tailwind v4, not a plugin config; prose/dark:prose-invert for markdown content
+- AlertDialog available at @curiouslycory/ui/alert-dialog (uses radix-ui unified package)
+- react-markdown + remark-gfm installed in web app for markdown rendering
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -716,4 +719,25 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - skill.list returns tags as JSON-stringified array — parse with JSON.parse() before using
   - New UI components need both the source file AND an export entry in packages/ui/package.json (alphabetical order)
   - Lint failures in api, auth, git-service, shared-types, cli packages are pre-existing — only check ui and web lint for UI changes
+---
+
+## 2026-03-17 - US-041
+- Implemented skill detail page at /skills/[id] with full markdown rendering
+- Created AlertDialog UI component (packages/ui/src/alert-dialog.tsx) using radix-ui
+- Server page prefetches skill.byId and git.log tRPC queries
+- Client component renders: markdown content with prose styling, metadata sidebar, edit/delete buttons, version history
+- Installed react-markdown, remark-gfm, rehype-highlight, @tailwindcss/typography
+- Files changed:
+  - apps/web/src/app/(dashboard)/skills/[id]/page.tsx (server page)
+  - apps/web/src/app/(dashboard)/skills/[id]/skill-detail.tsx (client component)
+  - packages/ui/src/alert-dialog.tsx (new AlertDialog component)
+  - packages/ui/package.json (added alert-dialog export)
+  - apps/web/package.json (new deps)
+  - apps/web/src/app/styles.css (added @tailwindcss/typography import)
+- **Learnings for future iterations:**
+  - @tailwindcss/typography is added via @import in Tailwind v4 CSS, not as a plugin in config
+  - AlertDialog from radix-ui follows same pattern as DropdownMenu — import from "radix-ui" unified package
+  - git.log accepts optional path filter to scope commits to a specific directory
+  - prose/dark:prose-invert classes from @tailwindcss/typography handle markdown styling
+  - Manual browser verification needed
 ---
