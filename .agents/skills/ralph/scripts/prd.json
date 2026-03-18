@@ -1107,7 +1107,7 @@
         "Typecheck passes"
       ],
       "priority": 59,
-      "passes": false,
+      "passes": true,
       "notes": "This is the bridge between web app config (in DB) and CLI config (in file). The CLI reads this file for offline access."
     },
     {

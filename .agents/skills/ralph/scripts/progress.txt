@@ -1065,3 +1065,16 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - The settings page stub already existed, and the sidebar already had a Settings nav link — no navigation changes needed
   - CardDescription is available from @curiouslycory/ui/card alongside Card, CardContent, CardHeader, CardTitle
 ---
+
+## 2026-03-17 - US-059
+- Implemented config sync from DB to local file (~/.my-skills/config.json)
+- Created `packages/api/src/lib/config-sync.ts` with `syncConfigToFile(db)` function
+- Modified `packages/api/src/router/config.ts` to call sync after config.set, favorites.add, and favorites.remove mutations
+- Sync is fire-and-forget: errors logged but not thrown
+- Uses atomic write pattern (write to .tmp then rename) matching CLI's saveConfig
+- **Learnings for future iterations:**
+  - DB config table stores key/value pairs; defaultAgents is stored as JSON string, autoDetectAgents as "true"/"false" string
+  - favorites table has repoUrl which maps to Config.favoriteRepos array
+  - Use `import type` for db instance imports to satisfy consistent-type-imports lint rule
+  - Pre-existing lint errors exist in API package (merge.ts, composition.ts, etc.) - not related to new code
+---
