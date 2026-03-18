@@ -695,7 +695,7 @@
         "Typecheck passes"
       ],
       "priority": 37,
-      "passes": false,
+      "passes": true,
       "notes": "Config and favorites are stored in the DB for the web app. They get synced to ~/.my-skills/config.json for CLI access (sync implemented in a later story)."
     },
     {

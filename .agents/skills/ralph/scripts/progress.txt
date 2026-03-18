@@ -632,3 +632,20 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Log pagination via maxCount+offset: fetch maxCount+offset then slice, since simple-git doesn't support skip
   - Commit diff uses `commit~1` parent reference for showing a single commit's changes
 ---
+
+## 2026-03-17 - US-037
+- Created packages/api/src/router/config.ts with config CRUD and favorites sub-router
+- config.get: query returning config value by key using db.query.config.findFirst
+- config.getAll: query returning all config entries
+- config.set: protected mutation with upsert logic (check existing, then update or insert)
+- config.favorites.list: query returning all favorites
+- config.favorites.add: protected mutation inserting into favorites table with returning()
+- config.favorites.remove: protected mutation deleting by ID
+- Registered config router in app router (packages/api/src/root.ts)
+- Typecheck passes (17/17 tasks)
+- Files changed: packages/api/src/router/config.ts (new), packages/api/src/root.ts
+- **Learnings for future iterations:**
+  - tRPC routers support nested objects for sub-routers (e.g., config.favorites.list) — use `satisfies TRPCRouterRecord` on the outer object
+  - Drizzle better-sqlite3 doesn't support onConflictDoUpdate with returning() cleanly — use manual upsert (findFirst + update/insert)
+  - favorites table has unique constraint on repo_url — handled by DB constraint, no need for manual check
+---
