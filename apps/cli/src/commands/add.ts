@@ -24,6 +24,8 @@ import {
 } from "../core/manifest.js";
 import { migrateFromSkillsLock } from "../core/migration.js";
 import { loadConfig } from "../core/config.js";
+import { getEnabledAdapters, resolveAgents } from "../adapters/index.js";
+import type { AdapterSkillEntry } from "../adapters/index.js";
 
 interface AddOptions {
   skill?: string;
@@ -150,6 +152,36 @@ async function restoreFromManifest(
 }
 
 /**
+ * Run adapter.install() for each enabled agent, logging results.
+ * Adapter failures are warnings and don't fail the overall command.
+ */
+async function runAdapterInstalls(
+  projectRoot: string,
+  agents: AgentId[],
+  skill: AdapterSkillEntry,
+): Promise<void> {
+  const adapters = getEnabledAdapters(agents);
+  const deployed: string[] = [];
+
+  for (const adapter of adapters) {
+    try {
+      await adapter.install(projectRoot, skill);
+      deployed.push(adapter.displayName);
+    } catch (err) {
+      console.warn(
+        chalk.yellow(
+          `  Warning: ${adapter.displayName} adapter failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+        ),
+      );
+    }
+  }
+
+  if (deployed.length > 0) {
+    console.log(chalk.cyan(`  Deployed to: ${deployed.join(", ")}`));
+  }
+}
+
+/**
  * Install a single skill by name from a cached repo.
  */
 async function installSingleSkill(
@@ -159,7 +191,7 @@ async function installSingleSkill(
   targetDir: string,
   projectRoot: string,
   manifest: Manifest,
-  agents?: AgentId[],
+  agents: AgentId[],
 ): Promise<Manifest> {
   const installSpinner = ora(`Installing ${skillName}...`).start();
   try {
@@ -180,6 +212,10 @@ async function installSingleSkill(
     installSpinner.succeed(
       `Installed ${chalk.bold(skillName)} to ${chalk.dim(join(targetDir.replace(process.cwd() + "/", ""), skillName))}`,
     );
+
+    // Run adapter installs for each enabled agent
+    await runAdapterInstalls(projectRoot, agents, resolved);
+
     return manifest;
   } catch (err) {
     installSpinner.fail(`Failed to install ${skillName}`);
@@ -319,6 +355,12 @@ export function registerAddCommand(program: Command): void {
         return;
       }
 
+      // Resolve agents if not provided via --agent flag
+      if (!agents) {
+        agents = await resolveAgents(projectRoot);
+      }
+      const resolvedAgents: AgentId[] = agents;
+
       // Determine which skills to install
       let skillNames: string[];
 
@@ -397,7 +439,7 @@ export function registerAddCommand(program: Command): void {
           targetDir,
           projectRoot,
           manifest,
-          agents,
+          resolvedAgents,
         );
       }
     });

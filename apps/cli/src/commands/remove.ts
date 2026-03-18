@@ -7,7 +7,7 @@ import chalk from "chalk";
 import ora from "ora";
 import checkbox from "@inquirer/checkbox";
 
-import type { Manifest } from "@curiouslycory/shared-types";
+import type { AgentId, Manifest } from "@curiouslycory/shared-types";
 
 import {
   loadManifest,
@@ -16,6 +16,7 @@ import {
   getSkill,
 } from "../core/manifest.js";
 import { loadConfig } from "../core/config.js";
+import { getEnabledAdapters, resolveAgents } from "../adapters/index.js";
 
 interface RemoveOptions {
   skill?: string;
@@ -42,6 +43,36 @@ function parseSkillNames(raw: string): string[] {
 }
 
 /**
+ * Run adapter.remove() for each enabled agent, logging results.
+ * Adapter failures are warnings and don't fail the overall command.
+ */
+async function runAdapterRemoves(
+  projectRoot: string,
+  agents: AgentId[],
+  skillName: string,
+): Promise<void> {
+  const adapters = getEnabledAdapters(agents);
+  const removed: string[] = [];
+
+  for (const adapter of adapters) {
+    try {
+      await adapter.remove(projectRoot, skillName);
+      removed.push(adapter.displayName);
+    } catch (err) {
+      console.warn(
+        chalk.yellow(
+          `  Warning: ${adapter.displayName} adapter failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+        ),
+      );
+    }
+  }
+
+  if (removed.length > 0) {
+    console.log(chalk.cyan(`  Removed from: ${removed.join(", ")}`));
+  }
+}
+
+/**
  * Remove a single skill by name.
  */
 async function removeSingleSkill(
@@ -50,6 +81,7 @@ async function removeSingleSkill(
   projectRoot: string,
   manifest: Manifest,
   skipConfirm: boolean,
+  agents: AgentId[],
 ): Promise<Manifest> {
   const existing = getSkill(manifest, skillName);
   if (!existing) {
@@ -81,6 +113,9 @@ async function removeSingleSkill(
     await saveManifest(projectRoot, manifest);
 
     spinner.succeed(`Removed ${chalk.bold(skillName)}`);
+
+    // Run adapter removes for each enabled agent
+    await runAdapterRemoves(projectRoot, agents, skillName);
   } catch (err) {
     spinner.fail(`Failed to remove ${skillName}`);
     console.error(
@@ -109,6 +144,9 @@ export function registerRemoveCommand(program: Command): void {
       if (opts.all) {
         opts.yes = true;
       }
+
+      // Resolve agents for adapter removal
+      const agents = await resolveAgents(projectRoot);
 
       let manifest = await loadManifest(projectRoot);
 
@@ -159,6 +197,7 @@ export function registerRemoveCommand(program: Command): void {
           projectRoot,
           manifest,
           opts.yes ?? false,
+          agents,
         );
       }
     });

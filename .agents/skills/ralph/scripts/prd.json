@@ -444,7 +444,7 @@
         "Typecheck passes"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": "This wires together the adapter system with the existing add/remove commands. Use getEnabledAdapters() from the registry."
     },
     {

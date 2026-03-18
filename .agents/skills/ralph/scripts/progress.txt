@@ -383,3 +383,19 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - GeminiAdapter uses dual storage: per-skill TOML files + GEMINI.md reference list
   - Same parseSections/buildManagedSection pattern from CopilotAdapter reused for GEMINI.md marker management
 ---
+
+## 2026-03-17 - US-024
+- Integrated adapter system into add and remove commands
+- add command: after installing a skill, resolves agents (via --agent flag or resolveAgents() detection flow) and runs adapter.install() for each enabled agent
+- remove command: after removing skill files, runs adapter.remove() for each enabled agent
+- Added runAdapterInstalls() helper in add.ts and runAdapterRemoves() helper in remove.ts
+- Adapter failures are logged as warnings (chalk.yellow) but don't fail the overall command
+- Agents list stored in manifest entry for each installed skill
+- Logs deployed/removed adapters (e.g., "Deployed to: Claude Code, Cursor, GitHub Copilot")
+- Files changed: apps/cli/src/commands/add.ts, apps/cli/src/commands/remove.ts
+- **Learnings for future iterations:**
+  - ResolvedSkill from skill-resolver.ts is structurally compatible with AdapterSkillEntry — no conversion needed
+  - resolveAgents() handles first-run detection flow; only call when --agent flag not provided
+  - Use `const resolvedAgents: AgentId[] = agents` pattern to narrow `AgentId[] | undefined` after conditional assignment
+  - Adapter failures should always be warnings, not errors — keeps the primary install/remove operation from failing
+---
