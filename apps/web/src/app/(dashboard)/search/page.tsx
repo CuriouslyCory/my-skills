@@ -1,12 +1,17 @@
-export default function SearchPage(_props: {
-  searchParams: Promise<{ q?: string }>;
-}) {
+import { Suspense } from "react";
+
+import {
+  SearchResults,
+  SearchResultsSkeleton,
+} from "~/app/_components/search-results";
+
+export default function SearchPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Search Results</h1>
-      <p className="text-muted-foreground">
-        Search results will appear here.
-      </p>
+      <Suspense fallback={<SearchResultsSkeleton />}>
+        <SearchResults />
+      </Suspense>
     </div>
   );
 }
