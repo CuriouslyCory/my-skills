@@ -1022,3 +1022,17 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Pre-existing lint errors exist in composition-detail.tsx, fragment-selection-table.tsx, search-results.tsx — not from US-055 changes
   - useQuery (not useSuspenseQuery) is appropriate for lazy-loaded data like diffs that only fetch on user interaction
 ---
+
+## 2026-03-17 - US-056
+- Implemented commit dialog component with file checklist (checkboxes) and commit message textarea
+- Added push button with loading spinner and toast notifications to git status page
+- Both commit and push operations invalidate git.status and git.log queries to refresh UI
+- Files changed:
+  - apps/web/src/app/_components/commit-dialog.tsx (new)
+  - apps/web/src/app/_components/git-status.tsx (modified)
+- **Learnings for future iterations:**
+  - Radix Checkbox uses `onCheckedChange` callback (not `onChange`)
+  - useMutation with tRPC follows pattern: `useMutation(trpc.<router>.<method>.mutationOptions({...}))`
+  - useQueryClient + invalidateQueries with `trpc.<router>.<method>.queryKey()` for refreshing after mutations
+  - Pre-existing lint failures across all packages due to `--filter` flag being incorrectly passed to eslint CLI; lint individual files with npx eslint directly
+---

@@ -1054,7 +1054,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 56,
-      "passes": false,
+      "passes": true,
       "notes": "Use shadcn/ui Dialog, Checkbox, Textarea, Button, Toast components."
     },
     {
