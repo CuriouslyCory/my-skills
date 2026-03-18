@@ -926,7 +926,7 @@
         "Typecheck passes"
       ],
       "priority": 49,
-      "passes": false,
+      "passes": true,
       "notes": "The preview endpoint is called frequently (on every selection change) so it should be efficient. Fragment content is fetched from the skills DB table."
     },
     {

@@ -873,3 +873,25 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Pre-existing lint errors exist in merge.ts (non-null assertions) and other api files — not introduced by this change
   - Test imports use .js extension for ESM compatibility (import from "../merge.js")
 ---
+
+## 2026-03-17 - US-049
+- Created composition tRPC router at packages/api/src/router/composition.ts
+- Endpoints implemented:
+  - composition.list: returns all compositions ordered by updatedAt desc
+  - composition.byId: returns composition with resolved fragment content (joins with skills table, preserves order)
+  - composition.create: saves name, description, fragment IDs, order (protected)
+  - composition.update: updates composition fields (protected)
+  - composition.delete: removes composition (protected)
+  - composition.preview: accepts fragmentIds + order, fetches content, runs mergeFragments()
+  - composition.exportMarkdown: returns final merged markdown for a saved composition
+- Registered compositionRouter in packages/api/src/root.ts (alphabetical order)
+- All mutations use protectedProcedure; queries use publicProcedure
+- Typecheck passes (17/17 tasks)
+- Files changed:
+  - packages/api/src/router/composition.ts (created)
+  - packages/api/src/root.ts (added composition router)
+- **Learnings for future iterations:**
+  - `inArray` operator is available from `@curiouslycory/db` (re-exported from drizzle-orm/sql)
+  - compositions.fragments and compositions.order store JSON-stringified arrays — parse with JSON.parse()
+  - Router pattern: `satisfies TRPCRouterRecord` at end, import from `@trpc/server`
+---
