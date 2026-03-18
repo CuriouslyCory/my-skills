@@ -27,6 +27,8 @@
 - Import drizzle-orm operators (eq, desc, etc.) from @curiouslycory/db re-exports, not directly from drizzle-orm
 - Drizzle query builder types are not reassignable — use ternary or separate queries for conditional where clauses
 - createTRPCContext accepts optional repoPath for filesystem operations; default is process.cwd()
+- Derive DB type as `typeof db` from @curiouslycory/db/client (don't import BetterSQLite3Database directly)
+- Shared lib functions go in packages/api/src/lib/ directory
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -572,4 +574,20 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - CATEGORY_DIR_MAP maps category to subdirectory name (agent→agents, prompt→prompts, claudemd→claudemds)
   - syncFromDisk stale removal must filter by artifact categories to avoid deleting skill entries
   - Artifact router follows identical pattern to skill router — same walkDirs helper, same CRUD structure
+---
+
+## 2026-03-17 - US-034
+- Created packages/api/src/lib/disk-sync.ts with scanAndSync(repoPath, db) function
+- scanAndSync walks skills/*/SKILL.md and artifacts/<category>/*/SKILL.md, parsing frontmatter
+- Upserts each found item into skills DB table matched on dirPath
+- Removes stale DB records whose dirPath no longer exists on disk
+- Returns summary: { added, updated, removed }
+- Refactored skill.syncFromDisk and artifact.syncFromDisk to both delegate to scanAndSync
+- Exported ScanResult interface for declaration emit compatibility
+- Typecheck passes (17/17 tasks)
+- Files changed: packages/api/src/lib/disk-sync.ts (new), packages/api/src/router/skill.ts, packages/api/src/router/artifact.ts
+- **Learnings for future iterations:**
+  - Cannot import BetterSQLite3Database type directly from drizzle-orm/better-sqlite3 (no type declarations available in this workspace); derive DB type from `typeof db` instead
+  - When a shared function returns a type not explicitly exported, declaration emit fails with "cannot be named" error — export the return type interface
+  - The scanAndSync function handles both skills and artifacts in a single pass, removing all stale entries regardless of category
 ---

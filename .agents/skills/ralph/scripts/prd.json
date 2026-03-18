@@ -633,7 +633,7 @@
         "Typecheck passes"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "notes": "This is the bridge between filesystem (source of truth) and database (search index). Use recursive directory walking."
     },
     {
