@@ -1,5 +1,6 @@
 import { artifactRouter } from "./router/artifact";
 import { authRouter } from "./router/auth";
+import { compositionRouter } from "./router/composition";
 import { configRouter } from "./router/config";
 import { gitRouter } from "./router/git";
 import { postRouter } from "./router/post";
@@ -10,6 +11,7 @@ import { createTRPCRouter } from "./trpc";
 export const appRouter = createTRPCRouter({
   artifact: artifactRouter,
   auth: authRouter,
+  composition: compositionRouter,
   config: configRouter,
   git: gitRouter,
   post: postRouter,
