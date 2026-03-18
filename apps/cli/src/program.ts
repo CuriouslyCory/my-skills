@@ -4,6 +4,7 @@ import packageJson from "../package.json" with { type: "json" };
 import { registerAddCommand } from "./commands/add.js";
 import { registerListCommand } from "./commands/list.js";
 import { registerRemoveCommand } from "./commands/remove.js";
+import { registerUpdateCommand } from "./commands/update.js";
 
 export function createProgram(): Command {
   const program = new Command();
@@ -16,6 +17,7 @@ export function createProgram(): Command {
   registerAddCommand(program);
   registerListCommand(program);
   registerRemoveCommand(program);
+  registerUpdateCommand(program);
 
   return program;
 }
