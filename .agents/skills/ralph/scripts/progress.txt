@@ -309,3 +309,17 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - AdapterSkillEntry mirrors ResolvedSkill from skill-resolver.ts — they're structurally compatible
   - Registry self-validates at import time by iterating AgentIdSchema.options
 ---
+
+## 2026-03-17 - US-020
+- Created apps/cli/src/adapters/detect.ts with detectAgents() and resolveAgents() functions
+- detectAgents scans for marker files/directories for all 10 agent types
+- resolveAgents handles first-run flow: detect → checkbox prompt → save to config + manifest
+- Subsequent runs return config.defaultAgents without prompting
+- Prints info message about `ms config set defaultAgents` after first selection
+- Updated apps/cli/src/adapters/index.ts barrel export
+- Files changed: apps/cli/src/adapters/detect.ts (new), apps/cli/src/adapters/index.ts
+- **Learnings for future iterations:**
+  - AGENT_MARKERS record maps each AgentId to an array of marker paths to check
+  - resolveAgents checks config.defaultAgents first, then manifest.agents, then falls back to interactive detection
+  - @inquirer/checkbox choices use `checked` property for pre-selection
+---

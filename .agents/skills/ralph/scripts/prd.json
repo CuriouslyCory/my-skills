@@ -369,7 +369,7 @@
         "Typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "Use fs.access or fs.stat to check for directory/file existence. The checkbox prompt allows users to select/deselect any detected agents."
     },
     {
