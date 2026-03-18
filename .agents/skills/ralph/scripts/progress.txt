@@ -17,6 +17,7 @@
 - CLI doesn't have simple-git as direct dep; extend GitService with new methods rather than importing simple-git in CLI
 - CLI commands go in apps/cli/src/commands/ and use registerXCommand(program) pattern
 - @inquirer/search is a default export; source callback needs explicit type: `(input: string | undefined)`
+- @inquirer/confirm and @inquirer/checkbox are default exports; use dynamic import for conditional usage
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -254,4 +255,25 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Commander option() with .action() passes options as second arg after the positional arg
   - AgentIdSchema.options gives the array of valid enum values for validation and wildcard expansion
   - When adding flags, keep the no-flag path identical to preserve backwards compatibility
+---
+
+## 2026-03-17 - US-017
+- Created apps/cli/src/commands/remove.ts with registerRemoveCommand() function
+- Registered on Commander program with aliases 'r', 'uninstall'
+- ms remove <skill-name>: removes .agents/skills/<name>/ directory and manifest entry
+- ms remove (no args): shows @inquirer/checkbox interactive picker of installed skills
+- Supports --skill <names> for comma-separated multi-skill removal
+- Supports -g/--global to remove from ~/.agents/skills/
+- Supports -y/--yes to skip confirmation prompts
+- Supports --all to remove all installed skills (implies -y)
+- Shows error if skill is not installed
+- Uses @inquirer/confirm for per-skill confirmation (dynamic import)
+- Added @inquirer/confirm as dependency
+- Registered in apps/cli/src/program.ts
+- Files changed: apps/cli/src/commands/remove.ts (new), apps/cli/src/program.ts, apps/cli/package.json, pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - @inquirer/confirm is a default export; use dynamic import when conditionally needed
+  - @inquirer/checkbox returns array of selected values; set opts.yes=true after interactive selection to avoid double-confirming
+  - Use fs.rm with { recursive: true, force: true } for directory removal
+  - removeSkill from manifest.ts is a pure function - call saveManifest after to persist
 ---
