@@ -42,6 +42,7 @@
 - Plate.js plugin render config uses `render: { node: ({attributes, children, element}) => JSX }` pattern; avoid PlateElement/PlateLeaf wrappers due to strict generic type constraints
 - Plate.js MarkdownPlugin API types are untyped (any); use eslint-disable for serialize/deserialize calls
 - react-markdown + remark-gfm installed in web app for markdown rendering
+- packages/api uses vitest for testing; tests go in src/lib/__tests__/ directory
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -847,4 +848,28 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Preamble (content before first heading) is handled as a level-0 section
   - Empty lines are not deduplicated (only non-empty trimmed lines are)
   - `collapseBlankLines` uses regex to replace 4+ newlines (3+ blank lines) with 3 newlines (2 blank lines)
+---
+
+## 2026-03-17 - US-048
+- Implemented comprehensive merge algorithm unit tests with vitest
+- 11 test cases covering all acceptance criteria:
+  - Empty fragments returns empty string
+  - Single fragment returns unchanged (with trailing newline)
+  - Two fragments with no overlapping headings concatenates them
+  - Two fragments with same heading merges content under one heading
+  - Level-offset matching (# Foo and ## Foo merge correctly)
+  - Duplicate identical lines are deduplicated
+  - Fragment ordering preserved
+  - Preamble content merged and deduplicated
+  - 3+ blank lines collapsed to 2
+  - Complex scenario with 3 files merging at different heading levels
+- Files changed:
+  - packages/api/src/lib/__tests__/merge.test.ts (created)
+  - packages/api/vitest.config.ts (created)
+  - packages/api/package.json (added vitest dep and test script)
+- **Learnings for future iterations:**
+  - packages/api had no vitest setup before — vitest.config.ts and devDep needed to be added
+  - mergeFragments is a pure function exported from packages/api/src/lib/merge.ts
+  - Pre-existing lint errors exist in merge.ts (non-null assertions) and other api files — not introduced by this change
+  - Test imports use .js extension for ESM compatibility (import from "../merge.js")
 ---
