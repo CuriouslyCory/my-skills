@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export { buildSkillContent, parseSkillFrontmatter } from "./frontmatter.js";
+
 // ── Artifact Categories ─────────────────────────────────────────────
 
 export const ArtifactCategorySchema = z.enum([
