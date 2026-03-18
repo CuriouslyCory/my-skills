@@ -21,6 +21,7 @@
 - SkillFrontmatter uses `compatibility` for agent IDs; SkillEntry (manifest) uses `agents` — don't confuse them
 - smol-toml: parse(string) → object, stringify(object) → string; nested tables [a.b] = { a: { b: {} } }
 - Adapters with markdown marker management reuse parseSections/buildManagedSection pattern (see CopilotAdapter, GeminiAdapter)
+- Zod v4 _def doesn't reliably expose typeName; use explicit key sets instead of schema introspection for type detection
 
 # Ralph Progress Log
 Started: Tue Mar 17 07:09:06 PM MST 2026
@@ -468,4 +469,23 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - @inquirer/input is a default export, same pattern as @inquirer/confirm and @inquirer/search
   - buildSkillContent from shared-types generates proper frontmatter SKILL.md content
   - Use node:fs/promises access() to check file existence for error-before-overwrite pattern
+---
+
+## 2026-03-17 - US-029
+- Created apps/cli/src/commands/config.ts with registerConfigCommand() function
+- Registered on Commander program with subcommands: get, set, list, delete
+- ms config get <key>: reads and prints a config value (supports dot-notation for nested values)
+- ms config set <key> <value>: sets a value, validates with ConfigSchema, saves
+- ms config set defaultAgents claude-code,cursor handles comma-separated arrays for array fields
+- ms config list: pretty-prints all config key-value pairs with chalk formatting
+- ms config delete <key>: resets key to DEFAULT_CONFIG value and saves
+- Array keys (defaultAgents, favoriteRepos) and boolean keys (autoDetectAgents) parsed from string input
+- All operations read from / write to ~/.my-skills/config.json via loadConfig/saveConfig
+- Shows current value after set operations with green checkmark
+- Typecheck passes (17/17 tasks)
+- Files changed: apps/cli/src/commands/config.ts (new), apps/cli/src/program.ts
+- **Learnings for future iterations:**
+  - Zod v4 _def shape doesn't have typeName on all defs; use explicit key sets (ARRAY_KEYS, BOOLEAN_KEYS) instead of introspecting schema
+  - Commander subcommands: use program.command("config") then configCmd.command("get <key>") for nested commands
+  - DEFAULT_CONFIG is exported from core/config.ts and useful for the "delete" (reset to default) operation
 ---

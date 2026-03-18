@@ -537,7 +537,7 @@
         "Typecheck passes"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "notes": "Model after npm config. Use Commander subcommands for get/set/list/delete."
     },
     {
