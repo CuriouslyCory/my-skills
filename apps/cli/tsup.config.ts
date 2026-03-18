@@ -10,4 +10,9 @@ export default defineConfig({
   outDir: "dist/bin",
   clean: true,
   splitting: false,
+  noExternal: [
+    "@curiouslycory/shared-types",
+    "@curiouslycory/git-service",
+  ],
+  external: ["simple-git"],
 });

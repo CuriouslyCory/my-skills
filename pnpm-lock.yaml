@@ -102,12 +102,6 @@ importers:
 
   apps/cli:
     dependencies:
-      '@curiouslycory/git-service':
-        specifier: workspace:*
-        version: link:../../packages/git-service
-      '@curiouslycory/shared-types':
-        specifier: workspace:*
-        version: link:../../packages/shared-types
       '@inquirer/checkbox':
         specifier: ^4.1.5
         version: 4.3.2(@types/node@22.18.12)
@@ -132,6 +126,9 @@ importers:
       ora:
         specifier: ^8.2.0
         version: 8.2.0
+      simple-git:
+        specifier: ^3.27.0
+        version: 3.33.0
       smol-toml:
         specifier: ^1.6.0
         version: 1.6.0
@@ -139,9 +136,15 @@ importers:
       '@curiouslycory/eslint-config':
         specifier: workspace:*
         version: link:../../tooling/eslint
+      '@curiouslycory/git-service':
+        specifier: workspace:*
+        version: link:../../packages/git-service
       '@curiouslycory/prettier-config':
         specifier: workspace:*
         version: link:../../tooling/prettier
+      '@curiouslycory/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       '@curiouslycory/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/typescript
@@ -3967,10 +3970,6 @@ packages:
 
   diff@4.0.2:
     resolution: {integrity: sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A==}
-    engines: {node: '>=0.3.1'}
-
-  diff@8.0.2:
-    resolution: {integrity: sha512-sSuxWU5j5SR9QQji/o2qMvqRNYRDOcBTgsJ/DeCf4iSN4gW+gNMXM7wFIP+fdXZxoNiAnHUTGjCr+TSWXdRDKg==}
     engines: {node: '>=0.3.1'}
 
   diff@8.0.3:
@@ -9376,7 +9375,7 @@ snapshots:
       '@babel/parser': 7.28.5
       '@babel/preset-typescript': 7.28.5(@babel/core@7.28.5)
       ansis: 4.2.0
-      diff: 8.0.2
+      diff: 8.0.3
       pathe: 2.0.3
       tinyglobby: 0.2.15
     transitivePeerDependencies:
@@ -10449,9 +10448,6 @@ snapshots:
       dequal: 2.0.3
 
   diff@4.0.2: {}
-
-  diff@8.0.2:
-    optional: true
 
   diff@8.0.3: {}
 

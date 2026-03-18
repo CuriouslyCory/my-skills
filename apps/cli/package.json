@@ -1,8 +1,10 @@
 {
   "name": "my-skills",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "files": [
+    "dist/"
+  ],
   "bin": {
     "ms": "dist/bin/my-skills.js",
     "my-skills": "dist/bin/my-skills.js"
@@ -21,8 +23,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@curiouslycory/git-service": "workspace:*",
-    "@curiouslycory/shared-types": "workspace:*",
     "@inquirer/checkbox": "^4.1.5",
     "@inquirer/confirm": "^6.0.10",
     "@inquirer/input": "^5.0.10",
@@ -31,11 +31,14 @@
     "commander": "^13.1.0",
     "gray-matter": "^4.0.3",
     "ora": "^8.2.0",
+    "simple-git": "^3.27.0",
     "smol-toml": "^1.6.0"
   },
   "devDependencies": {
     "@curiouslycory/eslint-config": "workspace:*",
+    "@curiouslycory/git-service": "workspace:*",
     "@curiouslycory/prettier-config": "workspace:*",
+    "@curiouslycory/shared-types": "workspace:*",
     "@curiouslycory/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "catalog:",
