@@ -462,7 +462,7 @@
         "Typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": "Similar to add but overwrites existing installations. Force-fetches from remote (ignores cache staleness)."
     },
     {

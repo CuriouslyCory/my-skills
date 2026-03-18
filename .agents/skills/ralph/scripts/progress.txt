@@ -399,3 +399,20 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Use `const resolvedAgents: AgentId[] = agents` pattern to narrow `AgentId[] | undefined` after conditional assignment
   - Adapter failures should always be warnings, not errors — keeps the primary install/remove operation from failing
 ---
+
+## 2026-03-17 - US-025
+- Created apps/cli/src/commands/update.ts with registerUpdateCommand() function
+- Registered on Commander program with alias 'up'
+- ms update (no args) updates all installed skills from manifest
+- ms update <skill-name> updates a specific skill
+- For each skill: force-fetches latest from remote via cache, resolves skill, compares hash
+- If hash differs: removes old files, installs new version, re-runs adapter install, updates manifest entry (hash, installedAt)
+- If hash matches: prints 'skill-name: already up to date'
+- Shows summary: N updated, N already up-to-date, N failed
+- Supports -g/--global flag for ~/.agents/skills/
+- Files changed: apps/cli/src/commands/update.ts (new), apps/cli/src/program.ts
+- **Learnings for future iterations:**
+  - Update command reuses sourceToGitHub and runAdapterInstalls patterns from add command — these could be extracted to shared utils if more commands need them
+  - entry.agents stores AgentId[] but typed as string[] in schema — needs `as AgentId[]` cast
+  - Use rm with { recursive: true, force: true } before reinstall to ensure clean state
+---
