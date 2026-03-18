@@ -8,6 +8,13 @@ import { Badge } from "@curiouslycory/ui/badge";
 import { Button } from "@curiouslycory/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@curiouslycory/ui/card";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@curiouslycory/ui/dropdown-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -111,6 +118,10 @@ export function GitStatus() {
     }),
   );
 
+  const { data: branchData } = useSuspenseQuery(
+    trpc.git.branches.queryOptions(),
+  );
+
   const pushMutation = useMutation(
     trpc.git.push.mutationOptions({
       onSuccess: () => {
@@ -120,6 +131,57 @@ export function GitStatus() {
       },
       onError: (error) => {
         toast.error(`Push failed: ${error.message}`);
+      },
+    }),
+  );
+
+  const checkoutMutation = useMutation(
+    trpc.git.checkout.mutationOptions({
+      onSuccess: () => {
+        toast.success("Branch switched");
+        void queryClient.invalidateQueries({ queryKey: trpc.git.status.queryKey() });
+        void queryClient.invalidateQueries({ queryKey: trpc.git.log.queryKey() });
+        void queryClient.invalidateQueries({ queryKey: trpc.git.branches.queryKey() });
+      },
+      onError: (error) => {
+        toast.error(`Checkout failed: ${error.message}`);
+      },
+    }),
+  );
+
+  const skillSyncMutation = useMutation(
+    trpc.skill.syncFromDisk.mutationOptions(),
+  );
+
+  const artifactSyncMutation = useMutation(
+    trpc.artifact.syncFromDisk.mutationOptions(),
+  );
+
+  const pullMutation = useMutation(
+    trpc.git.pull.mutationOptions({
+      onSuccess: () => {
+        toast.success("Pulled successfully");
+        void queryClient.invalidateQueries({ queryKey: trpc.git.status.queryKey() });
+        void queryClient.invalidateQueries({ queryKey: trpc.git.log.queryKey() });
+        void queryClient.invalidateQueries({ queryKey: trpc.git.branches.queryKey() });
+        // Resync DB since files may have changed on disk
+        skillSyncMutation.mutate();
+        artifactSyncMutation.mutate();
+      },
+      onError: (error) => {
+        toast.error(`Pull failed: ${error.message}`);
+      },
+    }),
+  );
+
+  const fetchMutation = useMutation(
+    trpc.git.fetch.mutationOptions({
+      onSuccess: () => {
+        toast.success("Fetched successfully");
+        void queryClient.invalidateQueries({ queryKey: trpc.git.branches.queryKey() });
+      },
+      onError: (error) => {
+        toast.error(`Fetch failed: ${error.message}`);
       },
     }),
   );
@@ -142,11 +204,45 @@ export function GitStatus() {
             {status.isClean ? "Clean" : "Dirty"}
           </Badge>
         </CardHeader>
-        <CardContent className="flex items-center justify-between">
-          <p className="text-sm">
-            Branch: <span className="font-mono font-medium">{status.current}</span>
-          </p>
-          <div className="flex gap-2">
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm">Branch:</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={checkoutMutation.isPending}
+                >
+                  {checkoutMutation.isPending ? (
+                    <>
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Switching...
+                    </>
+                  ) : (
+                    <span className="font-mono">{branchData.current}</span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuRadioGroup
+                  value={branchData.current}
+                  onValueChange={(branch) => {
+                    if (branch !== branchData.current) {
+                      checkoutMutation.mutate({ branch });
+                    }
+                  }}
+                >
+                  {branchData.all.map((branch) => (
+                    <DropdownMenuRadioItem key={branch} value={branch}>
+                      <span className="font-mono text-sm">{branch}</span>
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <div className="flex flex-wrap gap-2">
             <CommitDialog
               files={status.files.map((f) => ({
                 path: f.path,
@@ -155,6 +251,34 @@ export function GitStatus() {
               }))}
               disabled={status.files.length === 0}
             />
+            <Button
+              variant="outline"
+              onClick={() => pullMutation.mutate()}
+              disabled={pullMutation.isPending}
+            >
+              {pullMutation.isPending ? (
+                <>
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Pulling...
+                </>
+              ) : (
+                "Pull"
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => fetchMutation.mutate()}
+              disabled={fetchMutation.isPending}
+            >
+              {fetchMutation.isPending ? (
+                <>
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Fetching...
+                </>
+              ) : (
+                "Fetch"
+              )}
+            </Button>
             <Button
               variant="outline"
               onClick={() => pushMutation.mutate()}

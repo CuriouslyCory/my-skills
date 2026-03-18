@@ -9,6 +9,7 @@ import {
 export default function GitPage() {
   prefetch(trpc.git.status.queryOptions());
   prefetch(trpc.git.log.queryOptions({ maxCount: 20, offset: 0 }));
+  prefetch(trpc.git.branches.queryOptions());
 
   return (
     <HydrateClient>
