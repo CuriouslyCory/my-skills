@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -24,6 +24,7 @@ import { Button } from "@curiouslycory/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@curiouslycory/ui/card";
 import { Separator } from "@curiouslycory/ui/separator";
 
+import { DiffViewer } from "~/app/_components/diff-viewer";
 import { useTRPC } from "~/trpc/react";
 
 function parseTags(tags: string): string[] {
@@ -58,10 +59,31 @@ function formatRelativeDate(dateStr: string): string {
   return "just now";
 }
 
+function SkillCommitDiff({ commitHash }: { commitHash: string }) {
+  const trpc = useTRPC();
+  const { data, isLoading } = useQuery(
+    trpc.git.diff.queryOptions({ commit: commitHash }),
+  );
+
+  return (
+    <div className="mt-2">
+      {isLoading ? (
+        <div className="text-muted-foreground flex items-center gap-2 py-4 text-sm">
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          Loading diff...
+        </div>
+      ) : (
+        <DiffViewer diff={data?.diff ?? ""} />
+      )}
+    </div>
+  );
+}
+
 export function SkillDetail({ id }: { id: string }) {
   const trpc = useTRPC();
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [expandedCommit, setExpandedCommit] = useState<string | null>(null);
 
   const { data: skill } = useSuspenseQuery(
     trpc.skill.byId.queryOptions({ id }),
@@ -237,28 +259,38 @@ export function SkillDetail({ id }: { id: string }) {
           </p>
         ) : (
           <div className="space-y-2">
-            {gitLog.commits.map((commit) => (
-              <div
-                key={commit.hash}
-                className="bg-muted/50 flex items-start justify-between gap-4 rounded-lg border p-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
-                    {commit.message}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">
-                      {commit.hash.slice(0, 8)}
-                    </code>
-                    {" by "}
-                    {commit.author}
-                  </p>
+            {gitLog.commits.map((commit) => {
+              const isExpanded = expandedCommit === commit.hash;
+              return (
+                <div key={commit.hash}>
+                  <div
+                    className="bg-muted/50 flex cursor-pointer items-start justify-between gap-4 rounded-lg border p-3 transition-colors hover:bg-muted"
+                    onClick={() =>
+                      setExpandedCommit(isExpanded ? null : commit.hash)
+                    }
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {commit.message}
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">
+                          {commit.hash.slice(0, 8)}
+                        </code>
+                        {" by "}
+                        {commit.author}
+                      </p>
+                    </div>
+                    <p className="text-muted-foreground shrink-0 text-xs">
+                      {formatRelativeDate(commit.date)}
+                    </p>
+                  </div>
+                  {isExpanded && (
+                    <SkillCommitDiff commitHash={commit.hash} />
+                  )}
                 </div>
-                <p className="text-muted-foreground shrink-0 text-xs">
-                  {formatRelativeDate(commit.date)}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

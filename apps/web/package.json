@@ -41,6 +41,7 @@
     "next": "^16.0.9",
     "platejs": "^52.3.4",
     "react": "catalog:react19",
+    "react-diff-viewer-continued": "^4.2.0",
     "react-dom": "catalog:react19",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",

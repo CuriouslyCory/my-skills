@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { Fragment, useState } from "react";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 import { cn } from "@curiouslycory/ui";
 import { Badge } from "@curiouslycory/ui/badge";
@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@curiouslycory/ui/table";
 
+import { DiffViewer } from "~/app/_components/diff-viewer";
 import { useTRPC } from "~/trpc/react";
 
 function statusLabel(index: string, workingDir: string): string {
@@ -67,9 +68,34 @@ function formatRelativeDate(date: Date | string | number): string {
 
 const PAGE_SIZE = 20;
 
+function CommitDiffRow({ commitHash }: { commitHash: string }) {
+  const trpc = useTRPC();
+  const { data, isLoading } = useQuery(
+    trpc.git.diff.queryOptions({ commit: commitHash }),
+  );
+
+  return (
+    <TableRow>
+      <TableCell colSpan={4} className="p-0">
+        <div className="p-4">
+          {isLoading ? (
+            <div className="text-muted-foreground flex items-center gap-2 py-4 text-sm">
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Loading diff...
+            </div>
+          ) : (
+            <DiffViewer diff={data?.diff ?? ""} />
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export function GitStatus() {
   const trpc = useTRPC();
   const [page, setPage] = useState(0);
+  const [expandedCommit, setExpandedCommit] = useState<string | null>(null);
 
   const { data: status } = useSuspenseQuery(
     trpc.git.status.queryOptions(),
@@ -164,22 +190,35 @@ export function GitStatus() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {logData.commits.map((commit) => (
-                  <TableRow key={commit.hash}>
-                    <TableCell className="font-mono text-xs">
-                      {commit.hash.slice(0, 8)}
-                    </TableCell>
-                    <TableCell className="max-w-md truncate text-sm">
-                      {commit.message}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {commit.author}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-right text-xs">
-                      {formatRelativeDate(commit.date)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {logData.commits.map((commit) => {
+                  const isExpanded = expandedCommit === commit.hash;
+                  return (
+                    <Fragment key={commit.hash}>
+                      <TableRow
+                        className="cursor-pointer"
+                        onClick={() =>
+                          setExpandedCommit(isExpanded ? null : commit.hash)
+                        }
+                      >
+                        <TableCell className="font-mono text-xs">
+                          {commit.hash.slice(0, 8)}
+                        </TableCell>
+                        <TableCell className="max-w-md truncate text-sm">
+                          {commit.message}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {commit.author}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-right text-xs">
+                          {formatRelativeDate(commit.date)}
+                        </TableCell>
+                      </TableRow>
+                      {isExpanded && (
+                        <CommitDiffRow commitHash={commit.hash} />
+                      )}
+                    </Fragment>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
