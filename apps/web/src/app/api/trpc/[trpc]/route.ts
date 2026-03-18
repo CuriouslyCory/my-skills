@@ -3,6 +3,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 import { appRouter, createTRPCContext } from "@curiouslycory/api";
 
+import { env } from "~/env";
 import { getSession } from "~/auth/server";
 
 /**
@@ -35,6 +36,7 @@ const handler = async (req: NextRequest) => {
       createTRPCContext({
         session,
         headers: req.headers,
+        repoPath: env.REPO_PATH,
       }),
     onError({ error, path }) {
       console.error(`>>> tRPC Error on '${path}'`, error);

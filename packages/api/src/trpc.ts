@@ -29,10 +29,12 @@ import { db } from "@curiouslycory/db/client";
 export const createTRPCContext = async (opts: {
   headers: Headers;
   session: Session | null;
+  repoPath?: string;
 }) => {
   return {
     session: opts.session,
     db,
+    repoPath: opts.repoPath ?? process.cwd(),
   };
 };
 /**

@@ -20,8 +20,10 @@
   "dependencies": {
     "@curiouslycory/auth": "workspace:*",
     "@curiouslycory/db": "workspace:*",
+    "@curiouslycory/shared-types": "workspace:*",
     "@curiouslycory/validators": "workspace:*",
     "@trpc/server": "catalog:",
+    "gray-matter": "^4.0.3",
     "superjson": "2.2.3",
     "zod": "catalog:"
   },
