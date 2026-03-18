@@ -338,3 +338,21 @@ Started: Tue Mar 17 07:09:06 PM MST 2026
   - Use lstat() not stat() to detect symlinks (stat follows symlinks, lstat doesn't)
   - symlink() with "dir" type needed for directory symlinks (important on Windows)
 ---
+
+## 2026-03-17 - US-022
+- Created apps/cli/src/adapters/copilot.ts implementing AgentAdapter for GitHub Copilot
+- install() adds skill content between `<!-- my-skills:skill-name:start -->` and `<!-- my-skills:skill-name:end -->` markers in .github/copilot-instructions.md
+- All managed content wrapped in outer `<!-- my-skills:start -->` and `<!-- my-skills:end -->` markers
+- remove() removes the skill's section (markers + content); preserves everything outside managed markers
+- sync() replaces entire managed section with all current skills
+- detect() checks for .github/copilot-instructions.md or .github/ directory
+- Creates .github/ directory and copilot-instructions.md if they don't exist
+- Updated registry.ts to use CopilotAdapter for "github-copilot" instead of NativeAdapter placeholder
+- Updated index.ts barrel export to include CopilotAdapter
+- Typecheck passes (17/17 tasks)
+- Files changed: apps/cli/src/adapters/copilot.ts (new), apps/cli/src/adapters/registry.ts, apps/cli/src/adapters/index.ts
+- **Learnings for future iterations:**
+  - CopilotAdapter uses HTML comment markers for section management — same pattern can be reused for any markdown-based config
+  - parseSections() splits file into before/managed/after for safe content replacement
+  - Registry uses direct instantiation `new CopilotAdapter()` since id/displayName are hardcoded in the class
+---

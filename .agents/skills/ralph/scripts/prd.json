@@ -407,7 +407,7 @@
         "Typecheck passes"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "The marker approach is similar to how tools like Prettier manage sections in config files. Read the file, find markers, replace content between them."
     },
     {
