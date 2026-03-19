@@ -58,7 +58,7 @@ export const compositionRouter = {
       const fragmentMap = new Map(fragments.map((f) => [f.id, f]));
       const resolvedFragments = fragmentIds
         .map((id) => fragmentMap.get(id))
-        .filter(Boolean);
+        .filter((f): f is NonNullable<typeof f> => Boolean(f));
 
       return { ...composition, resolvedFragments };
     }),

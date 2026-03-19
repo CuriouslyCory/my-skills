@@ -118,7 +118,7 @@ export function SearchResults() {
         </p>
       )}
 
-      {!isLoading && (results?.length ?? 0) > 0 && (
+      {!isLoading && results && results.length > 0 && (
         <div className="space-y-3">
           {results.map((result) => (
             <Link key={result.id} href={getDetailLink(result)}>
