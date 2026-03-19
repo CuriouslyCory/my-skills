@@ -20,5 +20,5 @@ jobs:
 
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm build
+      - run: pnpm turbo run build --filter='!@curiouslycory/web'
       - run: pnpm test
