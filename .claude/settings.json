@@ -25,8 +25,9 @@
       "WebFetch(domain:www.npmjs.com)",
       "WebFetch(domain:skills.sh)",
       "WebSearch",
-      "Read(//home/curiouslycory/workspace/active-personal/my-skills/**)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(find /home/curiouslycory/workspace/active-personal/my-skills *)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }
