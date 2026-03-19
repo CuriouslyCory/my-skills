@@ -1,6 +1,9 @@
 {
   "name": "my-skills",
   "private": true,
+  "repository": {
+    "url": "https://github.com/CuriouslyCory/my-skills"
+  },
   "engines": {
     "node": ">=18"
   },
