@@ -20,7 +20,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "This is the foundation. create-t3-turbo includes: Next.js app, packages (api, auth, db, ui), and tooling (eslint, prettier, tailwind, typescript). The nextjs app should be renamed to 'web' in its directory and package.json. Preserve the existing .claude/ and .agents/ directories - do NOT delete them."
     },
     {
@@ -42,7 +42,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "This package is dependency-free (only zod). Other packages will import from it. Use zod .infer<> for TypeScript types derived from schemas."
     },
     {
@@ -58,7 +58,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Use gray-matter library for parsing. The frontmatter format follows the agent skills spec: --- delimited YAML with name and description as required fields."
     },
     {
@@ -75,7 +75,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Use simple-git npm package. This is used by both the CLI (for cache management) and the web app (for git UI operations)."
     },
     {
@@ -95,7 +95,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Modify the existing @acme/db package from create-t3-turbo. Replace the Supabase/Postgres setup with SQLite. Keep the adapter pattern seam by reading DB_DIALECT but only implement sqlite for now. Add data/ to .gitignore."
     },
     {
@@ -112,7 +112,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "FTS5 is SQLite-specific. Use db.run(sql`...`) with raw SQL since Drizzle cannot model virtual tables. The triggers use content= syntax to keep FTS in sync automatically."
     },
     {
@@ -132,7 +132,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "The CLI is a separate app in apps/cli/. It uses tsup for bundling. The bin entry should have #!/usr/bin/env node shebang via tsup banner option."
     },
     {
@@ -149,7 +149,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Use node:fs/promises and node:os (homedir). The config file is the bridge between CLI and web app."
     },
     {
@@ -167,7 +167,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Use node:crypto for SHA-256. The manifest is .my-skills.json in the project root. Pure functions make testing easy."
     },
     {
@@ -186,7 +186,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "GitHub URL parsing should handle both https://github.com/owner/repo and https://github.com/owner/repo.git formats. The owner/repo shorthand always assumes GitHub."
     },
     {
@@ -206,7 +206,7 @@
         "Typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "discoverSkills should search: root SKILL.md, skills/*/SKILL.md, */SKILL.md, and deeper nested directories. Use recursive directory walking with fs.readdir."
     },
     {
@@ -223,7 +223,7 @@
         "Typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "The resolver reads from the cache, the installer writes to the project. They are separate concerns. Use fs.cp with recursive option for directory copying."
     },
     {
@@ -242,7 +242,7 @@
         "Typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "The skills-lock.json format: { version: 1, skills: { 'skill-name': { source, sourceType, computedHash } } }. See existing skills-lock.json in project root for reference."
     },
     {
@@ -260,7 +260,7 @@
         "Typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "This is the core add flow without flags. Use source-parser, cache service, skill-resolver, skill-installer, and manifest module. The interactive picker uses @inquirer/search."
     },
     {
@@ -278,7 +278,7 @@
         "Typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "This enables the npm install workflow: clone a repo, run ms add, and all skills from the manifest are installed."
     },
     {
@@ -297,7 +297,7 @@
         "Typecheck passes"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "Flags modify the behavior of the core add flow from US-014. --list just runs discoverSkills and prints the table without installing."
     },
     {
@@ -318,7 +318,7 @@
         "Typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "Use fs.rm with recursive and force options. Read manifest to verify skill is installed before attempting removal."
     },
     {
@@ -336,7 +336,7 @@
         "Typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "For --global, scan ~/.agents/skills/ directories and read SKILL.md frontmatter since there may not be a global manifest."
     },
     {
@@ -352,7 +352,7 @@
         "Typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "The registry is the central lookup for all adapters. Initially all agents can use NativeAdapter, then we'll add specialized adapters in subsequent stories."
     },
     {
@@ -369,7 +369,7 @@
         "Typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "Use fs.access or fs.stat to check for directory/file existence. The checkbox prompt allows users to select/deselect any detected agents."
     },
     {
@@ -387,7 +387,7 @@
         "Typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "Use fs.symlink for creating symlinks, fs.unlink for removing. On Windows, consider using fs.symlink with 'junction' type as fallback."
     },
     {
@@ -407,7 +407,7 @@
         "Typecheck passes"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "The marker approach is similar to how tools like Prettier manage sections in config files. Read the file, find markers, replace content between them."
     },
     {
@@ -427,7 +427,7 @@
         "Typecheck passes"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": "Codex uses TOML config, Gemini uses TOML command files. Both need a TOML parser. smol-toml is a lightweight option."
     },
     {
@@ -444,7 +444,7 @@
         "Typecheck passes"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": "This wires together the adapter system with the existing add/remove commands. Use getEnabledAdapters() from the registry."
     },
     {
@@ -462,7 +462,7 @@
         "Typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": "Similar to add but overwrites existing installations. Force-fetches from remote (ignores cache staleness)."
     },
     {
@@ -478,7 +478,7 @@
         "Typecheck passes"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": "check is read-only - it reports status but doesn't modify anything. Use the cache service with forced fetch."
     },
     {
@@ -498,7 +498,7 @@
         "Typecheck passes"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": "The find command is the discovery tool. It aggregates skills from all favorite repos + installed skills into one searchable list."
     },
     {
@@ -518,7 +518,7 @@
         "Typecheck passes"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": "The generated SKILL.md should follow the agent skills spec format with name and description frontmatter."
     },
     {
@@ -537,7 +537,7 @@
         "Typecheck passes"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "notes": "Model after npm config. Use Commander subcommands for get/set/list/delete."
     },
     {
@@ -554,7 +554,7 @@
         "Typecheck passes"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "notes": "The create-t3-turbo scaffold already has a Next.js app with tRPC. Rename it from nextjs to web and ensure the wiring works with the modified db package."
     },
     {
@@ -573,7 +573,7 @@
         "Typecheck passes"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "notes": "Replace the Better Auth setup from create-t3-turbo with this simpler approach. Auth is optional - disabled by default for local dev."
     },
     {
@@ -594,7 +594,7 @@
         "Typecheck passes"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "notes": "The skill router is the primary API for the web app. syncFromDisk is called on startup and after git pull to keep the DB in sync with the filesystem."
     },
     {
@@ -615,7 +615,7 @@
         "Typecheck passes"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "notes": "Same pattern as skill router but for artifacts directory. Category determines subdirectory: artifacts/agents/, artifacts/prompts/, artifacts/claudemds/."
     },
     {
@@ -633,7 +633,7 @@
         "Typecheck passes"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "notes": "This is the bridge between filesystem (source of truth) and database (search index). Use recursive directory walking."
     },
     {
@@ -651,7 +651,7 @@
         "Typecheck passes"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "notes": "FTS5 queries use raw SQL via db.run(sql`...`). The snippet() function wraps matches in <mark> tags. Initialize FTS tables (from US-006) on app startup."
     },
     {
@@ -675,7 +675,7 @@
         "Typecheck passes"
       ],
       "priority": 36,
-      "passes": false,
+      "passes": true,
       "notes": "The git router wraps the git-service package. repoPath comes from the tRPC context (REPO_PATH env var or cwd)."
     },
     {
@@ -695,7 +695,7 @@
         "Typecheck passes"
       ],
       "priority": 37,
-      "passes": false,
+      "passes": true,
       "notes": "Config and favorites are stored in the DB for the web app. They get synced to ~/.my-skills/config.json for CLI access (sync implemented in a later story)."
     },
     {
@@ -715,7 +715,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 38,
-      "passes": false,
+      "passes": true,
       "notes": "Use the @curiouslycory/auth package for JWT operations. The middleware reads the session cookie and verifies it."
     },
     {
@@ -733,7 +733,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 39,
-      "passes": false,
+      "passes": true,
       "notes": "Use the existing shadcn/ui sidebar component pattern if available in the ui package, otherwise create one."
     },
     {
@@ -751,7 +751,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 40,
-      "passes": false,
+      "passes": true,
       "notes": "Use Next.js App Router with RSC for initial data fetch. Use shadcn/ui Card, Badge components."
     },
     {
@@ -770,7 +770,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 41,
-      "passes": false,
+      "passes": true,
       "notes": "Use react-markdown or similar for rendering. The git log is scoped to the skill's directory path."
     },
     {
@@ -789,7 +789,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 42,
-      "passes": false,
+      "passes": true,
       "notes": "Plate.js is a rich-text editor built on Slate. The markdown plugin handles the serialization round-trip. This component is reused by skill edit, artifact edit, and composition preview."
     },
     {
@@ -807,7 +807,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 43,
-      "passes": false,
+      "passes": true,
       "notes": "This is the top section of the skill/artifact edit page. The Plate editor sits below it for the body content."
     },
     {
@@ -825,7 +825,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 44,
-      "passes": false,
+      "passes": true,
       "notes": "The create page assembles a new SKILL.md. The edit page loads an existing one. Both use the same FrontmatterForm + PlateEditor components."
     },
     {
@@ -843,7 +843,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 45,
-      "passes": false,
+      "passes": true,
       "notes": "Same UI patterns as skills pages but scoped to the artifacts/ directory. Reuse the FrontmatterForm and PlateEditor components."
     },
     {
@@ -862,7 +862,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 46,
-      "passes": false,
+      "passes": true,
       "notes": "The FTS5 snippet() function returns HTML with highlighted matches. Render carefully to avoid XSS (sanitize or use dangerouslySetInnerHTML on trusted content only)."
     },
     {
@@ -883,7 +883,7 @@
         "Typecheck passes"
       ],
       "priority": 47,
-      "passes": false,
+      "passes": true,
       "notes": "This is the core algorithm for the composition builder. It must be a pure function for easy testing. The level-offset matching is the most complex part - see the PRD for detailed examples."
     },
     {
@@ -905,7 +905,7 @@
         "All tests pass"
       ],
       "priority": 48,
-      "passes": false,
+      "passes": true,
       "notes": "Use the exact examples from the PRD (File 1, File 2, File 3 and expected combined result) as test cases."
     },
     {
@@ -926,7 +926,7 @@
         "Typecheck passes"
       ],
       "priority": 49,
-      "passes": false,
+      "passes": true,
       "notes": "The preview endpoint is called frequently (on every selection change) so it should be efficient. Fragment content is fetched from the skills DB table."
     },
     {
@@ -944,7 +944,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 50,
-      "passes": false,
+      "passes": true,
       "notes": "This is the left panel of the composition builder. The right panel (preview) is added in a subsequent story."
     },
     {
@@ -962,7 +962,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 51,
-      "passes": false,
+      "passes": true,
       "notes": "The ordering determines the merge order for the heading merge algorithm. First fragment takes precedence for heading levels."
     },
     {
@@ -981,7 +981,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 52,
-      "passes": false,
+      "passes": true,
       "notes": "Use the Plate.js editor from US-042 in read-only mode. The preview is the right-most panel in the three-panel composition builder layout."
     },
     {
@@ -1000,7 +1000,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 53,
-      "passes": false,
+      "passes": true,
       "notes": "Outdated detection: compare fragment updatedAt timestamps against composition's updatedAt."
     },
     {
@@ -1018,7 +1018,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 54,
-      "passes": false,
+      "passes": true,
       "notes": "The git page is the control center for repository operations. Build the read-only status view first, mutations in subsequent stories."
     },
     {
@@ -1036,7 +1036,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 55,
-      "passes": false,
+      "passes": true,
       "notes": "react-diff-viewer-continued accepts oldValue and newValue strings. Parse the git diff output to extract the before/after content."
     },
     {
@@ -1054,7 +1054,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 56,
-      "passes": false,
+      "passes": true,
       "notes": "Use shadcn/ui Dialog, Checkbox, Textarea, Button, Toast components."
     },
     {
@@ -1073,7 +1073,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 57,
-      "passes": false,
+      "passes": true,
       "notes": "After pulling, the DB must be resynced since files may have changed on disk."
     },
     {
@@ -1091,7 +1091,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 58,
-      "passes": false,
+      "passes": true,
       "notes": "Use shadcn/ui Input, Button, Card, Checkbox components."
     },
     {
@@ -1107,7 +1107,7 @@
         "Typecheck passes"
       ],
       "priority": 59,
-      "passes": false,
+      "passes": true,
       "notes": "This is the bridge between web app config (in DB) and CLI config (in file). The CLI reads this file for offline access."
     },
     {
@@ -1126,7 +1126,7 @@
         "Typecheck passes"
       ],
       "priority": 60,
-      "passes": false,
+      "passes": true,
       "notes": "Use vitest. Create test fixtures with sample SKILL.md files and manifest files. Each test should be independent with its own temp directory."
     },
     {
@@ -1143,7 +1143,7 @@
         "All tests pass"
       ],
       "priority": 61,
-      "passes": false,
+      "passes": true,
       "notes": "Each adapter test creates a temp project directory with the appropriate marker files, then verifies install/remove operations."
     },
     {
@@ -1162,7 +1162,7 @@
         "Typecheck passes"
       ],
       "priority": 62,
-      "passes": false,
+      "passes": true,
       "notes": "This is the final verification that the CLI is ready for npm publish. The pack command creates the tarball that would be uploaded to npm."
     },
     {
@@ -1180,7 +1180,7 @@
         "Verify in browser using dev server"
       ],
       "priority": 63,
-      "passes": false,
+      "passes": true,
       "notes": "Use Tailwind responsive utilities (sm:, md:, lg:). Test by resizing browser window."
     }
   ]

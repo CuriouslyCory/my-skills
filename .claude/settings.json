@@ -2,14 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(find /home/curiouslycory/workspace/active-personal/tools-agents*)",
+      "Bash(find /home/curiouslycory/workspace/active-personal/my-skills*)",
+      "Bash(cat /home/curiouslycory/workspace/active-personal/my-skills*)",
       "Bash(gh auth:*)",
       "Bash(gh pr:*)",
       "Bash(gh pr view *)",
       "Bash(git ls-files *)",
       "Bash(grep:*)",
-      "Bash(ls -la /home/curiouslycory/workspace/active-personal/tools-agents*)",
-      "Bash(ls /home/curiouslycory/workspace/active-personal/tools-agents*)",
+      "Bash(ls -la /home/curiouslycory/workspace/active-personal/my-skills*)",
+      "Bash(ls /home/curiouslycory/workspace/active-personal/my-skills*)",
       "Bash(pnpm build)",
       "Bash(pnpm install)",
       "Bash(pnpm lint)",
@@ -24,7 +25,10 @@
       "WebFetch(domain:www.npmjs.com)",
       "WebFetch(domain:skills.sh)",
       "WebSearch",
-      "Read(//home/curiouslycory/workspace/active-personal/tools-agents/**)"
+      "Bash(npx eslint:*)",
+      "Bash(find /home/curiouslycory/workspace/active-personal/my-skills *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(pnpm pack:*)"
     ]
   }
 }
