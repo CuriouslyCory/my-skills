@@ -23,7 +23,9 @@
       "WebSearch",
       "Read(//home/curiouslycory/.claude/projects/**)",
       "Bash(pnpm test:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
