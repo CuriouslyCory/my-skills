@@ -67,23 +67,16 @@ overrides:
 importers:
 
   .:
-    dependencies:
+    devDependencies:
+      '@curiouslycory/prettier-config':
+        specifier: workspace:*
+        version: link:tooling/prettier
       '@inquirer/confirm':
         specifier: ^6.0.10
         version: 6.0.10(@types/node@22.18.12)
       '@inquirer/input':
         specifier: ^5.0.10
         version: 5.0.10(@types/node@22.18.12)
-      happy:
-        specifier: ^1.0.2
-        version: 1.0.2
-      smol-toml:
-        specifier: ^1.6.0
-        version: 1.6.0
-    devDependencies:
-      '@curiouslycory/prettier-config':
-        specifier: workspace:*
-        version: link:tooling/prettier
       '@turbo/gen':
         specifier: ^2.5.8
         version: 2.5.8(@types/node@22.18.12)(typescript@5.9.3)
@@ -93,9 +86,15 @@ importers:
       dotenv-cli:
         specifier: ^10.0.0
         version: 10.0.0
+      happy:
+        specifier: ^1.0.2
+        version: 1.0.2
       prettier:
         specifier: 'catalog:'
         version: 3.6.2
+      smol-toml:
+        specifier: ^1.6.0
+        version: 1.6.0
       turbo:
         specifier: ^2.5.8
         version: 2.5.8
@@ -410,7 +409,7 @@ importers:
   packages/db:
     dependencies:
       better-sqlite3:
-        specifier: ^11.9.1
+        specifier: ^11.10.0
         version: 11.10.0
       drizzle-orm:
         specifier: ^0.44.7

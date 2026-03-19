@@ -27,10 +27,14 @@
   },
   "devDependencies": {
     "@curiouslycory/prettier-config": "workspace:*",
+    "@inquirer/confirm": "^6.0.10",
+    "@inquirer/input": "^5.0.10",
     "@turbo/gen": "^2.5.8",
     "@types/node": "catalog:",
     "dotenv-cli": "^10.0.0",
+    "happy": "^1.0.2",
     "prettier": "catalog:",
+    "smol-toml": "^1.6.0",
     "turbo": "^2.5.8",
     "typescript": "catalog:"
   },
@@ -39,11 +43,5 @@
       "better-sqlite3"
     ]
   },
-  "prettier": "@curiouslycory/prettier-config",
-  "dependencies": {
-    "@inquirer/confirm": "^6.0.10",
-    "@inquirer/input": "^5.0.10",
-    "happy": "^1.0.2",
-    "smol-toml": "^1.6.0"
-  }
+  "prettier": "@curiouslycory/prettier-config"
 }
