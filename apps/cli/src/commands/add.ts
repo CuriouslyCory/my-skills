@@ -5,7 +5,7 @@ import { stat } from "node:fs/promises";
 import type { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import search from "@inquirer/search";
+import checkbox from "@inquirer/checkbox";
 
 import type { AgentId, Manifest, SkillEntry } from "@curiouslycory/shared-types";
 import { AgentIdSchema } from "@curiouslycory/shared-types";
@@ -393,24 +393,18 @@ export function registerAddCommand(program: Command): void {
           // With --yes and no --skill, install all discovered skills
           skillNames = discovered.map((s) => s.name);
         } else {
-          const selectedName = await search({
-            message: "Select a skill to install:",
-            source: (input: string | undefined) => {
-              const term = (input ?? "").toLowerCase();
-              return discovered
-                .filter(
-                  (s) =>
-                    !term ||
-                    s.name.toLowerCase().includes(term) ||
-                    s.description.toLowerCase().includes(term),
-                )
-                .map((s) => ({
-                  name: `${s.name} - ${chalk.dim(s.description)}`,
-                  value: s.name,
-                }));
-            },
+          const selectedNames = await checkbox({
+            message: "Select skills to install:",
+            choices: discovered.map((s) => ({
+              name: `${s.name} - ${chalk.dim(s.description)}`,
+              value: s.name,
+            })),
           });
-          skillNames = [selectedName];
+          if (selectedNames.length === 0) {
+            console.log(chalk.yellow("No skills selected."));
+            return;
+          }
+          skillNames = selectedNames;
         }
       }
 

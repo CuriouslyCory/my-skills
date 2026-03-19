@@ -1,14 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find /home/curiouslycory/workspace/active-personal/my-skills *)",
       "Bash(gh auth:*)",
       "Bash(gh pr view *)",
       "Bash(gh pr:*)",
       "Bash(git ls-files *)",
-      "Bash(grep:*)",
-      "Bash(npx eslint:*)",
-      "Bash(npx prisma generate)",
       "Bash(pnpm build)",
       "Bash(pnpm install)",
       "Bash(pnpm lint)",
@@ -16,6 +12,7 @@
       "Bash(pnpm pack:*)",
       "Bash(pnpm typecheck)",
       "Read(~/workspace/active-personal/my-skills/)",
+      "Read(//home/curiouslycory/workspace/active-personal/my-skills/)",
       "Skill(dev-browser:dev-browser)",
       "WebFetch(domain:agentskills.io)",
       "WebFetch(domain:ai-sdk.dev)",
@@ -23,7 +20,10 @@
       "WebFetch(domain:platejs.org)",
       "WebFetch(domain:skills.sh)",
       "WebFetch(domain:www.npmjs.com)",
-      "WebSearch"
+      "WebSearch",
+      "Read(//home/curiouslycory/.claude/projects/**)",
+      "Bash(pnpm test:*)",
+      "Bash(git add:*)"
     ]
   }
 }

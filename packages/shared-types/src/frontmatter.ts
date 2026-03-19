@@ -24,7 +24,7 @@ export const SkillFrontmatterSchema = z.object({
   name: z.string(),
   description: z.string(),
   license: z.string().optional(),
-  compatibility: z.array(AgentIdSchema).optional(),
+  compatibility: z.union([z.string(), z.array(z.string())]).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   "allowed-tools": z.array(z.string()).optional(),
 });
