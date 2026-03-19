@@ -22,8 +22,6 @@ jobs:
           node-version-file: ".nvmrc"
           registry-url: "https://registry.npmjs.org"
 
-      - run: pnpm build
+      - run: pnpm turbo run build --filter=my-skills...
 
       - run: pnpm --filter ./apps/cli publish --provenance --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
