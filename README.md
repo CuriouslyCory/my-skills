@@ -9,6 +9,8 @@
 
 **The package manager for AI agent skills.** Install, update, and share reusable skills across Claude Code, Cursor, Cline, GitHub Copilot, Codex, Gemini CLI, and more — from a single CLI.
 
+Compatible with the [agentskills.io](https://agentskills.io) spec and works as a drop-in replacement for the `skills.sh` CLI — except `ms install` actually works.
+
 Think of it like npm, but for the prompts, workflows, and capabilities you give your AI coding tools.
 
 ---
@@ -55,21 +57,21 @@ npx my-skills add <skill-name>
 
 Both `my-skills` and `ms` work as the CLI command.
 
-| Command | Description |
-|---|---|
-| `ms add <skill>` | Install a skill from a GitHub repository |
-| `ms add <skill> --repo <url>` | Install from a specific repository |
-| `ms add` | Restore all skills from the manifest |
-| `ms find [query]` | Search for available skills |
-| `ms list` | List installed skills |
-| `ms update` | Update all installed skills to latest |
-| `ms check` | Check which skills have updates available |
-| `ms remove <skill>` | Remove an installed skill |
-| `ms init` | Scaffold a new skill in the current project |
-| `ms config get <key>` | Read a config value |
-| `ms config set <key> <value>` | Set a config value |
-| `ms config list` | Show all config values |
-| `ms config reset <key>` | Reset a config key to default |
+| Command                       | Description                                 |
+| ----------------------------- | ------------------------------------------- |
+| `ms add <skill>`              | Install a skill from a GitHub repository    |
+| `ms add <skill> --repo <url>` | Install from a specific repository          |
+| `ms add`                      | Restore all skills from the manifest        |
+| `ms find [query]`             | Search for available skills                 |
+| `ms list`                     | List installed skills                       |
+| `ms update`                   | Update all installed skills to latest       |
+| `ms check`                    | Check which skills have updates available   |
+| `ms remove <skill>`           | Remove an installed skill                   |
+| `ms init`                     | Scaffold a new skill in the current project |
+| `ms config get <key>`         | Read a config value                         |
+| `ms config set <key> <value>` | Set a config value                          |
+| `ms config list`              | Show all config values                      |
+| `ms config reset <key>`       | Reset a config key to default               |
 
 ### Examples
 
@@ -93,14 +95,14 @@ ms update
 
 my-skills automatically detects which AI coding tools are configured in your project and installs skills in the right format for each:
 
-| Tool | Status |
-|---|---|
-| Claude Code | Supported |
-| Cursor | Supported |
-| Cline | Supported |
+| Tool           | Status    |
+| -------------- | --------- |
+| Claude Code    | Supported |
+| Cursor         | Supported |
+| Cline          | Supported |
 | GitHub Copilot | Supported |
-| Codex | Supported |
-| Gemini CLI | Supported |
+| Codex          | Supported |
+| Gemini CLI     | Supported |
 
 Don't see your tool? [Open an issue](https://github.com/CuriouslyCory/my-skills/issues) or [submit a PR](#contributing) to add an adapter.
 
@@ -264,6 +266,7 @@ If using pnpm, ensure the global bin directory is on your `PATH`:
 ```sh
 pnpm setup
 ```
+
 </details>
 
 <details>
@@ -276,6 +279,7 @@ ms add <skill-name>
 ```
 
 The output will show which adapters were used. If your tool isn't detected, make sure its config files exist in the project (e.g., `.claude/` for Claude Code, `.cursor/` for Cursor).
+
 </details>
 
 <details>
@@ -289,6 +293,7 @@ npm config set prefix '~/.npm-global'
 # Add to your shell profile:
 export PATH="$HOME/.npm-global/bin:$PATH"
 ```
+
 </details>
 
 <details>
@@ -301,6 +306,7 @@ corepack enable
 corepack prepare
 pnpm install
 ```
+
 </details>
 
 ---
