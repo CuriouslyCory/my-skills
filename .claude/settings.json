@@ -27,7 +27,8 @@
       "WebSearch",
       "Bash(npx eslint:*)",
       "Bash(find /home/curiouslycory/workspace/active-personal/my-skills *)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(pnpm pack:*)"
     ]
   }
 }
