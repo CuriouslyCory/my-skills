@@ -27,5 +27,7 @@ export function createProgram(): Command {
   registerRemoveCommand(program);
   registerUpdateCommand(program);
 
+  program.action(() => program.help());
+
   return program;
 }

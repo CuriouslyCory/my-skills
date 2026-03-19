@@ -17,7 +17,7 @@ function buildCommandToml(skill: AdapterSkillEntry): string {
   return (
     stringify({
       name: skill.name,
-      description: skill.frontmatter.description ?? skill.name,
+      description: skill.frontmatter.description,
       instructions: skill.content.trim(),
     }) + "\n"
   );
@@ -27,7 +27,7 @@ function buildCommandToml(skill: AdapterSkillEntry): string {
  * Build a reference line for GEMINI.md.
  */
 function buildSkillRef(skill: AdapterSkillEntry): string {
-  return `- **${skill.name}**: ${skill.frontmatter.description ?? skill.name} (command: \`${skill.name}\`)`;
+  return `- **${skill.name}**: ${skill.frontmatter.description} (command: \`${skill.name}\`)`;
 }
 
 /**
@@ -128,7 +128,7 @@ async function removeFromGeminiMd(
   const filePath = join(projectRoot, GEMINI_MD);
   const existing = await readFileOr(filePath);
 
-  if (!existing || !existing.includes(MANAGED_START)) return;
+  if (!existing.includes(MANAGED_START)) return;
 
   const { before, managed, after } = parseSections(existing);
 

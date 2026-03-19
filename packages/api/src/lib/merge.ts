@@ -38,9 +38,9 @@ function parseIntoSections(text: string): Section[] {
     const match = headingRegex.exec(line);
     if (match) {
       currentSection = {
-        level: match[1]!.length,
-        heading: match[2]!,
-        normalizedHeading: match[2]!.toLowerCase().trim(),
+        level: match[1]?.length ?? 0,
+        heading: match[2] ?? "",
+        normalizedHeading: (match[2] ?? "").toLowerCase().trim(),
         body: [],
         children: [],
       };
@@ -60,10 +60,12 @@ function getChildSignature(
   sections: Section[],
   startIdx: number,
 ): string[] {
-  const parent = sections[startIdx]!;
+  const parent = sections[startIdx];
+  if (!parent) return [];
   const result: string[] = [];
   for (let i = startIdx + 1; i < sections.length; i++) {
-    const s = sections[i]!;
+    const s = sections[i];
+    if (!s) continue;
     if (s.level <= parent.level && parent.level > 0) break;
     if (s.level === parent.level + 1) {
       result.push(s.normalizedHeading);
@@ -206,11 +208,13 @@ function findBestParent(
  * Build the parent chain for a section in its source fragment.
  */
 function getParentChain(sections: Section[], idx: number): string[] {
-  const section = sections[idx]!;
+  const section = sections[idx];
+  if (!section) return [];
   const chain: string[] = [];
 
   for (let i = idx - 1; i >= 0; i--) {
-    const s = sections[i]!;
+    const s = sections[i];
+    if (!s) continue;
     if (s.level < section.level && s.level > 0) {
       chain.unshift(s.normalizedHeading);
       if (s.level === 1) break;
@@ -233,16 +237,17 @@ function getParentChain(sections: Section[], idx: number): string[] {
  */
 export function mergeFragments(fragments: string[]): string {
   if (fragments.length === 0) return "";
-  if (fragments.length === 1) return ensureTrailingNewline(collapseBlankLines(fragments[0]!));
+  if (fragments.length === 1) return ensureTrailingNewline(collapseBlankLines(fragments[0] ?? ""));
 
   const mergedTree: MergedSection[] = [];
-  let preambleParts: string[][] = [];
+  const preambleParts: string[][] = [];
 
   for (const fragment of fragments) {
     const sections = parseIntoSections(fragment);
 
     for (let i = 0; i < sections.length; i++) {
-      const section = sections[i]!;
+      const section = sections[i];
+      if (!section) continue;
 
       if (section.level === 0) {
         // Preamble
@@ -286,7 +291,7 @@ export function mergeFragments(fragments: string[]): string {
     const allPreambleLines = preambleParts.flat();
     const deduped = deduplicateLines(allPreambleLines);
     // Trim trailing empty lines from preamble
-    while (deduped.length > 0 && deduped[deduped.length - 1]!.trim() === "") {
+    while (deduped.length > 0 && deduped[deduped.length - 1]?.trim() === "") {
       deduped.pop();
     }
     if (deduped.length > 0) {

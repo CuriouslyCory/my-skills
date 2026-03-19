@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 import { ConfigSchema } from "@curiouslycory/shared-types";
 import type { Config } from "@curiouslycory/shared-types";

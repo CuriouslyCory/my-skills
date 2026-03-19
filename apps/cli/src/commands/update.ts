@@ -125,7 +125,7 @@ async function updateSingleSkill(
     // Re-run adapter installs
     const agents = entry.agents ?? [];
     if (agents.length > 0) {
-      await runAdapterInstalls(projectRoot, agents as AgentId[], resolved);
+      await runAdapterInstalls(projectRoot, agents, resolved);
     }
 
     return { manifest, status: "updated" };

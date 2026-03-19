@@ -36,6 +36,7 @@ describe("migration", () => {
   });
 
   it("migrates skills-lock.json to .my-skills.json", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     const lockData = {
@@ -57,18 +58,18 @@ describe("migration", () => {
 
     const result = await migrateFromSkillsLock(testDir);
     expect(result).not.toBeNull();
-    expect(result!.version).toBe(1);
-    expect(result!.skills["test-skill"]!.source).toBe("owner/repo");
-    expect(result!.skills["test-skill"]!.sourceType).toBe("github");
-    expect(result!.skills["test-skill"]!.computedHash).toBe("abc123");
-    expect(result!.skills["test-skill"]!.installedAt).toBeDefined();
-    expect(result!.skills["another-skill"]!.sourceType).toBe("local");
+    expect(result?.version).toBe(1);
+    expect(result?.skills["test-skill"]?.source).toBe("owner/repo");
+    expect(result?.skills["test-skill"]?.sourceType).toBe("github");
+    expect(result?.skills["test-skill"]?.computedHash).toBe("abc123");
+    expect(result?.skills["test-skill"]?.installedAt).toBeDefined();
+    expect(result?.skills["another-skill"]?.sourceType).toBe("local");
 
     // Verify file was written
     const content = await readFile(join(testDir, ".my-skills.json"), "utf-8");
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(content) as Record<string, unknown>;
     expect(parsed.version).toBe(1);
-    expect(parsed.skills["test-skill"]).toBeDefined();
+    expect((parsed.skills as Record<string, unknown>)["test-skill"]).toBeDefined();
 
     consoleSpy.mockRestore();
   });

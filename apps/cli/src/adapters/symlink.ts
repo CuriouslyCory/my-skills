@@ -27,8 +27,8 @@ export class SymlinkAdapter implements AgentAdapter {
     public readonly displayName: string,
   ) {}
 
-  async detect(_projectRoot: string): Promise<boolean> {
-    return true;
+  detect(_projectRoot: string): Promise<boolean> {
+    return Promise.resolve(true);
   }
 
   async install(

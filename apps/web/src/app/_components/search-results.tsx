@@ -51,6 +51,7 @@ export function SearchResults() {
   // Sync URL param changes to local state
   useEffect(() => {
     const q = searchParams.get("q") ?? "";
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional setState for syncing URL params to state
     setQuery(q);
   }, [searchParams]);
 
@@ -111,13 +112,13 @@ export function SearchResults() {
 
       {isLoading && <SearchResultsSkeleton />}
 
-      {!isLoading && results && results.length === 0 && (
+      {!isLoading && results?.length === 0 && (
         <p className="text-muted-foreground py-8 text-center">
           No results found{debouncedQuery ? ` for "${debouncedQuery}"` : ""}.
         </p>
       )}
 
-      {!isLoading && results && results.length > 0 && (
+      {!isLoading && (results?.length ?? 0) > 0 && (
         <div className="space-y-3">
           {results.map((result) => (
             <Link key={result.id} href={getDetailLink(result)}>

@@ -1,7 +1,34 @@
 import matter from "gray-matter";
+import { z } from "zod";
 
-import type { SkillFrontmatter } from "./index.js";
-import { SkillFrontmatterSchema } from "./index.js";
+// ── Agent IDs ───────────────────────────────────────────────────────
+// Defined here to avoid circular dependency with index.ts
+
+export const AgentIdSchema = z.enum([
+  "claude-code",
+  "cursor",
+  "cline",
+  "warp",
+  "amp",
+  "opencode",
+  "github-copilot",
+  "codex",
+  "gemini-cli",
+  "kimi-code",
+]);
+export type AgentId = z.infer<typeof AgentIdSchema>;
+
+// ── Skill Frontmatter ───────────────────────────────────────────────
+
+export const SkillFrontmatterSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  license: z.string().optional(),
+  compatibility: z.array(AgentIdSchema).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  "allowed-tools": z.array(z.string()).optional(),
+});
+export type SkillFrontmatter = z.infer<typeof SkillFrontmatterSchema>;
 
 export function parseSkillFrontmatter(content: string): {
   frontmatter: SkillFrontmatter;

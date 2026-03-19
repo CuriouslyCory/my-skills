@@ -29,27 +29,29 @@ export function parseSource(source: string): SkillSource {
   }
 
   // GitHub URL
-  const urlMatch = source.match(GITHUB_URL_RE);
+  const urlMatch = GITHUB_URL_RE.exec(source);
   if (urlMatch) {
     const [, owner, repo, skill] = urlMatch;
+    if (!owner || !repo) throw new Error(`Unable to parse source: "${source}"`);
     return {
       type: "github",
-      owner: owner!,
-      repo: repo!,
-      skill: skill || undefined,
+      owner,
+      repo,
+      skill: skill ?? undefined,
       url: `https://github.com/${owner}/${repo}.git`,
     };
   }
 
   // Shorthand: owner/repo or owner/repo/skill-name
-  const shortMatch = source.match(SHORTHAND_RE);
+  const shortMatch = SHORTHAND_RE.exec(source);
   if (shortMatch) {
     const [, owner, repo, skill] = shortMatch;
+    if (!owner || !repo) throw new Error(`Unable to parse source: "${source}"`);
     return {
       type: "github",
-      owner: owner!,
-      repo: repo!,
-      skill: skill || undefined,
+      owner,
+      repo,
+      skill: skill ?? undefined,
       url: `https://github.com/${owner}/${repo}.git`,
     };
   }

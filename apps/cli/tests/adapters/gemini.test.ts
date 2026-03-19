@@ -78,7 +78,7 @@ describe("GeminiAdapter", () => {
       await adapter.install(projectRoot, makeSkill("my-skill"));
 
       const raw = await readFile(tomlFile("my-skill"), "utf-8");
-      const doc = parse(raw) as Record<string, any>;
+      const doc = parse(raw) as Record<string, unknown>;
       expect(doc.name).toBe("my-skill");
       expect(doc.description).toBe("my-skill skill");
       expect(doc.instructions).toBe("Instructions for my-skill");

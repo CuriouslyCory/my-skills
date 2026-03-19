@@ -1,4 +1,4 @@
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { homedir } from "node:os";
 import { readdir, readFile } from "node:fs/promises";
 
@@ -9,7 +9,6 @@ import type { Manifest } from "@curiouslycory/shared-types";
 import { parseSkillFrontmatter } from "@curiouslycory/shared-types";
 
 import { loadManifest } from "../core/manifest.js";
-import { loadConfig } from "../core/config.js";
 
 interface ListOptions {
   global?: boolean;
@@ -128,7 +127,7 @@ export function registerListCommand(program: Command): void {
       // Filter by agent if specified
       if (opts.agent) {
         rows = rows.filter(
-          (r) => r.agents && r.agents.includes(opts.agent!),
+          (r) => r.agents?.includes(opts.agent ?? ""),
         );
       }
 

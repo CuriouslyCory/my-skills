@@ -35,9 +35,10 @@ export const skillRouter = {
             .orderBy(desc(skills.updatedAt));
 
       if (input?.tags && input.tags.length > 0) {
+        const tags = input.tags;
         return rows.filter((row) => {
-          const rowTags: string[] = JSON.parse(row.tags);
-          return input.tags!.some((t) => rowTags.includes(t));
+          const rowTags = JSON.parse(row.tags) as string[];
+          return tags.some((t) => rowTags.includes(t));
         });
       }
 
@@ -122,10 +123,8 @@ export const skillRouter = {
       const updatedName = input.name ?? existing.name;
       const updatedDescription = input.description ?? existing.description;
       const updatedContent = input.content ?? existing.content;
-      const updatedAuthor =
-        input.author !== undefined ? input.author : existing.author;
-      const updatedVersion =
-        input.version !== undefined ? input.version : existing.version;
+      const updatedAuthor = input.author ?? existing.author;
+      const updatedVersion = input.version ?? existing.version;
 
       // Write to disk if we have a dirPath
       if (existing.dirPath) {

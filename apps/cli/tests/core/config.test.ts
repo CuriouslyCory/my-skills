@@ -1,7 +1,9 @@
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import type * as nodeOs from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Config } from "@curiouslycory/shared-types";
 
 // We need to mock the module-level constants that depend on homedir()
 // since config.ts computes CONFIG_DIR and CONFIG_PATH at import time.
@@ -11,7 +13,7 @@ let configPath: string;
 
 // Mock homedir to point to our temp directory
 vi.mock("node:os", async () => {
-  const actual = await vi.importActual<typeof import("node:os")>("node:os");
+  const actual = await vi.importActual<typeof nodeOs>("node:os");
   return {
     ...actual,
     homedir: () => testDir,
@@ -93,7 +95,7 @@ describe("config", () => {
 
   describe("saveConfig", () => {
     it("creates config directory and writes config file", async () => {
-      const { saveConfig, loadConfig, DEFAULT_CONFIG } = await import(
+      const { saveConfig, DEFAULT_CONFIG } = await import(
         "../../src/core/config.js"
       );
 
@@ -102,7 +104,7 @@ describe("config", () => {
 
       // Verify it was written
       const content = await readFile(configPath, "utf-8");
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(content) as Config;
       expect(parsed.skillsDir).toBe("saved/skills");
     });
 
@@ -116,7 +118,7 @@ describe("config", () => {
 
       await saveConfig({ ...DEFAULT_CONFIG, skillsDir: "new" });
       const content = await readFile(configPath, "utf-8");
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(content) as Config;
       expect(parsed.skillsDir).toBe("new");
     });
   });

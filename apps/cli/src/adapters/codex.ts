@@ -37,7 +37,7 @@ async function writeTomlFile(
  */
 function buildSkillSection(skill: AdapterSkillEntry): TomlRecord {
   return {
-    description: skill.frontmatter.description ?? skill.name,
+    description: skill.frontmatter.description,
     instructions: skill.content.trim(),
   };
 }

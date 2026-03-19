@@ -17,7 +17,7 @@ export const compositionRouter = {
     // Check for outdated compositions by comparing fragment updatedAt vs composition updatedAt
     const results = await Promise.all(
       rows.map(async (comp) => {
-        const fragmentIds: string[] = JSON.parse(comp.fragments);
+        const fragmentIds = JSON.parse(comp.fragments) as string[];
         let outdated = false;
         if (fragmentIds.length > 0) {
           const fragments = await ctx.db
@@ -26,7 +26,7 @@ export const compositionRouter = {
             .where(inArray(skills.id, fragmentIds));
 
           outdated = fragments.some(
-            (f) => f.updatedAt && f.updatedAt > comp.updatedAt,
+            (f) => f.updatedAt > comp.updatedAt,
           );
         }
         return { ...comp, outdated };
@@ -44,7 +44,7 @@ export const compositionRouter = {
       });
       if (!composition) return null;
 
-      const fragmentIds: string[] = JSON.parse(composition.fragments);
+      const fragmentIds = JSON.parse(composition.fragments) as string[];
       if (fragmentIds.length === 0) {
         return { ...composition, resolvedFragments: [] };
       }
@@ -176,8 +176,8 @@ export const compositionRouter = {
         throw new Error(`Composition not found: ${input.id}`);
       }
 
-      const fragmentIds: string[] = JSON.parse(composition.fragments);
-      const order: string[] = JSON.parse(composition.order);
+      const fragmentIds = JSON.parse(composition.fragments) as string[];
+      const order = JSON.parse(composition.order) as string[];
 
       if (fragmentIds.length === 0) return "";
 

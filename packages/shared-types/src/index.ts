@@ -1,6 +1,14 @@
 import { z } from "zod";
 
-export { buildSkillContent, parseSkillFrontmatter } from "./frontmatter.js";
+import { AgentIdSchema } from "./frontmatter";
+
+export type { AgentId, SkillFrontmatter } from "./frontmatter";
+export {
+  AgentIdSchema,
+  SkillFrontmatterSchema,
+  buildSkillContent,
+  parseSkillFrontmatter,
+} from "./frontmatter";
 
 // ── Artifact Categories ─────────────────────────────────────────────
 
@@ -11,34 +19,6 @@ export const ArtifactCategorySchema = z.enum([
   "claudemd",
 ]);
 export type ArtifactCategory = z.infer<typeof ArtifactCategorySchema>;
-
-// ── Agent IDs ───────────────────────────────────────────────────────
-
-export const AgentIdSchema = z.enum([
-  "claude-code",
-  "cursor",
-  "cline",
-  "warp",
-  "amp",
-  "opencode",
-  "github-copilot",
-  "codex",
-  "gemini-cli",
-  "kimi-code",
-]);
-export type AgentId = z.infer<typeof AgentIdSchema>;
-
-// ── Skill Frontmatter ───────────────────────────────────────────────
-
-export const SkillFrontmatterSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  license: z.string().optional(),
-  compatibility: z.array(AgentIdSchema).optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  "allowed-tools": z.array(z.string()).optional(),
-});
-export type SkillFrontmatter = z.infer<typeof SkillFrontmatterSchema>;
 
 // ── Skill Entry (manifest entry for an installed skill) ─────────────
 
@@ -95,7 +75,10 @@ export const DEPLOY_PATH_MAP: Record<ArtifactCategory, string> = {
 
 // ── Agent Native Support ────────────────────────────────────────────
 
-export const AGENT_NATIVE_SUPPORT: Record<AgentId, boolean> = {
+export const AGENT_NATIVE_SUPPORT: Record<
+  z.infer<typeof AgentIdSchema>,
+  boolean
+> = {
   "claude-code": true,
   cline: true,
   cursor: true,

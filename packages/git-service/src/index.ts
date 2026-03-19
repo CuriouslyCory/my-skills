@@ -1,10 +1,11 @@
-import simpleGit, {
-  type SimpleGit,
-  type StatusResult,
-  type LogResult,
-  type DefaultLogFields,
-  type DiffResult,
-  type BranchSummary,
+import simpleGit from "simple-git";
+import type {
+  SimpleGit,
+  StatusResult,
+  LogResult,
+  DefaultLogFields,
+  DiffResult,
+  BranchSummary,
 } from "simple-git";
 
 export interface CloneOptions {

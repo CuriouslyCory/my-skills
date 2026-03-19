@@ -67,11 +67,11 @@ describe("CodexAdapter", () => {
       await adapter.install(projectRoot, makeSkill("my-skill"));
 
       const raw = await readFile(codexFile(), "utf-8");
-      const doc = parse(raw) as Record<string, any>;
+      const doc = parse(raw) as Record<string, Record<string, Record<string, unknown>>>;
       expect(doc.skills).toBeDefined();
       expect(doc.skills["my-skill"]).toBeDefined();
-      expect(doc.skills["my-skill"].description).toBe("my-skill skill");
-      expect(doc.skills["my-skill"].instructions).toBe(
+      expect(doc.skills["my-skill"]?.description).toBe("my-skill skill");
+      expect(doc.skills["my-skill"]?.instructions).toBe(
         "Instructions for my-skill",
       );
     });
@@ -83,9 +83,9 @@ describe("CodexAdapter", () => {
       await adapter.install(projectRoot, makeSkill("test"));
 
       const raw = await readFile(codexFile(), "utf-8");
-      const doc = parse(raw) as Record<string, any>;
+      const doc = parse(raw) as Record<string, Record<string, Record<string, unknown>>>;
       expect(doc.model).toBe("gpt-4");
-      expect(doc.skills.test.instructions).toBe("Instructions for test");
+      expect(doc.skills.test?.instructions).toBe("Instructions for test");
     });
 
     it("replaces existing skill on re-install", async () => {
@@ -99,8 +99,8 @@ describe("CodexAdapter", () => {
       );
 
       const raw = await readFile(codexFile(), "utf-8");
-      const doc = parse(raw) as Record<string, any>;
-      expect(doc.skills["my-skill"].instructions).toBe("v2 content");
+      const doc = parse(raw) as Record<string, Record<string, Record<string, unknown>>>;
+      expect(doc.skills["my-skill"]?.instructions).toBe("v2 content");
     });
   });
 
@@ -112,7 +112,7 @@ describe("CodexAdapter", () => {
       await adapter.remove(projectRoot, "remove-me");
 
       const raw = await readFile(codexFile(), "utf-8");
-      const doc = parse(raw) as Record<string, any>;
+      const doc = parse(raw) as Record<string, Record<string, unknown>>;
       expect(doc.skills.keep).toBeDefined();
       expect(doc.skills["remove-me"]).toBeUndefined();
     });
@@ -126,7 +126,7 @@ describe("CodexAdapter", () => {
       await adapter.remove(projectRoot, "absent");
 
       const raw = await readFile(codexFile(), "utf-8");
-      const doc = parse(raw) as Record<string, any>;
+      const doc = parse(raw) as Record<string, Record<string, unknown>>;
       expect(doc.skills.present).toBeDefined();
     });
   });
@@ -141,7 +141,7 @@ describe("CodexAdapter", () => {
       ]);
 
       const raw = await readFile(codexFile(), "utf-8");
-      const doc = parse(raw) as Record<string, any>;
+      const doc = parse(raw) as Record<string, Record<string, unknown>>;
       expect(doc.skills.old).toBeUndefined();
       expect(doc.skills.alpha).toBeDefined();
       expect(doc.skills.beta).toBeDefined();
@@ -154,9 +154,9 @@ describe("CodexAdapter", () => {
       await adapter.sync(projectRoot, [makeSkill("synced")]);
 
       const raw = await readFile(codexFile(), "utf-8");
-      const doc = parse(raw) as Record<string, any>;
+      const doc = parse(raw) as Record<string, Record<string, unknown>>;
       expect(doc.model).toBe("gpt-4");
-      expect(doc.skills.synced).toBeDefined();
+      expect(doc.skills?.synced).toBeDefined();
     });
 
     it("sync with empty skills clears skills table", async () => {
@@ -164,7 +164,7 @@ describe("CodexAdapter", () => {
       await adapter.sync(projectRoot, []);
 
       const raw = await readFile(codexFile(), "utf-8");
-      const doc = parse(raw) as Record<string, any>;
+      const doc = parse(raw) as Record<string, unknown>;
       expect(Object.keys(doc.skills as object)).toHaveLength(0);
     });
   });

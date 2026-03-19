@@ -50,7 +50,7 @@ export const searchRouter = {
         ? sql`AND s.category = ${category}`
         : sql``;
 
-      const results = await ctx.db.all<{
+      const results = ctx.db.all<{
         id: string;
         name: string;
         description: string;

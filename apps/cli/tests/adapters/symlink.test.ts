@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { SymlinkAdapter } from "../../src/adapters/symlink.js";
 import type { AdapterSkillEntry } from "../../src/adapters/types.js";
+import type { AgentId } from "@curiouslycory/shared-types";
 
 function makeSkill(name: string): AdapterSkillEntry {
   return {
@@ -133,7 +134,7 @@ describe("SymlinkAdapter", () => {
   describe("unknown agent fallback", () => {
     // Use an agent ID that doesn't have a specific directory mapping
     const adapter = new SymlinkAdapter(
-      "codex" as any,
+      "codex" as AgentId,
       "Codex (no symlink dir)",
     );
 

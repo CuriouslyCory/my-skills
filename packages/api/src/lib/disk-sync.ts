@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import { eq } from "@curiouslycory/db";
-import { db as dbInstance } from "@curiouslycory/db/client";
+import type { db as dbInstance } from "@curiouslycory/db/client";
 import { skills } from "@curiouslycory/db/schema";
 import {
   CATEGORY_DIR_MAP,

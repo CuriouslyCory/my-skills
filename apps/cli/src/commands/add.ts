@@ -280,9 +280,7 @@ export function registerAddCommand(program: Command): void {
       let manifest: Manifest | null = await loadManifest(projectRoot);
 
       // If no manifest, try migration from skills-lock.json
-      if (!manifest) {
-        manifest = await migrateFromSkillsLock(projectRoot);
-      }
+      manifest ??= await migrateFromSkillsLock(projectRoot);
 
       if (!source) {
         if (!manifest) {
@@ -305,13 +303,11 @@ export function registerAddCommand(program: Command): void {
       }
 
       // Ensure we have a manifest for source-based installs
-      if (!manifest) {
-        manifest = {
-          version: 1,
-          agents: [],
-          skills: {},
-        };
-      }
+      manifest ??= {
+        version: 1,
+        agents: [],
+        skills: {},
+      };
 
       const parsed = parseSource(source);
 
@@ -356,9 +352,7 @@ export function registerAddCommand(program: Command): void {
       }
 
       // Resolve agents if not provided via --agent flag
-      if (!agents) {
-        agents = await resolveAgents(projectRoot);
-      }
+      agents ??= await resolveAgents(projectRoot);
       const resolvedAgents: AgentId[] = agents;
 
       // Determine which skills to install
@@ -392,7 +386,8 @@ export function registerAddCommand(program: Command): void {
         }
 
         if (discovered.length === 1) {
-          skillNames = [discovered[0]!.name];
+          const onlySkill = discovered[0];
+          skillNames = onlySkill ? [onlySkill.name] : [];
           console.log(chalk.dim(`Found one skill: ${skillNames[0]}`));
         } else if (opts.yes) {
           // With --yes and no --skill, install all discovered skills

@@ -55,7 +55,7 @@ describe("manifest", () => {
 
       const result = await loadManifest(testDir);
       expect(result).not.toBeNull();
-      expect(result!.skills["my-skill"]!.source).toBe("owner/repo");
+      expect(result?.skills["my-skill"]?.source).toBe("owner/repo");
     });
 
     it("returns null for invalid JSON", async () => {
@@ -74,9 +74,9 @@ describe("manifest", () => {
         join(testDir, ".my-skills.json"),
         "utf-8",
       );
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(content) as Record<string, unknown>;
       expect(parsed.version).toBe(1);
-      expect(parsed.skills["test-skill"]).toBeDefined();
+      expect((parsed.skills as Record<string, unknown>)["test-skill"]).toBeDefined();
     });
   });
 
@@ -110,14 +110,14 @@ describe("manifest", () => {
       const manifest = makeManifest({ keep: makeEntry() });
       removeSkill(manifest, "keep");
 
-      expect(manifest.skills["keep"]).toBeDefined();
+      expect(manifest.skills.keep).toBeDefined();
     });
 
     it("handles removing non-existent skill gracefully", () => {
       const manifest = makeManifest({ existing: makeEntry() });
       const updated = removeSkill(manifest, "nonexistent");
 
-      expect(updated.skills["existing"]).toBeDefined();
+      expect(updated.skills.existing).toBeDefined();
     });
   });
 

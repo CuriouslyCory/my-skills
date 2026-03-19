@@ -12,9 +12,11 @@ const config = {
     "@curiouslycory/api",
     "@curiouslycory/auth",
     "@curiouslycory/db",
+    "@curiouslycory/shared-types",
     "@curiouslycory/ui",
     "@curiouslycory/validators",
   ],
+  serverExternalPackages: ["better-sqlite3"],
 
   /** We already do linting and typechecking as separate tasks in CI */
   typescript: { ignoreBuildErrors: true },

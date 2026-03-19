@@ -20,7 +20,9 @@
     "typecheck": "turbo run typecheck",
     "ui-add": "turbo run ui-add",
     "ralph": "STORIES=$(jq '.userStories | length' .agents/skills/ralph/scripts/prd.json) && .agents/skills/ralph/scripts/ralph.sh $((STORIES + 4))",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "ms": "ms",
+    "my-skills": "my-skills"
   },
   "devDependencies": {
     "@curiouslycory/prettier-config": "workspace:*",
@@ -40,6 +42,7 @@
   "dependencies": {
     "@inquirer/confirm": "^6.0.10",
     "@inquirer/input": "^5.0.10",
+    "happy": "^1.0.2",
     "smol-toml": "^1.6.0"
   }
 }

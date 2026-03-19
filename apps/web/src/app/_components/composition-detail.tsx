@@ -21,7 +21,7 @@ export function CompositionDetail({ id }: { id: string }) {
 
   const initialSelection = useMemo(() => {
     if (!composition) return {};
-    const fragmentIds: string[] = JSON.parse(composition.fragments);
+    const fragmentIds = JSON.parse(composition.fragments) as string[];
     const sel: Record<string, boolean> = {};
     for (const fid of fragmentIds) {
       sel[fid] = true;
@@ -31,7 +31,7 @@ export function CompositionDetail({ id }: { id: string }) {
 
   const initialOrder = useMemo(() => {
     if (!composition) return [];
-    const order: string[] = JSON.parse(composition.order);
+    const order = JSON.parse(composition.order) as string[];
     if (order.length > 0) return order;
     return JSON.parse(composition.fragments) as string[];
   }, [composition]);
@@ -54,9 +54,9 @@ export function CompositionDetail({ id }: { id: string }) {
 
   // Check if any fragment has been updated after the composition
   const outdated =
-    composition.resolvedFragments?.some(
-      (f) => f !== undefined && f.updatedAt && f.updatedAt > composition.updatedAt,
-    ) ?? false;
+    composition.resolvedFragments.some(
+      (f) => f.updatedAt > composition.updatedAt,
+    );
 
   return (
     <div className="space-y-6">

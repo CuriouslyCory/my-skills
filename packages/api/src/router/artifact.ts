@@ -138,10 +138,8 @@ export const artifactRouter = {
       const updatedName = input.name ?? existing.name;
       const updatedDescription = input.description ?? existing.description;
       const updatedContent = input.content ?? existing.content;
-      const updatedAuthor =
-        input.author !== undefined ? input.author : existing.author;
-      const updatedVersion =
-        input.version !== undefined ? input.version : existing.version;
+      const updatedAuthor = input.author ?? existing.author;
+      const updatedVersion = input.version ?? existing.version;
 
       if (existing.dirPath) {
         const dirPath = join(ctx.repoPath, existing.dirPath);

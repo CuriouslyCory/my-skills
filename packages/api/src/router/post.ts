@@ -1,6 +1,6 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 
-import { desc, eq } from "@curiouslycory/db";
+import { desc } from "@curiouslycory/db";
 import { skills } from "@curiouslycory/db/schema";
 
 import { publicProcedure } from "../trpc";
