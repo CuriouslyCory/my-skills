@@ -20,7 +20,7 @@ interface SkillRow {
   name: string;
   source: string;
   hash: string;
-  agents?: string[];
+  agents?: string | string[];
 }
 
 /**
@@ -126,9 +126,12 @@ export function registerListCommand(program: Command): void {
 
       // Filter by agent if specified
       if (opts.agent) {
-        rows = rows.filter(
-          (r) => r.agents?.includes(opts.agent ?? ""),
-        );
+        const agentFilter = opts.agent;
+        rows = rows.filter((r) => {
+          if (!r.agents) return false;
+          if (typeof r.agents === "string") return r.agents.includes(agentFilter);
+          return r.agents.includes(agentFilter);
+        });
       }
 
       if (rows.length === 0) {

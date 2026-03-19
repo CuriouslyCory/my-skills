@@ -114,8 +114,10 @@ async function walkForSkills(
           description: frontmatter.description,
           path: currentPath,
         });
-      } catch {
-        // Skip files with invalid frontmatter
+      } catch (err) {
+        console.warn(
+          `Warning: Skipping ${fullPath} — invalid frontmatter: ${err instanceof Error ? err.message : "unknown error"}`,
+        );
       }
     } else if (entry.isDirectory()) {
       await walkForSkills(basePath, fullPath, results);
