@@ -30,7 +30,7 @@
     "with-env": "dotenv -e ../../.env --"
   },
   "dependencies": {
-    "better-sqlite3": "^11.9.1",
+    "better-sqlite3": "^11.10.0",
     "drizzle-orm": "^0.44.7",
     "zod": "catalog:"
   },

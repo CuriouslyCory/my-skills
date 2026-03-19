@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./tooling/github/setup
+
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm turbo run build --filter='!@curiouslycory/web'
+      - run: pnpm test
