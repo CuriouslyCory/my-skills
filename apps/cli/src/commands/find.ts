@@ -1,10 +1,17 @@
+import { resolve } from "node:path";
+
 import type { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import search from "@inquirer/search";
+import checkbox from "@inquirer/checkbox";
+
+import type { AgentId, Manifest } from "@curiouslycory/shared-types";
 
 import { loadConfig } from "../core/config.js";
-import { loadManifest } from "../core/manifest.js";
+import {
+  loadManifest,
+  getSkill,
+} from "../core/manifest.js";
 import {
   fetchRepo,
   getCachedRepoPath,
@@ -13,6 +20,9 @@ import {
 } from "../services/cache.js";
 import { parseSource } from "../services/source-parser.js";
 import type { GitHubSource } from "../services/source-parser.js";
+import { resolveAgents } from "../adapters/index.js";
+import { installSingleSkill } from "./add.js";
+import { migrateFromSkillsLock } from "../core/migration.js";
 
 interface FindResult {
   name: string;
@@ -130,53 +140,101 @@ export function registerFindCommand(program: Command): void {
         return;
       }
 
-      const selectedName = await search({
-        message: "Search for a skill:",
-        source: (input: string | undefined) => {
-          const term = (input ?? query ?? "").toLowerCase();
-          return results
-            .filter(
-              (r) =>
-                !term ||
-                r.name.toLowerCase().includes(term) ||
-                r.description.toLowerCase().includes(term),
-            )
-            .map((r) => {
-              const badge = r.installed
-                ? chalk.green(" [installed]")
-                : "";
-              const desc = r.description
-                ? ` - ${chalk.dim(r.description)}`
-                : "";
-              return {
-                name: `${r.name}${desc} ${chalk.dim(`(${r.source})`)}${badge}`,
-                value: r.name,
-              };
-            });
-        },
-      });
+      // Pre-filter by query if provided
+      const filtered = query
+        ? results.filter(
+            (r) =>
+              r.name.toLowerCase().includes(query.toLowerCase()) ||
+              r.description.toLowerCase().includes(query.toLowerCase()),
+          )
+        : results;
 
-      // Find the selected result
-      const selected = results.find((r) => r.name === selectedName);
-      if (!selected) return;
-
-      if (selected.installed) {
+      if (filtered.length === 0) {
         console.log(
-          chalk.dim(`${selected.name} is already installed.`),
+          chalk.yellow(`No skills matching "${query}".`),
         );
         return;
       }
 
-      // Prompt to install
-      const { default: confirm } = await import("@inquirer/confirm");
-      const shouldInstall = await confirm({
-        message: `Install ${chalk.bold(selected.name)} from ${selected.source}?`,
+      const selectedNames = await checkbox({
+        message: "Select skills to install:",
+        choices: filtered.map((r) => {
+          const desc = r.description
+            ? ` - ${chalk.dim(r.description)}`
+            : "";
+          const badge = r.installed
+            ? chalk.green(" [installed]")
+            : "";
+          return {
+            name: `${r.name}${desc} ${chalk.dim(`(${r.source})`)}${badge}`,
+            value: r.name,
+            disabled: r.installed ? "already installed" : false,
+          };
+        }),
       });
 
-      if (!shouldInstall) return;
+      if (selectedNames.length === 0) {
+        console.log(chalk.dim("No skills selected."));
+        return;
+      }
 
-      // Delegate to add command by programmatically calling it
-      const source = `${selected.source}/${selected.name}`;
-      await program.parseAsync(["add", source], { from: "user" });
+      // Resolve project context for installation
+      const projectRoot = process.cwd();
+      const config = await loadConfig();
+      const targetDir = resolve(projectRoot, config.skillsDir);
+      const agents: AgentId[] = await resolveAgents(projectRoot);
+
+      let manifest: Manifest | null = await loadManifest(projectRoot);
+      manifest ??= await migrateFromSkillsLock(projectRoot);
+      manifest ??= { version: 1, agents: [], skills: {} };
+
+      // Group selected skills by source repo for efficient fetching
+      const byRepo = new Map<string, FindResult[]>();
+      for (const name of selectedNames) {
+        const result = filtered.find((r) => r.name === name);
+        if (!result) continue;
+        const key = `${result.githubSource.owner}/${result.githubSource.repo}`;
+        const group = byRepo.get(key) ?? [];
+        group.push(result);
+        byRepo.set(key, group);
+      }
+
+      for (const [repoKey, skills] of byRepo) {
+        // Fetch repo once per source
+        const firstSkill = skills[0];
+        if (!firstSkill) continue;
+
+        const spinner = ora(`Fetching ${repoKey}...`).start();
+        let cachePath: string;
+        try {
+          cachePath = await fetchRepo(firstSkill.githubSource);
+          spinner.succeed(`Repository fetched: ${repoKey}`);
+        } catch (err) {
+          spinner.fail(`Failed to fetch ${repoKey}`);
+          console.error(
+            chalk.red(err instanceof Error ? err.message : "Unknown error"),
+          );
+          continue;
+        }
+
+        for (const skill of skills) {
+          if (getSkill(manifest, skill.name)) {
+            console.log(
+              chalk.yellow(`Skill "${skill.name}" is already installed.`),
+            );
+            continue;
+          }
+
+          manifest = await installSingleSkill(
+            skill.name,
+            skill.githubSource,
+            cachePath,
+            targetDir,
+            projectRoot,
+            manifest,
+            agents,
+          );
+        }
+      }
     });
 }
