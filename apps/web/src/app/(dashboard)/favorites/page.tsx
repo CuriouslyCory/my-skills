@@ -5,6 +5,10 @@ import {
   FavoriteStats,
   FavoriteStatsSkeleton,
 } from "~/app/_components/favorite-stats";
+import {
+  FavoriteList,
+  FavoriteListSkeleton,
+} from "~/app/_components/favorite-list";
 
 export default function FavoritesPage() {
   prefetch(trpc.favorite.stats.queryOptions());
@@ -22,6 +26,10 @@ export default function FavoritesPage() {
 
         <Suspense fallback={<FavoriteStatsSkeleton />}>
           <FavoriteStats />
+        </Suspense>
+
+        <Suspense fallback={<FavoriteListSkeleton />}>
+          <FavoriteList />
         </Suspense>
       </div>
     </HydrateClient>
