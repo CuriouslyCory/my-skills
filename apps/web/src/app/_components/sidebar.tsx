@@ -9,6 +9,7 @@ import {
   GearIcon,
   GitHubLogoIcon,
   MagicWandIcon,
+  StarFilledIcon,
 } from "@radix-ui/react-icons";
 
 import { cn } from "@curiouslycory/ui";
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/skills", label: "Skills", icon: MagicWandIcon },
   { href: "/artifacts", label: "Artifacts", icon: FileTextIcon },
   { href: "/compositions", label: "Compositions", icon: MixIcon },
+  { href: "/favorites", label: "Favorites", icon: StarFilledIcon },
   { href: "/git", label: "Git", icon: GitHubLogoIcon },
   { href: "/settings", label: "Settings", icon: GearIcon },
 ] as const;
