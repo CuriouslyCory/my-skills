@@ -15,6 +15,22 @@ Think of it like npm, but for the prompts, workflows, and capabilities you give 
 
 ---
 
+## Table of Contents
+
+- [Why my-skills?](#why-my-skills)
+- [Quick Start](#quick-start)
+- [CLI Reference](#cli-reference)
+- [Supported AI Tools](#supported-ai-tools)
+- [Per-Project Install](#per-project-install)
+- [Creating Your Own Skills](#creating-your-own-skills)
+- [Contributing](#contributing)
+  - [Deploy the Web UI to Vercel](#deploy-the-web-ui-to-vercel)
+- [Troubleshooting](#troubleshooting)
+- [Roadmap](#roadmap)
+- [License](#license)
+
+---
+
 ## Why my-skills?
 
 AI coding agents are powerful, but their skills live scattered across projects — copy-pasted markdown files, one-off prompts, and tribal knowledge buried in Slack threads. **my-skills** fixes that:
@@ -203,6 +219,23 @@ pnpm dev:next
 ```
 
 The web app runs at `http://localhost:3000`.
+
+### Deploy the Web UI to Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FCuriouslyCory%2Fmy-skills&env=POSTGRES_URL,AUTH_SECRET,AUTH_DISCORD_ID,AUTH_DISCORD_SECRET&envDescription=Database%20connection%20and%20auth%20credentials%20needed%20for%20the%20web%20UI&envLink=https%3A%2F%2Fgithub.com%2FCuriouslyCory%2Fmy-skills%2Fblob%2Fmain%2F.env.example&root-directory=apps/web)
+
+You'll need a PostgreSQL database. Any of these work well with Vercel:
+
+- [Supabase](https://supabase.com) — generous free tier, built-in auth and realtime
+- [Neon](https://neon.tech) — serverless Postgres with branching, great free tier
+- [Vercel Postgres](https://vercel.com/docs/storage/vercel-postgres) — native Vercel integration, zero-config
+
+| Variable | Description |
+| --- | --- |
+| `POSTGRES_URL` | PostgreSQL connection string |
+| `AUTH_SECRET` | Secret for session encryption (generate via `openssl rand -base64 32`) |
+| `AUTH_DISCORD_ID` | Discord OAuth application ID |
+| `AUTH_DISCORD_SECRET` | Discord OAuth application secret |
 
 ### Project Structure
 
