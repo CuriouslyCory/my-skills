@@ -86,9 +86,11 @@ function parseAgentIds(raw: string): AgentId[] {
   return ids as AgentId[];
 }
 
-async function restoreFromManifest(
+export async function restoreFromManifest(
   manifest: Manifest,
   targetDir: string,
+  projectRoot: string,
+  agents: AgentId[],
 ): Promise<void> {
   const entries = Object.entries(manifest.skills);
 
@@ -112,6 +114,14 @@ async function restoreFromManifest(
       try {
         const localHash = await computeSkillHash(destPath);
         if (localHash === entry.computedHash) {
+          // Skill files are up to date, but still ensure symlinks exist
+          await runAdapterInstalls(projectRoot, entry.agents ?? agents, {
+            name: skillName,
+            sourcePath: destPath,
+            frontmatter: { name: skillName, description: "" },
+            content: "",
+            files: [],
+          });
           console.log(chalk.dim(`  ${skillName} - already up to date`));
           upToDate++;
           continue;
@@ -134,6 +144,9 @@ async function restoreFromManifest(
       const cachePath = await fetchRepo(githubSource);
       const resolved = await resolveSkill(skillName, cachePath);
       await installSkill(resolved, targetDir);
+
+      // Create symlinks for each enabled agent
+      await runAdapterInstalls(projectRoot, entry.agents ?? agents, resolved);
 
       spinner.succeed(`Installed ${skillName}`);
       installed++;
@@ -300,7 +313,10 @@ export function registerAddCommand(program: Command): void {
           return;
         }
 
-        await restoreFromManifest(manifest, targetDir);
+        // Resolve agents for symlink creation during restore
+        agents ??= await resolveAgents(projectRoot);
+
+        await restoreFromManifest(manifest, targetDir, projectRoot, agents);
         return;
       }
 
