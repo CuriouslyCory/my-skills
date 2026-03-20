@@ -46,5 +46,6 @@
       "better-sqlite3"
     ]
   },
-  "prettier": "@curiouslycory/prettier-config"
+  "prettier": "@curiouslycory/prettier-config",
+  "version": "0.0.1"
 }
