@@ -1,6 +1,11 @@
 "use client";
 
-import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import type {
+  ColumnDef,
+  OnChangeFn,
+  PaginationState,
+  SortingState,
+} from "@tanstack/react-table";
 import {
   flexRender,
   getCoreRowModel,
@@ -29,23 +34,49 @@ import {
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  sorting?: SortingState;
+  onSortingChange?: OnChangeFn<SortingState>;
+  manualSorting?: boolean;
+  manualPagination?: boolean;
+  pageCount?: number;
+  pagination?: PaginationState;
+  onPaginationChange?: OnChangeFn<PaginationState>;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  sorting: externalSorting,
+  onSortingChange: externalOnSortingChange,
+  manualSorting,
+  manualPagination,
+  pageCount,
+  pagination: externalPagination,
+  onPaginationChange: externalOnPaginationChange,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [internalSorting, setInternalSorting] = useState<SortingState>([]);
+
+  const sorting = externalSorting ?? internalSorting;
+  const onSortingChange = externalOnSortingChange ?? setInternalSorting;
 
   const table = useReactTable({
     data,
     columns,
-    state: { sorting },
-    onSortingChange: setSorting,
+    state: {
+      sorting,
+      ...(externalPagination ? { pagination: externalPagination } : {}),
+    },
+    onSortingChange,
+    onPaginationChange: externalOnPaginationChange,
+    manualSorting,
+    manualPagination,
+    pageCount,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    ...(manualSorting ? {} : { getSortedRowModel: getSortedRowModel() }),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    ...(manualPagination
+      ? {}
+      : { getPaginationRowModel: getPaginationRowModel() }),
   });
 
   return (

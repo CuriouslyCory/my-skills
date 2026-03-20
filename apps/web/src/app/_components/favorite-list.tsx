@@ -1,7 +1,8 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
-import { useEffect, useState } from "react";
+import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 
 import { cn } from "@curiouslycory/ui";
@@ -35,6 +36,18 @@ interface FavoriteItem {
   addedAt: Date | string;
 }
 
+const PAGE_SIZE = 30;
+
+type SortByField = "name" | "type" | "addedAt";
+type SortOrder = "asc" | "desc";
+type TypeFilter = "all" | "repo" | "skill";
+
+const SORT_COLUMN_MAP: Record<string, SortByField> = {
+  name: "name",
+  type: "type",
+  addedAt: "addedAt",
+};
+
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -54,21 +67,118 @@ function formatDate(date: Date | string | null): string {
   });
 }
 
-type TypeFilter = "all" | "repo" | "skill";
-
 export function FavoriteList() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  // Read state from URL params
+  const urlSearch = searchParams.get("search") ?? "";
+  const urlSort = (searchParams.get("sort") as SortByField | null) ?? undefined;
+  const urlOrder = (searchParams.get("order") as SortOrder | null) ?? undefined;
+  const urlPage = parseInt(searchParams.get("page") ?? "1", 10);
+  const urlType = (searchParams.get("type") as TypeFilter | null) ?? "all";
+
+  const [search, setSearch] = useState(urlSearch);
   const debouncedSearch = useDebounce(search, 300);
+
+  // Sync URL search param changes back to local input state
+  useEffect(() => {
+    const s = searchParams.get("search") ?? "";
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional setState for syncing URL params to state
+    setSearch(s);
+  }, [searchParams]);
+
+  // Update URL params helper
+  const updateParams = useCallback(
+    (updates: Record<string, string | undefined>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(updates)) {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      }
+      router.replace(`/favorites?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  // Sync debounced search to URL and reset page
+  useEffect(() => {
+    const currentSearch = searchParams.get("search") ?? "";
+    if (debouncedSearch !== currentSearch) {
+      updateParams({
+        search: debouncedSearch || undefined,
+        page: undefined, // reset to page 1
+      });
+    }
+  }, [debouncedSearch, searchParams, updateParams]);
+
+  const page = Math.max(1, urlPage);
+  const typeFilter = urlType === "all" ? undefined : urlType;
 
   const { data } = useSuspenseQuery(
     trpc.favorite.list.queryOptions({
       search: debouncedSearch || undefined,
-      type: typeFilter === "all" ? undefined : typeFilter,
+      type: typeFilter === "repo" || typeFilter === "skill" ? typeFilter : undefined,
+      sortBy: urlSort,
+      sortOrder: urlOrder,
+      page,
+      pageSize: PAGE_SIZE,
     }),
+  );
+
+  const totalPages = Math.max(1, Math.ceil(data.totalCount / PAGE_SIZE));
+
+  // Convert URL sort state to tanstack SortingState
+  const sorting: SortingState = useMemo(
+    () => (urlSort ? [{ id: urlSort, desc: urlOrder === "desc" }] : []),
+    [urlSort, urlOrder],
+  );
+
+  const handleSortingChange = useCallback(
+    (updaterOrValue: SortingState | ((prev: SortingState) => SortingState)) => {
+      const newSorting =
+        typeof updaterOrValue === "function"
+          ? updaterOrValue(sorting)
+          : updaterOrValue;
+      if (newSorting.length > 0) {
+        const col = newSorting[0];
+        if (col) {
+          const sortBy = SORT_COLUMN_MAP[col.id];
+          updateParams({
+            sort: sortBy,
+            order: col.desc ? "desc" : "asc",
+            page: undefined, // reset page on sort change
+          });
+        }
+      } else {
+        updateParams({ sort: undefined, order: undefined, page: undefined });
+      }
+    },
+    [sorting, updateParams],
+  );
+
+  const handleTypeFilter = useCallback(
+    (type: TypeFilter) => {
+      updateParams({
+        type: type === "all" ? undefined : type,
+        page: undefined, // reset page on filter change
+      });
+    },
+    [updateParams],
+  );
+
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      updateParams({
+        page: newPage === 1 ? undefined : String(newPage),
+      });
+    },
+    [updateParams],
   );
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -166,7 +276,7 @@ export function FavoriteList() {
     },
   ];
 
-  if (data.items.length === 0 && !debouncedSearch && typeFilter === "all") {
+  if (data.items.length === 0 && !debouncedSearch && urlType === "all") {
     return (
       <Card>
         <CardContent className="py-10 text-center">
@@ -191,16 +301,32 @@ export function FavoriteList() {
           {(["all", "repo", "skill"] as const).map((type) => (
             <Button
               key={type}
-              variant={typeFilter === type ? "default" : "outline"}
+              variant={urlType === type ? "default" : "outline"}
               size="sm"
-              onClick={() => setTypeFilter(type)}
+              onClick={() => handleTypeFilter(type)}
             >
               {type === "all" ? "All" : type === "repo" ? "Repos" : "Skills"}
             </Button>
           ))}
         </div>
       </div>
-      <DataTable columns={columns} data={data.items as FavoriteItem[]} />
+      <DataTable
+        columns={columns}
+        data={data.items as FavoriteItem[]}
+        sorting={sorting}
+        onSortingChange={handleSortingChange}
+        manualSorting
+        manualPagination
+        pageCount={totalPages}
+        pagination={{ pageIndex: page - 1, pageSize: PAGE_SIZE }}
+        onPaginationChange={(updater) => {
+          const newState =
+            typeof updater === "function"
+              ? updater({ pageIndex: page - 1, pageSize: PAGE_SIZE })
+              : updater;
+          handlePageChange(newState.pageIndex + 1);
+        }}
+      />
     </div>
   );
 }
