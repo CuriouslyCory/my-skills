@@ -144,22 +144,23 @@ function GeneralSection() {
 function FavoritesSection() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const { data: favoritesList } = useSuspenseQuery(
-    trpc.config.favorites.list.queryOptions(),
+  const { data: favoritesData } = useSuspenseQuery(
+    trpc.favorite.list.queryOptions(),
   );
+  const favoritesList = favoritesData.items;
 
   const [newName, setNewName] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const addMutation = useMutation(
-    trpc.config.favorites.add.mutationOptions({
+    trpc.favorite.add.mutationOptions({
       onSuccess: () => {
         toast.success("Favorite added");
         setNewName("");
         setNewUrl("");
         void queryClient.invalidateQueries({
-          queryKey: trpc.config.favorites.list.queryOptions().queryKey,
+          queryKey: trpc.favorite.list.queryOptions().queryKey,
         });
       },
       onError: (error) => {
@@ -169,12 +170,12 @@ function FavoritesSection() {
   );
 
   const removeMutation = useMutation(
-    trpc.config.favorites.remove.mutationOptions({
+    trpc.favorite.remove.mutationOptions({
       onSuccess: () => {
         toast.success("Favorite removed");
         setDeleteId(null);
         void queryClient.invalidateQueries({
-          queryKey: trpc.config.favorites.list.queryOptions().queryKey,
+          queryKey: trpc.favorite.list.queryOptions().queryKey,
         });
       },
       onError: (error) => {

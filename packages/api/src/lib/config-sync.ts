@@ -56,7 +56,9 @@ export async function syncConfigToFile(db: DB): Promise<void> {
     }
   }
 
-  assembled.favoriteRepos = favoriteRows.map((f) => f.repoUrl);
+  assembled.favoriteRepos = favoriteRows
+    .filter((f) => f.type === "repo")
+    .map((f) => f.repoUrl);
 
   await mkdir(CONFIG_DIR, { recursive: true });
   const tmpPath = CONFIG_PATH + ".tmp";

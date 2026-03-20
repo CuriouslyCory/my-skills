@@ -1,9 +1,16 @@
+import { resolve } from "node:path";
 import { Suspense } from "react";
 
+import { scanAndSync } from "@curiouslycory/api";
+import { db } from "@curiouslycory/db/client";
+
+import { env } from "~/env";
 import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 import { SkillList, SkillListSkeleton } from "~/app/_components/skill-list";
 
-export default function SkillsPage() {
+export default async function SkillsPage() {
+  const repoPath = env.REPO_PATH ?? resolve(process.cwd(), "../..");
+  await scanAndSync(repoPath, db);
   prefetch(trpc.skill.list.queryOptions());
 
   return (

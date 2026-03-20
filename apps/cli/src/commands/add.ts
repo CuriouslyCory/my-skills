@@ -23,7 +23,7 @@ import {
   getSkill,
 } from "../core/manifest.js";
 import { migrateFromSkillsLock } from "../core/migration.js";
-import { loadConfig } from "../core/config.js";
+import { loadConfig, saveConfig } from "../core/config.js";
 import { getEnabledAdapters, resolveAgents } from "../adapters/index.js";
 import type { AdapterSkillEntry } from "../adapters/index.js";
 
@@ -35,6 +35,7 @@ interface AddOptions {
   copy?: boolean;
   all?: boolean;
   list?: boolean;
+  favorite?: boolean;
 }
 
 /**
@@ -248,6 +249,7 @@ export function registerAddCommand(program: Command): void {
     .option("-g, --global", "Install to ~/.agents/skills/ instead of project directory")
     .option("--copy", "Copy files instead of relying on canonical location")
     .option("--all", "Shorthand for --skill '*' --agent '*' -y")
+    .option("-f, --favorite", "Mark the source repo as a favorite")
     .option("-l, --list", "List available skills in the repo without installing")
     .action(async (source: string | undefined, opts: AddOptions) => {
       const projectRoot = process.cwd();
@@ -393,8 +395,10 @@ export function registerAddCommand(program: Command): void {
           // With --yes and no --skill, install all discovered skills
           skillNames = discovered.map((s) => s.name);
         } else {
+          const isFavorited = config.favoriteRepos.includes(githubSource.url);
+          const repoLabel = isFavorited ? chalk.yellow(" ★ favorited") : "";
           const selectedNames = await checkbox({
-            message: "Select skills to install:",
+            message: `Select skills to install:${repoLabel}`,
             choices: discovered.map((s) => ({
               name: `${s.name} - ${chalk.dim(s.description)}`,
               value: s.name,
@@ -430,6 +434,13 @@ export function registerAddCommand(program: Command): void {
           manifest,
           resolvedAgents,
         );
+      }
+
+      // Add repo to favorites if --favorite flag is present
+      if (opts.favorite && !config.favoriteRepos.includes(githubSource.url)) {
+        config.favoriteRepos.push(githubSource.url);
+        await saveConfig(config);
+        console.log(chalk.yellow(`★ Added ${githubSource.owner}/${githubSource.repo} to favorites`));
       }
     });
 }

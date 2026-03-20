@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 
 export const skills = sqliteTable("skills", {
   id: text("id")
@@ -36,17 +36,23 @@ export const variations = sqliteTable("variations", {
     .references(() => skills.id, { onDelete: "cascade" }),
 });
 
-export const favorites = sqliteTable("favorites", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  repoUrl: text("repo_url").notNull().unique(),
-  name: text("name").notNull(),
-  description: text("description"),
-  addedAt: integer("added_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
+export const favorites = sqliteTable(
+  "favorites",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    repoUrl: text("repo_url").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    skillName: text("skill_name"),
+    type: text("type").notNull().default("repo"),
+    addedAt: integer("added_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [unique().on(table.repoUrl, table.skillName)],
+);
 
 export const compositions = sqliteTable("compositions", {
   id: text("id")

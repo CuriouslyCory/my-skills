@@ -10,6 +10,11 @@ export {
   parseSkillFrontmatter,
 } from "./frontmatter";
 
+// ── Favorite Type ──────────────────────────────────────────────────
+
+export const FavoriteTypeSchema = z.enum(["repo", "skill"]);
+export type FavoriteType = z.infer<typeof FavoriteTypeSchema>;
+
 // ── Artifact Categories ─────────────────────────────────────────────
 
 export const ArtifactCategorySchema = z.enum([
@@ -79,12 +84,12 @@ export const AGENT_NATIVE_SUPPORT: Record<
   z.infer<typeof AgentIdSchema>,
   boolean
 > = {
-  "claude-code": true,
-  cline: true,
-  cursor: true,
-  warp: true,
-  amp: true,
-  opencode: true,
+  "claude-code": false,
+  cline: false,
+  cursor: false,
+  warp: false,
+  amp: false,
+  opencode: false,
   "github-copilot": false,
   codex: false,
   "gemini-cli": false,

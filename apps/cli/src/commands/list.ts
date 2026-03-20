@@ -8,12 +8,14 @@ import chalk from "chalk";
 import type { Manifest } from "@curiouslycory/shared-types";
 import { parseSkillFrontmatter } from "@curiouslycory/shared-types";
 
+import { loadConfig } from "../core/config.js";
 import { loadManifest } from "../core/manifest.js";
 
 interface ListOptions {
   global?: boolean;
   agent?: string;
   json?: boolean;
+  favorites?: boolean;
 }
 
 interface SkillRow {
@@ -21,6 +23,7 @@ interface SkillRow {
   source: string;
   hash: string;
   agents?: string | string[];
+  favorite?: boolean;
 }
 
 /**
@@ -76,6 +79,8 @@ function printTable(rows: SkillRow[]): void {
   const hashWidth = 8;
 
   const header =
+    chalk.bold("★") +
+    "  " +
     chalk.bold("NAME".padEnd(nameWidth)) +
     "  " +
     chalk.bold("SOURCE".padEnd(sourceWidth)) +
@@ -84,8 +89,11 @@ function printTable(rows: SkillRow[]): void {
   console.log(header);
 
   for (const row of rows) {
+    const star = row.favorite ? chalk.yellow("★") : " ";
     console.log(
-      row.name.padEnd(nameWidth) +
+      star +
+        "  " +
+        row.name.padEnd(nameWidth) +
         "  " +
         row.source.padEnd(sourceWidth) +
         "  " +
@@ -102,7 +110,11 @@ export function registerListCommand(program: Command): void {
     .option("-g, --global", "List globally installed skills from ~/.agents/skills/")
     .option("--agent <name>", "Filter to skills targeting a specific agent")
     .option("--json", "Output as machine-readable JSON")
+    .option("--favorites", "Show only skills from favorited repos")
     .action(async (opts: ListOptions) => {
+      const config = await loadConfig();
+      const favoriteRepos = new Set(config.favoriteRepos);
+
       let rows: SkillRow[];
 
       if (opts.global) {
@@ -124,6 +136,11 @@ export function registerListCommand(program: Command): void {
         rows = rowsFromManifest(manifest);
       }
 
+      // Mark favorites
+      for (const row of rows) {
+        row.favorite = favoriteRepos.has(row.source);
+      }
+
       // Filter by agent if specified
       if (opts.agent) {
         const agentFilter = opts.agent;
@@ -132,6 +149,11 @@ export function registerListCommand(program: Command): void {
           if (typeof r.agents === "string") return r.agents.includes(agentFilter);
           return r.agents.includes(agentFilter);
         });
+      }
+
+      // Filter to favorites only
+      if (opts.favorites) {
+        rows = rows.filter((r) => r.favorite);
       }
 
       if (rows.length === 0) {

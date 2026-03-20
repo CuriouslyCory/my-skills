@@ -63,7 +63,7 @@ describe("SymlinkAdapter", () => {
 
       const target = await readlink(linkPath);
       expect(target).toBe(
-        join(projectRoot, ".agents", "skills", "test-skill"),
+        join("..", "..", ".agents", "skills", "test-skill"),
       );
     });
 

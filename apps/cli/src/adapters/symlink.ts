@@ -1,5 +1,5 @@
 import { lstat, mkdir, readdir, symlink, unlink } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join, relative } from "node:path";
 
 import type { AgentId } from "@curiouslycory/shared-types";
 
@@ -18,8 +18,9 @@ const AGENT_SKILLS_DIR: Partial<Record<AgentId, string>> = {
 
 /**
  * Adapter that creates symlinks from agent-specific directories
- * to .agents/skills/<name>/. Only used when the user explicitly
- * configures symlinkBehavior: "symlink" in config.
+ * (e.g. .claude/skills/, .cursor/skills/) to .agents/skills/<name>/.
+ * Used for agents that read skills from their own directory rather
+ * than from .agents/skills/ directly.
  */
 export class SymlinkAdapter implements AgentAdapter {
   constructor(
@@ -51,7 +52,8 @@ export class SymlinkAdapter implements AgentAdapter {
       // Link doesn't exist - that's fine
     }
 
-    await symlink(targetPath, linkPath, "dir");
+    const relativePath = relative(dirname(linkPath), targetPath);
+    await symlink(relativePath, linkPath, "dir");
   }
 
   async remove(projectRoot: string, skillName: string): Promise<void> {

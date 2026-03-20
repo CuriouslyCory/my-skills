@@ -20,4 +20,5 @@ type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export { type AppRouter, appRouter } from "./root";
 export { createTRPCContext } from "./trpc";
+export { scanAndSync } from "./lib/disk-sync";
 export type { RouterInputs, RouterOutputs };
