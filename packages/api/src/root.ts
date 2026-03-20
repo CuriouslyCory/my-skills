@@ -2,6 +2,7 @@ import { artifactRouter } from "./router/artifact";
 import { authRouter } from "./router/auth";
 import { compositionRouter } from "./router/composition";
 import { configRouter } from "./router/config";
+import { favoriteRouter } from "./router/favorite";
 import { gitRouter } from "./router/git";
 import { postRouter } from "./router/post";
 import { searchRouter } from "./router/search";
@@ -13,6 +14,7 @@ export const appRouter = createTRPCRouter({
   auth: authRouter,
   composition: compositionRouter,
   config: configRouter,
+  favorite: favoriteRouter,
   git: gitRouter,
   post: postRouter,
   search: searchRouter,

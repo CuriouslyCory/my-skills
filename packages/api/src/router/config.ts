@@ -2,7 +2,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
 
 import { eq } from "@curiouslycory/db";
-import { config, favorites } from "@curiouslycory/db/schema";
+import { config } from "@curiouslycory/db/schema";
 
 import { syncConfigToFile } from "../lib/config-sync";
 import { protectedProcedure, publicProcedure } from "../trpc";
@@ -46,43 +46,4 @@ export const configRouter = {
       );
       return result;
     }),
-
-  favorites: {
-    list: publicProcedure.query(async ({ ctx }) => {
-      return ctx.db.select().from(favorites);
-    }),
-
-    add: protectedProcedure
-      .input(
-        z.object({
-          repoUrl: z.string().min(1),
-          name: z.string().min(1),
-          description: z.string().optional(),
-        }),
-      )
-      .mutation(async ({ ctx, input }) => {
-        const [row] = await ctx.db
-          .insert(favorites)
-          .values({
-            repoUrl: input.repoUrl,
-            name: input.name,
-            description: input.description ?? null,
-          })
-          .returning();
-        syncConfigToFile(ctx.db).catch((err) =>
-          console.error("config-sync failed:", err),
-        );
-        return row;
-      }),
-
-    remove: protectedProcedure
-      .input(z.object({ id: z.string() }))
-      .mutation(async ({ ctx, input }) => {
-        await ctx.db.delete(favorites).where(eq(favorites.id, input.id));
-        syncConfigToFile(ctx.db).catch((err) =>
-          console.error("config-sync failed:", err),
-        );
-        return { success: true };
-      }),
-  },
 } satisfies TRPCRouterRecord;

@@ -8,7 +8,7 @@ import {
 
 export default function SettingsPage() {
   prefetch(trpc.config.getAll.queryOptions());
-  prefetch(trpc.config.favorites.list.queryOptions());
+  prefetch(trpc.favorite.list.queryOptions());
 
   return (
     <HydrateClient>
