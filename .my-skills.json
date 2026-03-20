@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "agents": [],
+  "skills": {
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "e02446c0912decc73472ab3392af040fac223fb93b46fd101bce27686d717136",
+      "installedAt": "2026-03-20T02:58:30.110Z"
+    },
+    "improve-codebase-architecture": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "76d07c4c0bebc162cc76ca7494bfe7a90e279f35832f7ce6dfc4ce16518fd560",
+      "installedAt": "2026-03-20T02:58:30.110Z"
+    },
+    "setup-pre-commit": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "f9aeedf0a1f560ec465c3939c54434c2d949ac8b958a0493db52216f688a0366",
+      "installedAt": "2026-03-20T02:58:30.110Z"
+    },
+    "tdd": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "ad055544599481182d0079c4198e85da26677cb408a677be2da04915375f0427",
+      "installedAt": "2026-03-20T02:58:30.110Z"
+    },
+    "distill": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "c94699590c44450c3520f7071642411247e685e65ce771ca5596911462001693",
+      "installedAt": "2026-03-20T03:02:48.023Z",
+      "agents": [
+        "claude-code"
+      ]
+    }
+  }
+}

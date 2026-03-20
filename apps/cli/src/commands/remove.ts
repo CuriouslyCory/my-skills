@@ -75,7 +75,7 @@ async function runAdapterRemoves(
 /**
  * Remove a single skill by name.
  */
-async function removeSingleSkill(
+export async function removeSingleSkill(
   skillName: string,
   targetDir: string,
   projectRoot: string,

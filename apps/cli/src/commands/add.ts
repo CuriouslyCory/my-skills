@@ -198,7 +198,7 @@ async function runAdapterInstalls(
 /**
  * Install a single skill by name from a cached repo.
  */
-async function installSingleSkill(
+export async function installSingleSkill(
   skillName: string,
   githubSource: GitHubSource,
   cachePath: string,

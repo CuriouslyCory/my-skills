@@ -1,21 +1,25 @@
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { readdir, readFile } from "node:fs/promises";
 
 import type { Command } from "commander";
 import chalk from "chalk";
+import checkbox from "@inquirer/checkbox";
 
 import type { Manifest } from "@curiouslycory/shared-types";
 import { parseSkillFrontmatter } from "@curiouslycory/shared-types";
 
 import { loadConfig } from "../core/config.js";
 import { loadManifest } from "../core/manifest.js";
+import { resolveAgents } from "../adapters/index.js";
+import { removeSingleSkill } from "./remove.js";
 
 interface ListOptions {
   global?: boolean;
   agent?: string;
   json?: boolean;
   favorites?: boolean;
+  interactive?: boolean;
 }
 
 interface SkillRow {
@@ -111,6 +115,7 @@ export function registerListCommand(program: Command): void {
     .option("--agent <name>", "Filter to skills targeting a specific agent")
     .option("--json", "Output as machine-readable JSON")
     .option("--favorites", "Show only skills from favorited repos")
+    .option("-i, --interactive", "Select skills interactively to remove")
     .action(async (opts: ListOptions) => {
       const config = await loadConfig();
       const favoriteRepos = new Set(config.favoriteRepos);
@@ -167,8 +172,52 @@ export function registerListCommand(program: Command): void {
 
       if (opts.json) {
         console.log(JSON.stringify(rows, null, 2));
-      } else {
-        printTable(rows);
+        return;
       }
+
+      if (opts.interactive) {
+        const selected = await checkbox({
+          message: "Select skills to remove:",
+          choices: rows.map((r) => {
+            const star = r.favorite ? chalk.yellow("★ ") : "";
+            return {
+              name: `${star}${r.name} ${chalk.dim(`(${r.source})`)}`,
+              value: r.name,
+            };
+          }),
+        });
+
+        if (selected.length === 0) {
+          console.log(chalk.dim("No skills selected."));
+          return;
+        }
+
+        const projectRoot = process.cwd();
+        const config = await loadConfig();
+        const targetDir = opts.global
+          ? join(homedir(), ".agents", "skills")
+          : resolve(projectRoot, config.skillsDir);
+        const agents = await resolveAgents(projectRoot);
+        let manifest = await loadManifest(projectRoot);
+
+        if (!manifest) {
+          console.log(chalk.yellow("No manifest found."));
+          return;
+        }
+
+        for (const skillName of selected) {
+          manifest = await removeSingleSkill(
+            skillName,
+            targetDir,
+            projectRoot,
+            manifest,
+            true,
+            agents,
+          );
+        }
+        return;
+      }
+
+      printTable(rows);
     });
 }
