@@ -1,10 +1,11 @@
 import type { AgentId } from "@curiouslycory/shared-types";
-import { AGENT_NATIVE_SUPPORT, AgentIdSchema } from "@curiouslycory/shared-types";
+import { AgentIdSchema } from "@curiouslycory/shared-types";
 
 import { CodexAdapter } from "./codex.js";
 import { CopilotAdapter } from "./copilot.js";
 import { GeminiAdapter } from "./gemini.js";
 import { NativeAdapter } from "./native.js";
+import { SymlinkAdapter } from "./symlink.js";
 import type { AgentAdapter } from "./types.js";
 
 /** Central registry mapping agent IDs to their adapter implementations. */
@@ -24,22 +25,28 @@ const AGENT_DISPLAY_NAMES: Record<AgentId, string> = {
   "kimi-code": "Kimi Code",
 };
 
-// Register native agents (no-op adapters for agents that read .agents/skills/ directly)
-for (const id of AgentIdSchema.options) {
-  if (AGENT_NATIVE_SUPPORT[id]) {
-    adapterRegistry.set(
-      id,
-      new NativeAdapter(id, AGENT_DISPLAY_NAMES[id]),
-    );
-  }
+// Agents that have their own skills directory need symlinks from
+// .<agent>/skills/<name> → .agents/skills/<name>
+const SYMLINK_AGENTS: AgentId[] = [
+  "claude-code",
+  "cursor",
+  "cline",
+  "warp",
+  "amp",
+  "opencode",
+  "kimi-code",
+];
+
+for (const id of SYMLINK_AGENTS) {
+  adapterRegistry.set(id, new SymlinkAdapter(id, AGENT_DISPLAY_NAMES[id]));
 }
 
-// Register specialized adapters for non-native agents
+// Register specialized adapters for agents with custom formats
 adapterRegistry.set("github-copilot", new CopilotAdapter());
 adapterRegistry.set("codex", new CodexAdapter());
 adapterRegistry.set("gemini-cli", new GeminiAdapter());
 
-// Remaining non-native agents get NativeAdapter as placeholder
+// Remaining agents get NativeAdapter as fallback
 for (const id of AgentIdSchema.options) {
   if (!adapterRegistry.has(id)) {
     adapterRegistry.set(

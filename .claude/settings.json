@@ -13,19 +13,22 @@
       "Bash(pnpm typecheck)",
       "Read(~/workspace/active-personal/my-skills/)",
       "Read(//home/curiouslycory/workspace/active-personal/my-skills/)",
-      "Skill(dev-browser:dev-browser)",
+      "Bash(dev-browser *)",
       "WebFetch(domain:agentskills.io)",
       "WebFetch(domain:ai-sdk.dev)",
       "WebFetch(domain:authjs.dev)",
       "WebFetch(domain:platejs.org)",
       "WebFetch(domain:skills.sh)",
       "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:tanstack.com)",
+      "WebFetch(domain:ui.shadcn.com)",
       "WebSearch",
       "Read(//home/curiouslycory/.claude/projects/**)",
       "Bash(pnpm test:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(pnpm dev:*)"
     ]
   }
 }
