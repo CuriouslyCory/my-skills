@@ -1,7 +1,7 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
 
-import { and, eq, isNull } from "@curiouslycory/db";
+import { and, asc, desc, eq, isNull, like, or, sql } from "@curiouslycory/db";
 import { favorites } from "@curiouslycory/db/schema";
 
 import { syncConfigToFile } from "../lib/config-sync";
@@ -136,7 +136,118 @@ export const favoriteRouter = {
       return !!existing;
     }),
 
-  list: publicProcedure.query(async ({ ctx }) => {
-    return ctx.db.select().from(favorites);
+  list: publicProcedure
+    .input(
+      z
+        .object({
+          page: z.number().int().min(1).optional().default(1),
+          pageSize: z.number().int().min(1).max(100).optional().default(30),
+          search: z.string().optional(),
+          sortBy: z.enum(["name", "type", "addedAt"]).optional(),
+          sortOrder: z.enum(["asc", "desc"]).optional(),
+          type: z.enum(["repo", "skill"]).optional(),
+        })
+        .optional()
+        .default({ page: 1, pageSize: 30 }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { page, pageSize, search, sortBy, sortOrder, type } = input;
+
+      const conditions = [];
+
+      if (type) {
+        conditions.push(eq(favorites.type, type));
+      }
+
+      if (search) {
+        const pattern = `%${search}%`;
+        conditions.push(
+          or(
+            like(favorites.name, pattern),
+            like(favorites.repoUrl, pattern),
+            like(favorites.skillName, pattern),
+          ),
+        );
+      }
+
+      const where =
+        conditions.length > 0 ? and(...conditions) : undefined;
+
+      // Get total count
+      const [countResult] = await ctx.db
+        .select({ count: sql<number>`count(*)` })
+        .from(favorites)
+        .where(where);
+
+      const totalCount = countResult?.count ?? 0;
+
+      // Determine sort column and direction
+      const sortColumn =
+        sortBy === "name"
+          ? favorites.name
+          : sortBy === "type"
+            ? favorites.type
+            : favorites.addedAt;
+
+      const orderFn = sortOrder === "asc" ? asc : desc;
+
+      const items = await ctx.db
+        .select()
+        .from(favorites)
+        .where(where)
+        .orderBy(orderFn(sortColumn))
+        .limit(pageSize)
+        .offset((page - 1) * pageSize);
+
+      return { items, totalCount };
+    }),
+
+  stats: publicProcedure.query(async ({ ctx }) => {
+    // Total count
+    const [totalResult] = await ctx.db
+      .select({ count: sql<number>`count(*)` })
+      .from(favorites);
+    const total = totalResult?.count ?? 0;
+
+    // Count by type
+    const [repoResult] = await ctx.db
+      .select({ count: sql<number>`count(*)` })
+      .from(favorites)
+      .where(eq(favorites.type, "repo"));
+    const repoCount = repoResult?.count ?? 0;
+
+    const [skillResult] = await ctx.db
+      .select({ count: sql<number>`count(*)` })
+      .from(favorites)
+      .where(eq(favorites.type, "skill"));
+    const skillCount = skillResult?.count ?? 0;
+
+    // Most recent
+    const [mostRecent] = await ctx.db
+      .select()
+      .from(favorites)
+      .orderBy(desc(favorites.addedAt))
+      .limit(1);
+
+    // Top repos: repos with the most skill-level favorites
+    const topRepos = await ctx.db
+      .select({
+        repoUrl: favorites.repoUrl,
+        name: favorites.name,
+        count: sql<number>`count(*)`,
+      })
+      .from(favorites)
+      .where(eq(favorites.type, "skill"))
+      .groupBy(favorites.repoUrl)
+      .orderBy(sql`count(*) desc`)
+      .limit(5);
+
+    return {
+      total,
+      repoCount,
+      skillCount,
+      mostRecent: mostRecent ?? null,
+      topRepos,
+    };
   }),
 } satisfies TRPCRouterRecord;

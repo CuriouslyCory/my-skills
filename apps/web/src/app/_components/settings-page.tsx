@@ -144,9 +144,10 @@ function GeneralSection() {
 function FavoritesSection() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const { data: favoritesList } = useSuspenseQuery(
+  const { data: favoritesData } = useSuspenseQuery(
     trpc.favorite.list.queryOptions(),
   );
+  const favoritesList = favoritesData.items;
 
   const [newName, setNewName] = useState("");
   const [newUrl, setNewUrl] = useState("");
