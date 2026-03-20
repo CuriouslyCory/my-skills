@@ -57,21 +57,26 @@ npx my-skills add <skill-name>
 
 Both `my-skills` and `ms` work as the CLI command.
 
-| Command                       | Description                                 |
-| ----------------------------- | ------------------------------------------- |
-| `ms add <skill>`              | Install a skill from a GitHub repository    |
-| `ms add <skill> --repo <url>` | Install from a specific repository          |
-| `ms add`                      | Restore all skills from the manifest        |
-| `ms find [query]`             | Search for available skills                 |
-| `ms list`                     | List installed skills                       |
-| `ms update`                   | Update all installed skills to latest       |
-| `ms check`                    | Check which skills have updates available   |
-| `ms remove <skill>`           | Remove an installed skill                   |
-| `ms init`                     | Scaffold a new skill in the current project |
-| `ms config get <key>`         | Read a config value                         |
-| `ms config set <key> <value>` | Set a config value                          |
-| `ms config list`              | Show all config values                      |
-| `ms config reset <key>`       | Reset a config key to default               |
+| Command                       | Description                                      |
+| ----------------------------- | ------------------------------------------------ |
+| `ms add <skill>`              | Install a skill from a GitHub repository         |
+| `ms add <skill> --repo <url>` | Install from a specific repository               |
+| `ms add <skill> -f`          | Install a skill and favorite the source repo     |
+| `ms add`                      | Restore all skills from the manifest             |
+| `ms find [query]`             | Search for available skills                      |
+| `ms list`                     | List installed skills                            |
+| `ms list --favorites`         | List only skills from favorited repos            |
+| `ms update`                   | Update all installed skills to latest            |
+| `ms check`                    | Check which skills have updates available        |
+| `ms remove <skill>`           | Remove an installed skill                        |
+| `ms init`                     | Scaffold a new skill in the current project      |
+| `ms favorite add <owner/repo>`    | Add a repo to favorites                      |
+| `ms favorite remove <owner/repo>` | Remove a repo from favorites                 |
+| `ms favorite list`                | List all favorite repos                      |
+| `ms config get <key>`         | Read a config value                              |
+| `ms config set <key> <value>` | Set a config value                               |
+| `ms config list`              | Show all config values                           |
+| `ms config reset <key>`       | Reset a config key to default                    |
 
 ### Examples
 
@@ -82,12 +87,35 @@ ms find review
 # Install a skill from a custom repository
 ms add my-custom-skill --repo https://github.com/myorg/our-skills
 
+# Install a skill and favorite the source repo
+ms add owner/repo/skill -f
+
 # See what's outdated
 ms check
 
 # Update everything
 ms update
 ```
+
+### Favorites
+
+Favorite repos to quickly find and filter the skills you use most.
+
+```sh
+# Add a repo to your favorites
+ms favorite add owner/repo
+
+# List your favorite repos
+ms favorite list
+
+# Remove a repo from favorites
+ms favorite remove owner/repo
+
+# Show only skills from favorited repos
+ms list --favorites
+```
+
+The `fav` alias also works (e.g., `ms fav add owner/repo`, `ms fav ls`).
 
 ---
 
