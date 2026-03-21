@@ -31,7 +31,8 @@
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
       "Bash(pnpm dev:*)",
-      "WebFetch(domain:tweakcn.com)"
+      "WebFetch(domain:tweakcn.com)",
+      "Bash(npx vitest:*)"
     ]
   }
 }

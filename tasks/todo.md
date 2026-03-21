@@ -1,2 +1,1 @@
-- readme table of contents
 - readme clearly map the different install/usage paradeigms (cli only, local webui + cli, and remote webui + cli)
