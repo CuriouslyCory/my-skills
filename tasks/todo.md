@@ -1,4 +1,2 @@
-- https://vercel.com/docs/deploy-button deploy to vercel button for web-ui (database recommendations: supabase, neon.tech, vercel db)
 - readme table of contents
 - readme clearly map the different install/usage paradeigms (cli only, local webui + cli, and remote webui + cli)
-- update theme https://v0.app/curiouslycory/chat/design-systems/v0example--bubblegum

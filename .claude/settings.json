@@ -22,13 +22,16 @@
       "WebFetch(domain:www.npmjs.com)",
       "WebFetch(domain:tanstack.com)",
       "WebFetch(domain:ui.shadcn.com)",
+      "WebFetch(domain:www.shadcn.io)",
+      "WebFetch(domain:v0.app)",
       "WebSearch",
       "Read(//home/curiouslycory/.claude/projects/**)",
       "Bash(pnpm test:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
-      "Bash(pnpm dev:*)"
+      "Bash(pnpm dev:*)",
+      "WebFetch(domain:tweakcn.com)"
     ]
   }
 }

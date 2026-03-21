@@ -6,6 +6,7 @@ import { HamburgerMenuIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
 
 import { Input } from "@curiouslycory/ui/input";
 import { Button } from "@curiouslycory/ui/button";
+import { ThemeToggle } from "@curiouslycory/ui/theme";
 
 export function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const router = useRouter();
@@ -31,8 +32,6 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
         <HamburgerMenuIcon className="size-5" />
       </Button>
 
-      <div className="hidden md:block text-lg font-semibold">my-skills</div>
-
       <form
         onSubmit={handleSearch}
         className="ml-auto flex w-full max-w-sm items-center gap-2"
@@ -48,6 +47,8 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
           />
         </div>
       </form>
+
+      <ThemeToggle />
     </header>
   );
 }
