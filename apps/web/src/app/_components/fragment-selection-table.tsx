@@ -1,4 +1,5 @@
 "use client";
+"use no memo";
 
 import type { DragEndEvent } from "@dnd-kit/core";
 import { useCallback, useMemo, useState } from "react";

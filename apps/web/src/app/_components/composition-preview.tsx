@@ -207,9 +207,10 @@ export function CompositionPreview({
   useEffect(() => {
     if (markdown !== prevMarkdownRef.current) {
       prevMarkdownRef.current = markdown;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
       const nodes = editor
         .getApi(MarkdownPlugin)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         .markdown.deserialize(markdown || " ");
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       editor.tf.replaceNodes(nodes, {
