@@ -54,7 +54,10 @@ describe("migration", () => {
         },
       },
     };
-    await writeFile(join(testDir, "skills-lock.json"), JSON.stringify(lockData));
+    await writeFile(
+      join(testDir, "skills-lock.json"),
+      JSON.stringify(lockData),
+    );
 
     const result = await migrateFromSkillsLock(testDir);
     expect(result).not.toBeNull();
@@ -69,7 +72,9 @@ describe("migration", () => {
     const content = await readFile(join(testDir, ".my-skills.json"), "utf-8");
     const parsed = JSON.parse(content) as Record<string, unknown>;
     expect(parsed.version).toBe(1);
-    expect((parsed.skills as Record<string, unknown>)["test-skill"]).toBeDefined();
+    expect(
+      (parsed.skills as Record<string, unknown>)["test-skill"],
+    ).toBeDefined();
 
     consoleSpy.mockRestore();
   });

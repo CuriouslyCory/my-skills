@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 
-import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 import {
   ArtifactList,
   ArtifactListSkeleton,
 } from "~/app/_components/artifact-list";
+import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 
 export default function ArtifactsPage() {
   prefetch(trpc.artifact.list.queryOptions());

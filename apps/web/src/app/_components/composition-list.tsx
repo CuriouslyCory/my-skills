@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 
 import { cn } from "@curiouslycory/ui";
 import {
@@ -133,9 +137,7 @@ export function CompositionList() {
                 <TableCell>
                   <AlertDialog
                     open={deleteId === comp.id}
-                    onOpenChange={(open) =>
-                      setDeleteId(open ? comp.id : null)
-                    }
+                    onOpenChange={(open) => setDeleteId(open ? comp.id : null)}
                   >
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive" size="sm">
@@ -144,9 +146,7 @@ export function CompositionList() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          Delete Composition
-                        </AlertDialogTitle>
+                        <AlertDialogTitle>Delete Composition</AlertDialogTitle>
                         <AlertDialogDescription>
                           Are you sure you want to delete &quot;{comp.name}
                           &quot;? This action cannot be undone.
@@ -155,16 +155,12 @@ export function CompositionList() {
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() =>
-                            deleteMutation.mutate({ id: comp.id })
-                          }
+                          onClick={() => deleteMutation.mutate({ id: comp.id })}
                           className={cn(
-                            "bg-destructive text-white hover:bg-destructive/90",
+                            "bg-destructive hover:bg-destructive/90 text-white",
                           )}
                         >
-                          {deleteMutation.isPending
-                            ? "Deleting..."
-                            : "Delete"}
+                          {deleteMutation.isPending ? "Deleting..." : "Delete"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -186,10 +182,7 @@ export function CompositionListSkeleton() {
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className={cn(
-              "flex items-center gap-4 py-3",
-              i > 0 && "border-t",
-            )}
+            className={cn("flex items-center gap-4 py-3", i > 0 && "border-t")}
           >
             <div className="bg-muted h-4 w-40 animate-pulse rounded-sm" />
             <div className="bg-muted h-4 w-60 animate-pulse rounded-sm" />

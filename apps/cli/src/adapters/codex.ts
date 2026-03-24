@@ -1,13 +1,17 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-
 import { parse, stringify } from "smol-toml";
 
 import type { AdapterSkillEntry, AgentAdapter } from "./types.js";
 
 const CODEX_FILE = ".codex/config.toml";
 
-type TomlValue = string | number | boolean | TomlValue[] | { [key: string]: TomlValue };
+type TomlValue =
+  | string
+  | number
+  | boolean
+  | TomlValue[]
+  | { [key: string]: TomlValue };
 type TomlRecord = Record<string, TomlValue>;
 
 /**
@@ -24,10 +28,7 @@ async function readTomlFile(filePath: string): Promise<string> {
 /**
  * Write .codex/config.toml, creating parent directories if needed.
  */
-async function writeTomlFile(
-  filePath: string,
-  content: string,
-): Promise<void> {
+async function writeTomlFile(filePath: string, content: string): Promise<void> {
   await mkdir(dirname(filePath), { recursive: true });
   await writeFile(filePath, content, "utf-8");
 }
@@ -64,21 +65,23 @@ export class CodexAdapter implements AgentAdapter {
     }
   }
 
-  async install(
-    projectRoot: string,
-    skill: AdapterSkillEntry,
-  ): Promise<void> {
+  async install(projectRoot: string, skill: AdapterSkillEntry): Promise<void> {
     const filePath = join(projectRoot, CODEX_FILE);
     const raw = await readTomlFile(filePath);
 
     const doc = raw ? (parse(raw) as Record<string, TomlValue>) : {};
 
     // Ensure skills table exists
-    if (!doc.skills || typeof doc.skills !== "object" || Array.isArray(doc.skills)) {
+    if (
+      !doc.skills ||
+      typeof doc.skills !== "object" ||
+      Array.isArray(doc.skills)
+    ) {
       doc.skills = {};
     }
 
-    (doc.skills as Record<string, TomlValue>)[skill.name] = buildSkillSection(skill);
+    (doc.skills as Record<string, TomlValue>)[skill.name] =
+      buildSkillSection(skill);
 
     await writeTomlFile(filePath, stringify(doc) + "\n");
   }
@@ -107,10 +110,7 @@ export class CodexAdapter implements AgentAdapter {
     await writeTomlFile(filePath, stringify(doc) + "\n");
   }
 
-  async sync(
-    projectRoot: string,
-    skills: AdapterSkillEntry[],
-  ): Promise<void> {
+  async sync(projectRoot: string, skills: AdapterSkillEntry[]): Promise<void> {
     const filePath = join(projectRoot, CODEX_FILE);
     const raw = await readTomlFile(filePath);
 

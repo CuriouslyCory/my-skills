@@ -25,9 +25,7 @@ export const compositionRouter = {
             .from(skills)
             .where(inArray(skills.id, fragmentIds));
 
-          outdated = fragments.some(
-            (f) => f.updatedAt > comp.updatedAt,
-          );
+          outdated = fragments.some((f) => f.updatedAt > comp.updatedAt);
         }
         return { ...comp, outdated };
       }),

@@ -1,8 +1,8 @@
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { parseSkillFrontmatter } from "@curiouslycory/shared-types";
 import { GitService } from "@curiouslycory/git-service";
+import { parseSkillFrontmatter } from "@curiouslycory/shared-types";
 
 import type { GitHubSource } from "./source-parser.js";
 import { loadConfig } from "../core/config.js";

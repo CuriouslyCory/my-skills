@@ -74,7 +74,8 @@ describe("mergeFragments", () => {
 
   it("merges and deduplicates preamble content", () => {
     const f1 = "This is the preamble\n\n# Title\n\nContent\n";
-    const f2 = "This is the preamble\nExtra preamble line\n\n# Title\n\nMore content\n";
+    const f2 =
+      "This is the preamble\nExtra preamble line\n\n# Title\n\nMore content\n";
     const result = mergeFragments([f1, f2]);
     // Preamble deduplicated
     const preambleMatches = result.match(/This is the preamble/g);

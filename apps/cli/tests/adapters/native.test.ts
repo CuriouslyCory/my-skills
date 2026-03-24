@@ -1,8 +1,8 @@
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { NativeAdapter } from "../../src/adapters/native.js";
 import type { AdapterSkillEntry } from "../../src/adapters/types.js";
+import { NativeAdapter } from "../../src/adapters/native.js";
 
 function makeSkill(name: string): AdapterSkillEntry {
   return {
@@ -40,10 +40,7 @@ describe("NativeAdapter", () => {
   });
 
   it("sync is a no-op", async () => {
-    await adapter.sync("/tmp/project", [
-      makeSkill("a"),
-      makeSkill("b"),
-    ]);
+    await adapter.sync("/tmp/project", [makeSkill("a"), makeSkill("b")]);
   });
 
   it("getSkillsPath returns .agents/skills under project root", () => {

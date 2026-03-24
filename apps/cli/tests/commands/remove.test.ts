@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Manifest } from "@curiouslycory/shared-types";
 
+import { removeSingleSkill } from "../../src/commands/remove.js";
+
 vi.mock("ora", () => ({
   default: () => ({
     start: vi.fn().mockReturnThis(),
@@ -21,8 +23,6 @@ vi.mock("../../src/adapters/index.js", () => ({
   getEnabledAdapters: vi.fn(() => []),
   resolveAgents: vi.fn(() => Promise.resolve([])),
 }));
-
-import { removeSingleSkill } from "../../src/commands/remove.js";
 
 function makeManifest(skills: Manifest["skills"] = {}): Manifest {
   return { version: 1, agents: [], skills };
@@ -69,7 +69,9 @@ describe("removeSingleSkill", () => {
     );
 
     // Skill dir should be deleted
-    const exists = await stat(skillDir).then(() => true).catch(() => false);
+    const exists = await stat(skillDir)
+      .then(() => true)
+      .catch(() => false);
     expect(exists).toBe(false);
 
     // Manifest should have skill removed
@@ -141,8 +143,22 @@ describe("removeSingleSkill", () => {
       },
     });
 
-    manifest = await removeSingleSkill("skill-a", targetDir, projectRoot, manifest, true, []);
-    manifest = await removeSingleSkill("skill-b", targetDir, projectRoot, manifest, true, []);
+    manifest = await removeSingleSkill(
+      "skill-a",
+      targetDir,
+      projectRoot,
+      manifest,
+      true,
+      [],
+    );
+    manifest = await removeSingleSkill(
+      "skill-b",
+      targetDir,
+      projectRoot,
+      manifest,
+      true,
+      [],
+    );
 
     expect(Object.keys(manifest.skills)).toHaveLength(0);
   });

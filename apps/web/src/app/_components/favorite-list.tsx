@@ -3,7 +3,11 @@
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 
 import { cn } from "@curiouslycory/ui";
 import {
@@ -123,7 +127,10 @@ export function FavoriteList() {
   const { data } = useSuspenseQuery(
     trpc.favorite.list.queryOptions({
       search: debouncedSearch || undefined,
-      type: typeFilter === "repo" || typeFilter === "skill" ? typeFilter : undefined,
+      type:
+        typeFilter === "repo" || typeFilter === "skill"
+          ? typeFilter
+          : undefined,
       sortBy: urlSort,
       sortOrder: urlOrder,
       page,
@@ -263,7 +270,7 @@ export function FavoriteList() {
                 <AlertDialogAction
                   onClick={() => deleteMutation.mutate({ id: item.id })}
                   className={cn(
-                    "bg-destructive text-white hover:bg-destructive/90",
+                    "bg-destructive hover:bg-destructive/90 text-white",
                   )}
                 >
                   {deleteMutation.isPending ? "Removing..." : "Remove"}
@@ -335,17 +342,17 @@ export function FavoriteListSkeleton() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="h-10 w-full max-w-sm animate-pulse rounded-md bg-muted" />
+        <div className="bg-muted h-10 w-full max-w-sm animate-pulse rounded-md" />
         <div className="flex gap-2">
-          <div className="h-8 w-14 animate-pulse rounded-md bg-muted" />
-          <div className="h-8 w-16 animate-pulse rounded-md bg-muted" />
-          <div className="h-8 w-14 animate-pulse rounded-md bg-muted" />
+          <div className="bg-muted h-8 w-14 animate-pulse rounded-md" />
+          <div className="bg-muted h-8 w-16 animate-pulse rounded-md" />
+          <div className="bg-muted h-8 w-14 animate-pulse rounded-md" />
         </div>
       </div>
       <div className="animate-pulse rounded-md border">
-        <div className="h-10 border-b bg-muted/50" />
+        <div className="bg-muted/50 h-10 border-b" />
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-12 border-b last:border-b-0 bg-muted/20" />
+          <div key={i} className="bg-muted/20 h-12 border-b last:border-b-0" />
         ))}
       </div>
     </div>

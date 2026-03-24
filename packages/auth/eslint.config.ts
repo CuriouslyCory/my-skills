@@ -1,6 +1,9 @@
 import { defineConfig } from "eslint/config";
 
-import { baseConfig, restrictEnvAccess } from "@curiouslycory/eslint-config/base";
+import {
+  baseConfig,
+  restrictEnvAccess,
+} from "@curiouslycory/eslint-config/base";
 
 export default defineConfig(
   {

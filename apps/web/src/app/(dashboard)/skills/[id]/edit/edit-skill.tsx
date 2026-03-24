@@ -6,8 +6,8 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { Button } from "@curiouslycory/ui/button";
 import { Card, CardContent } from "@curiouslycory/ui/card";
 
-import { useTRPC } from "~/trpc/react";
 import { SkillEditor } from "~/app/_components/skill-editor";
+import { useTRPC } from "~/trpc/react";
 
 function parseTags(tags: string): string[] {
   try {

@@ -1,7 +1,6 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
-
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
 
@@ -29,10 +28,7 @@ export const skillRouter = {
             .from(skills)
             .where(eq(skills.category, input.category))
             .orderBy(desc(skills.updatedAt))
-        : await ctx.db
-            .select()
-            .from(skills)
-            .orderBy(desc(skills.updatedAt));
+        : await ctx.db.select().from(skills).orderBy(desc(skills.updatedAt));
 
       if (input?.tags && input.tags.length > 0) {
         const tags = input.tags;

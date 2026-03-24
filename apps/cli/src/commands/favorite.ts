@@ -27,7 +27,9 @@ export function registerFavoriteCommand(program: Command): void {
 
       config.favoriteRepos.push(url);
       await saveConfig(config);
-      console.log(`${chalk.green("✓")} Added ${chalk.bold(ownerRepo)} to favorites`);
+      console.log(
+        `${chalk.green("✓")} Added ${chalk.bold(ownerRepo)} to favorites`,
+      );
     });
 
   favCmd
@@ -45,7 +47,9 @@ export function registerFavoriteCommand(program: Command): void {
 
       config.favoriteRepos.splice(index, 1);
       await saveConfig(config);
-      console.log(`${chalk.green("✓")} Removed ${chalk.bold(ownerRepo)} from favorites`);
+      console.log(
+        `${chalk.green("✓")} Removed ${chalk.bold(ownerRepo)} from favorites`,
+      );
     });
 
   favCmd

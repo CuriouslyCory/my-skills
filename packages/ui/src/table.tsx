@@ -1,9 +1,6 @@
 import { cn } from "@curiouslycory/ui";
 
-export function Table({
-  className,
-  ...props
-}: React.ComponentProps<"table">) {
+export function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div className="relative w-full overflow-auto">
       <table
@@ -41,15 +38,12 @@ export function TableBody({
   );
 }
 
-export function TableRow({
-  className,
-  ...props
-}: React.ComponentProps<"tr">) {
+export function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   return (
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+        "hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors",
         className,
       )}
       {...props}
@@ -57,10 +51,7 @@ export function TableRow({
   );
 }
 
-export function TableHead({
-  className,
-  ...props
-}: React.ComponentProps<"th">) {
+export function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       data-slot="table-head"
@@ -73,10 +64,7 @@ export function TableHead({
   );
 }
 
-export function TableCell({
-  className,
-  ...props
-}: React.ComponentProps<"td">) {
+export function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   return (
     <td
       data-slot="table-cell"

@@ -3,9 +3,8 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 
-import { isAuthEnabled, verifySession } from "@curiouslycory/auth";
-
 import type { Session } from "@curiouslycory/auth";
+import { isAuthEnabled, verifySession } from "@curiouslycory/auth";
 
 const SESSION_COOKIE = "my-skills-session";
 

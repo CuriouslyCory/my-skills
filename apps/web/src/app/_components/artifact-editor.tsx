@@ -8,10 +8,10 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "@curiouslycory/ui/button";
 import { toast } from "@curiouslycory/ui/toast";
 
-import { useTRPC } from "~/trpc/react";
 import type { SkillFrontmatter } from "./frontmatter-form";
-import { FrontmatterForm } from "./frontmatter-form";
 import type { PlateEditorHandle } from "./plate-editor";
+import { useTRPC } from "~/trpc/react";
+import { FrontmatterForm } from "./frontmatter-form";
 import { PlateEditor } from "./plate-editor";
 
 type ArtifactCategory = "agent" | "prompt" | "claudemd";

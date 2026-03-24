@@ -1,6 +1,5 @@
+import { access, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { mkdir, access, writeFile } from "node:fs/promises";
-
 import type { Command } from "commander";
 import chalk from "chalk";
 
@@ -45,7 +44,9 @@ export function registerInitCommand(program: Command): void {
         await access(skillFile);
         if (!opts.force) {
           console.error(
-            chalk.red(`Error: Skill "${skillName}" already exists at ${skillFile}`),
+            chalk.red(
+              `Error: Skill "${skillName}" already exists at ${skillFile}`,
+            ),
           );
           console.error(chalk.yellow("Use --force to overwrite."));
           process.exit(1);

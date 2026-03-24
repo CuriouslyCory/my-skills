@@ -13,9 +13,7 @@ import {
   saveManifest,
 } from "../../src/core/manifest.js";
 
-const makeManifest = (
-  skills: Record<string, SkillEntry> = {},
-): Manifest => ({
+const makeManifest = (skills: Record<string, SkillEntry> = {}): Manifest => ({
   version: 1,
   agents: [],
   skills,
@@ -70,13 +68,12 @@ describe("manifest", () => {
       const manifest = makeManifest({ "test-skill": makeEntry() });
       await saveManifest(testDir, manifest);
 
-      const content = await readFile(
-        join(testDir, ".my-skills.json"),
-        "utf-8",
-      );
+      const content = await readFile(join(testDir, ".my-skills.json"), "utf-8");
       const parsed = JSON.parse(content) as Record<string, unknown>;
       expect(parsed.version).toBe(1);
-      expect((parsed.skills as Record<string, unknown>)["test-skill"]).toBeDefined();
+      expect(
+        (parsed.skills as Record<string, unknown>)["test-skill"],
+      ).toBeDefined();
     });
   });
 

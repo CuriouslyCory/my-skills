@@ -1,12 +1,11 @@
 import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { parse } from "smol-toml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { parse } from "smol-toml";
-
-import { GeminiAdapter } from "../../src/adapters/gemini.js";
 import type { AdapterSkillEntry } from "../../src/adapters/types.js";
+import { GeminiAdapter } from "../../src/adapters/gemini.js";
 
 function makeSkill(
   name: string,
@@ -131,10 +130,7 @@ describe("GeminiAdapter", () => {
 
   describe("sync", () => {
     it("writes all TOML files and syncs GEMINI.md", async () => {
-      await adapter.sync(projectRoot, [
-        makeSkill("alpha"),
-        makeSkill("beta"),
-      ]);
+      await adapter.sync(projectRoot, [makeSkill("alpha"), makeSkill("beta")]);
 
       // TOML files
       const rawA = await readFile(tomlFile("alpha"), "utf-8");

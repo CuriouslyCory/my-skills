@@ -45,8 +45,12 @@ export function CommitDialog({ files, disabled }: CommitDialogProps) {
         setOpen(false);
         setMessage("");
         setSelectedFiles(new Set());
-        void queryClient.invalidateQueries({ queryKey: trpc.git.status.queryKey() });
-        void queryClient.invalidateQueries({ queryKey: trpc.git.log.queryKey() });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.git.status.queryKey(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.git.log.queryKey(),
+        });
       },
       onError: (error) => {
         toast.error(`Commit failed: ${error.message}`);
@@ -155,7 +159,9 @@ export function CommitDialog({ files, disabled }: CommitDialogProps) {
             <Button
               type="submit"
               disabled={
-                commitMutation.isPending || selectedFiles.size === 0 || !message.trim()
+                commitMutation.isPending ||
+                selectedFiles.size === 0 ||
+                !message.trim()
               }
             >
               {commitMutation.isPending ? (

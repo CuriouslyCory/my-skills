@@ -1,6 +1,5 @@
 import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-
 import { stringify } from "smol-toml";
 
 import type { AdapterSkillEntry, AgentAdapter } from "./types.js";
@@ -133,9 +132,9 @@ async function removeFromGeminiMd(
   const { before, managed, after } = parseSections(existing);
 
   // Filter out lines containing this skill's reference
-  const lines = managed.split("\n").filter(
-    (line) => !line.includes(`**${skillName}**`),
-  );
+  const lines = managed
+    .split("\n")
+    .filter((line) => !line.includes(`**${skillName}**`));
 
   const updatedManaged = lines.filter((l) => l.trim()).join("\n");
   await writeFileEnsureDir(
@@ -203,10 +202,7 @@ export class GeminiAdapter implements AgentAdapter {
     }
   }
 
-  async install(
-    projectRoot: string,
-    skill: AdapterSkillEntry,
-  ): Promise<void> {
+  async install(projectRoot: string, skill: AdapterSkillEntry): Promise<void> {
     // Write TOML command file
     const tomlPath = join(projectRoot, COMMANDS_DIR, `${skill.name}.toml`);
     await writeFileEnsureDir(tomlPath, buildCommandToml(skill));
@@ -228,10 +224,7 @@ export class GeminiAdapter implements AgentAdapter {
     await removeFromGeminiMd(projectRoot, skillName);
   }
 
-  async sync(
-    projectRoot: string,
-    skills: AdapterSkillEntry[],
-  ): Promise<void> {
+  async sync(projectRoot: string, skills: AdapterSkillEntry[]): Promise<void> {
     // Write all TOML command files
     for (const skill of skills) {
       const tomlPath = join(projectRoot, COMMANDS_DIR, `${skill.name}.toml`);

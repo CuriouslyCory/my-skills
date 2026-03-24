@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Manifest } from "@curiouslycory/shared-types";
 
+import { registerCheckCommand } from "../../src/commands/check.js";
+import { fetchRepo } from "../../src/services/cache.js";
+
 let mockManifest: Manifest | null = null;
 
 vi.mock("../../src/core/manifest.js", () => ({
@@ -34,9 +37,6 @@ vi.mock("ora", () => ({
     },
   }),
 }));
-
-import { fetchRepo } from "../../src/services/cache.js";
-import { registerCheckCommand } from "../../src/commands/check.js";
 
 function makeManifest(skills: Manifest["skills"] = {}): Manifest {
   return { version: 1, agents: [], skills };
@@ -124,7 +124,9 @@ describe("check command", () => {
   });
 
   it("reports 'remote unavailable' when fetchRepo throws", async () => {
-    vi.mocked(fetchRepo).mockImplementation(() => Promise.reject(new Error("network error")));
+    vi.mocked(fetchRepo).mockImplementation(() =>
+      Promise.reject(new Error("network error")),
+    );
     mockManifest = makeManifest({
       "broken-skill": {
         source: "owner/repo",

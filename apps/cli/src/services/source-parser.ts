@@ -21,7 +21,11 @@ const SHORTHAND_RE = /^([^/.][^/]*)\/([^/]+)(?:\/(.+))?$/;
 
 export function parseSource(source: string): SkillSource {
   // Local path: starts with ./ or ../ or /
-  if (source.startsWith("./") || source.startsWith("../") || source.startsWith("/")) {
+  if (
+    source.startsWith("./") ||
+    source.startsWith("../") ||
+    source.startsWith("/")
+  ) {
     return {
       type: "local",
       path: resolve(source),

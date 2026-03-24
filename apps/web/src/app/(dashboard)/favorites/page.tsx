@@ -1,14 +1,14 @@
 import { Suspense } from "react";
 
-import { HydrateClient, prefetch, trpc } from "~/trpc/server";
-import {
-  FavoriteStats,
-  FavoriteStatsSkeleton,
-} from "~/app/_components/favorite-stats";
 import {
   FavoriteList,
   FavoriteListSkeleton,
 } from "~/app/_components/favorite-list";
+import {
+  FavoriteStats,
+  FavoriteStatsSkeleton,
+} from "~/app/_components/favorite-stats";
+import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 
 export default function FavoritesPage() {
   prefetch(trpc.favorite.stats.queryOptions());

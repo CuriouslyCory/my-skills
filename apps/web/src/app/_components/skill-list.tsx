@@ -146,9 +146,7 @@ export function SkillListSkeleton() {
         <Card key={i}>
           <CardHeader>
             <div
-              className={cn(
-                "bg-muted h-5 w-2/3 animate-pulse rounded-sm",
-              )}
+              className={cn("bg-muted h-5 w-2/3 animate-pulse rounded-sm")}
             />
             <div
               className={cn(

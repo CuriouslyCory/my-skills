@@ -1,9 +1,9 @@
 import { access } from "node:fs/promises";
 import { join } from "node:path";
+import chalk from "chalk";
 
 import type { AgentId } from "@curiouslycory/shared-types";
 import { AgentIdSchema } from "@curiouslycory/shared-types";
-import chalk from "chalk";
 
 import { loadConfig, saveConfig } from "../core/config.js";
 import { loadManifest, saveManifest } from "../core/manifest.js";
@@ -61,9 +61,7 @@ export async function detectAgents(projectRoot: string): Promise<AgentId[]> {
  *
  * On subsequent runs, returns agents from config.defaultAgents.
  */
-export async function resolveAgents(
-  projectRoot: string,
-): Promise<AgentId[]> {
+export async function resolveAgents(projectRoot: string): Promise<AgentId[]> {
   const config = await loadConfig();
 
   // If config already has defaultAgents, use those
@@ -107,9 +105,7 @@ export async function resolveAgents(
   await saveManifest(projectRoot, currentManifest);
 
   console.log(
-    chalk.cyan(
-      "Run `ms config set defaultAgents ...` to change defaults",
-    ),
+    chalk.cyan("Run `ms config set defaultAgents ...` to change defaults"),
   );
 
   return selected;

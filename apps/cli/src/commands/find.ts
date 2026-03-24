@@ -1,28 +1,24 @@
 import { resolve } from "node:path";
-
 import type { Command } from "commander";
+import checkbox from "@inquirer/checkbox";
 import chalk from "chalk";
 import ora from "ora";
-import checkbox from "@inquirer/checkbox";
 
 import type { AgentId, Manifest } from "@curiouslycory/shared-types";
 
+import type { GitHubSource } from "../services/source-parser.js";
+import { resolveAgents } from "../adapters/index.js";
 import { loadConfig } from "../core/config.js";
+import { getSkill, loadManifest } from "../core/manifest.js";
+import { migrateFromSkillsLock } from "../core/migration.js";
 import {
-  loadManifest,
-  getSkill,
-} from "../core/manifest.js";
-import {
+  discoverSkills,
   fetchRepo,
   getCachedRepoPath,
   isCacheStale,
-  discoverSkills,
 } from "../services/cache.js";
 import { parseSource } from "../services/source-parser.js";
-import type { GitHubSource } from "../services/source-parser.js";
-import { resolveAgents } from "../adapters/index.js";
 import { installSingleSkill } from "./add.js";
-import { migrateFromSkillsLock } from "../core/migration.js";
 
 interface FindResult {
   name: string;
@@ -49,9 +45,7 @@ function favoriteToGitHub(favorite: string): GitHubSource {
 async function buildSearchIndex(): Promise<FindResult[]> {
   const config = await loadConfig();
   const manifest = await loadManifest(process.cwd());
-  const installedNames = new Set(
-    manifest ? Object.keys(manifest.skills) : [],
-  );
+  const installedNames = new Set(manifest ? Object.keys(manifest.skills) : []);
   const results: FindResult[] = [];
 
   // Add installed skills from manifest
@@ -150,21 +144,15 @@ export function registerFindCommand(program: Command): void {
         : results;
 
       if (filtered.length === 0) {
-        console.log(
-          chalk.yellow(`No skills matching "${query}".`),
-        );
+        console.log(chalk.yellow(`No skills matching "${query}".`));
         return;
       }
 
       const selectedNames = await checkbox({
         message: "Select skills to install:",
         choices: filtered.map((r) => {
-          const desc = r.description
-            ? ` - ${chalk.dim(r.description)}`
-            : "";
-          const badge = r.installed
-            ? chalk.green(" [installed]")
-            : "";
+          const desc = r.description ? ` - ${chalk.dim(r.description)}` : "";
+          const badge = r.installed ? chalk.green(" [installed]") : "";
           return {
             name: `${r.name}${desc} ${chalk.dim(`(${r.source})`)}${badge}`,
             value: r.name,

@@ -3,9 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { SymlinkAdapter } from "../../src/adapters/symlink.js";
-import type { AdapterSkillEntry } from "../../src/adapters/types.js";
 import type { AgentId } from "@curiouslycory/shared-types";
+
+import type { AdapterSkillEntry } from "../../src/adapters/types.js";
+import { SymlinkAdapter } from "../../src/adapters/symlink.js";
 
 function makeSkill(name: string): AdapterSkillEntry {
   return {
@@ -62,9 +63,7 @@ describe("SymlinkAdapter", () => {
       expect(stat.isSymbolicLink()).toBe(true);
 
       const target = await readlink(linkPath);
-      expect(target).toBe(
-        join("..", "..", ".agents", "skills", "test-skill"),
-      );
+      expect(target).toBe(join("..", "..", ".agents", "skills", "test-skill"));
     });
 
     it("install replaces existing symlink", async () => {

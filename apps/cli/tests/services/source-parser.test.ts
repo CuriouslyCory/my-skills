@@ -1,8 +1,11 @@
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import type {
+  GitHubSource,
+  LocalSource,
+} from "../../src/services/source-parser.js";
 import { parseSource } from "../../src/services/source-parser.js";
-import type { GitHubSource, LocalSource } from "../../src/services/source-parser.js";
 
 describe("source-parser", () => {
   describe("local paths", () => {

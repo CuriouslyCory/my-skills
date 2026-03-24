@@ -1,10 +1,7 @@
 import { Suspense } from "react";
 
+import { GitStatus, GitStatusSkeleton } from "~/app/_components/git-status";
 import { HydrateClient, prefetch, trpc } from "~/trpc/server";
-import {
-  GitStatus,
-  GitStatusSkeleton,
-} from "~/app/_components/git-status";
 
 export default function GitPage() {
   prefetch(trpc.git.status.queryOptions());

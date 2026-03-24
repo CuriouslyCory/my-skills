@@ -2,11 +2,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod/v4";
 
-import {
-  createSession,
-  isAuthEnabled,
-  validate,
-} from "@curiouslycory/auth";
+import { createSession, isAuthEnabled, validate } from "@curiouslycory/auth";
 
 import { publicProcedure } from "../trpc";
 

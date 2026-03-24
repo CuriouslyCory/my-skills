@@ -63,7 +63,10 @@ export function DiffViewer({ diff }: DiffViewerProps) {
           {lines.map((line, i) => (
             <div
               key={i}
-              className={cn("px-4 py-0.5 whitespace-pre", lineStyles[line.type])}
+              className={cn(
+                "px-4 py-0.5 whitespace-pre",
+                lineStyles[line.type],
+              )}
             >
               {line.content}
             </div>

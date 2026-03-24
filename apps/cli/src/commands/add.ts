@@ -1,31 +1,34 @@
-import { join, resolve } from "node:path";
-import { homedir } from "node:os";
 import { stat } from "node:fs/promises";
-
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import type { Command } from "commander";
+import checkbox from "@inquirer/checkbox";
 import chalk from "chalk";
 import ora from "ora";
-import checkbox from "@inquirer/checkbox";
 
-import type { AgentId, Manifest, SkillEntry } from "@curiouslycory/shared-types";
+import type {
+  AgentId,
+  Manifest,
+  SkillEntry,
+} from "@curiouslycory/shared-types";
 import { AgentIdSchema } from "@curiouslycory/shared-types";
 
-import { parseSource } from "../services/source-parser.js";
+import type { AdapterSkillEntry } from "../adapters/index.js";
 import type { GitHubSource } from "../services/source-parser.js";
-import { fetchRepo, discoverSkills } from "../services/cache.js";
-import { resolveSkill } from "../core/skill-resolver.js";
-import { installSkill } from "../core/skill-installer.js";
-import { computeSkillHash } from "../core/skill-hasher.js";
+import { getEnabledAdapters, resolveAgents } from "../adapters/index.js";
+import { loadConfig, saveConfig } from "../core/config.js";
 import {
-  loadManifest,
-  saveManifest,
   addSkill,
   getSkill,
+  loadManifest,
+  saveManifest,
 } from "../core/manifest.js";
 import { migrateFromSkillsLock } from "../core/migration.js";
-import { loadConfig, saveConfig } from "../core/config.js";
-import { getEnabledAdapters, resolveAgents } from "../adapters/index.js";
-import type { AdapterSkillEntry } from "../adapters/index.js";
+import { computeSkillHash } from "../core/skill-hasher.js";
+import { installSkill } from "../core/skill-installer.js";
+import { resolveSkill } from "../core/skill-resolver.js";
+import { discoverSkills, fetchRepo } from "../services/cache.js";
+import { parseSource } from "../services/source-parser.js";
 
 interface AddOptions {
   skill?: string;
@@ -58,7 +61,10 @@ function sourceToGitHub(source: string): GitHubSource {
 /**
  * Resolve the target directory for skill installation.
  */
-function resolveTargetDir(config: { skillsDir: string }, opts: AddOptions): string {
+function resolveTargetDir(
+  config: { skillsDir: string },
+  opts: AddOptions,
+): string {
   if (opts.global) {
     return join(homedir(), ".agents", "skills");
   }
@@ -69,18 +75,26 @@ function resolveTargetDir(config: { skillsDir: string }, opts: AddOptions): stri
  * Parse comma-separated skill names from --skill flag.
  */
 function parseSkillNames(raw: string): string[] {
-  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /**
  * Parse and validate comma-separated agent IDs from --agent flag.
  */
 function parseAgentIds(raw: string): AgentId[] {
-  const ids = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  const ids = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   for (const id of ids) {
     const result = AgentIdSchema.safeParse(id);
     if (!result.success) {
-      throw new Error(`Invalid agent ID: "${id}". Valid agents: ${AgentIdSchema.options.join(", ")}`);
+      throw new Error(
+        `Invalid agent ID: "${id}". Valid agents: ${AgentIdSchema.options.join(", ")}`,
+      );
     }
   }
   return ids as AgentId[];
@@ -96,7 +110,9 @@ export async function restoreFromManifest(
 
   if (entries.length === 0) {
     console.log(
-      chalk.yellow("Manifest has no skills. Use ms add <owner/repo/skill-name> to install one."),
+      chalk.yellow(
+        "Manifest has no skills. Use ms add <owner/repo/skill-name> to install one.",
+      ),
     );
     return;
   }
@@ -108,7 +124,9 @@ export async function restoreFromManifest(
   for (const [skillName, entry] of entries) {
     // Check if already installed with matching hash
     const destPath = join(targetDir, skillName);
-    const exists = await stat(destPath).then(() => true).catch(() => false);
+    const exists = await stat(destPath)
+      .then(() => true)
+      .catch(() => false);
 
     if (exists) {
       try {
@@ -135,7 +153,9 @@ export async function restoreFromManifest(
     const spinner = ora(`Installing ${skillName}...`).start();
     try {
       if (entry.sourceType !== "github") {
-        spinner.fail(`${skillName} - unsupported source type "${entry.sourceType}"`);
+        spinner.fail(
+          `${skillName} - unsupported source type "${entry.sourceType}"`,
+        );
         failed++;
         continue;
       }
@@ -151,7 +171,9 @@ export async function restoreFromManifest(
       spinner.succeed(`Installed ${skillName}`);
       installed++;
     } catch (err) {
-      spinner.fail(`${skillName} - ${err instanceof Error ? err.message : "Unknown error"}`);
+      spinner.fail(
+        `${skillName} - ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
       failed++;
     }
   }
@@ -255,15 +277,29 @@ export function registerAddCommand(program: Command): void {
   program
     .command("add [source]")
     .aliases(["a", "i", "install"])
-    .description("Install a skill from a GitHub repository or restore all from manifest")
-    .option("--skill <names>", "Comma-separated skill names to install without interactive picker")
-    .option("--agent <agents>", "Comma-separated agent targets to override defaults")
+    .description(
+      "Install a skill from a GitHub repository or restore all from manifest",
+    )
+    .option(
+      "--skill <names>",
+      "Comma-separated skill names to install without interactive picker",
+    )
+    .option(
+      "--agent <agents>",
+      "Comma-separated agent targets to override defaults",
+    )
     .option("-y, --yes", "Skip all confirmation prompts")
-    .option("-g, --global", "Install to ~/.agents/skills/ instead of project directory")
+    .option(
+      "-g, --global",
+      "Install to ~/.agents/skills/ instead of project directory",
+    )
     .option("--copy", "Copy files instead of relying on canonical location")
     .option("--all", "Shorthand for --skill '*' --agent '*' -y")
     .option("-f, --favorite", "Mark the source repo as a favorite")
-    .option("-l, --list", "List available skills in the repo without installing")
+    .option(
+      "-l, --list",
+      "List available skills in the repo without installing",
+    )
     .action(async (source: string | undefined, opts: AddOptions) => {
       const projectRoot = process.cwd();
       const config = await loadConfig();
@@ -285,7 +321,11 @@ export function registerAddCommand(program: Command): void {
           try {
             agents = parseAgentIds(opts.agent);
           } catch (err) {
-            console.error(chalk.red(err instanceof Error ? err.message : "Invalid agent IDs"));
+            console.error(
+              chalk.red(
+                err instanceof Error ? err.message : "Invalid agent IDs",
+              ),
+            );
             return;
           }
         }
@@ -305,7 +345,9 @@ export function registerAddCommand(program: Command): void {
             ),
           );
           console.log(
-            chalk.dim("  Example: ms add curiouslycory/my-skills-collection/tdd"),
+            chalk.dim(
+              "  Example: ms add curiouslycory/my-skills-collection/tdd",
+            ),
           );
           console.log(
             chalk.dim("  Example: ms add curiouslycory/my-skills-collection"),
@@ -331,7 +373,9 @@ export function registerAddCommand(program: Command): void {
 
       if (parsed.type === "local") {
         console.log(
-          chalk.red("Local source install is not yet supported in add command."),
+          chalk.red(
+            "Local source install is not yet supported in add command.",
+          ),
         );
         return;
       }
@@ -361,7 +405,11 @@ export function registerAddCommand(program: Command): void {
           console.log(chalk.yellow("No skills found in this repository."));
           return;
         }
-        console.log(chalk.bold(`\nAvailable skills in ${githubSource.owner}/${githubSource.repo}:\n`));
+        console.log(
+          chalk.bold(
+            `\nAvailable skills in ${githubSource.owner}/${githubSource.repo}:\n`,
+          ),
+        );
         for (const s of discovered) {
           console.log(`  ${chalk.green(s.name)}  ${chalk.dim(s.description)}`);
         }
@@ -456,7 +504,11 @@ export function registerAddCommand(program: Command): void {
       if (opts.favorite && !config.favoriteRepos.includes(githubSource.url)) {
         config.favoriteRepos.push(githubSource.url);
         await saveConfig(config);
-        console.log(chalk.yellow(`★ Added ${githubSource.owner}/${githubSource.repo} to favorites`));
+        console.log(
+          chalk.yellow(
+            `★ Added ${githubSource.owner}/${githubSource.repo} to favorites`,
+          ),
+        );
       }
     });
 }

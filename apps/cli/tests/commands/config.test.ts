@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Config } from "@curiouslycory/shared-types";
 
+import { registerConfigCommand } from "../../src/commands/config.js";
+import { saveConfig } from "../../src/core/config.js";
+
 let mockConfig: Config;
 
 const DEFAULT_CONFIG: Config = {
@@ -26,9 +29,6 @@ vi.mock("../../src/core/config.js", () => ({
     symlinkBehavior: "copy",
   },
 }));
-
-import { saveConfig } from "../../src/core/config.js";
-import { registerConfigCommand } from "../../src/commands/config.js";
 
 describe("config command", () => {
   let program: Command;
@@ -70,7 +70,13 @@ describe("config command", () => {
     it("supports dot-notation for nested access", async () => {
       mockConfig.defaultAgents = ["claude-code" as const];
 
-      await program.parseAsync(["node", "ms", "config", "get", "defaultAgents.0"]);
+      await program.parseAsync([
+        "node",
+        "ms",
+        "config",
+        "get",
+        "defaultAgents.0",
+      ]);
 
       expect(console.log).toHaveBeenCalledWith(
         expect.stringContaining("claude-code"),
@@ -80,7 +86,14 @@ describe("config command", () => {
 
   describe("config set", () => {
     it("sets a string value and saves", async () => {
-      await program.parseAsync(["node", "ms", "config", "set", "skillsDir", ".custom/skills"]);
+      await program.parseAsync([
+        "node",
+        "ms",
+        "config",
+        "set",
+        "skillsDir",
+        ".custom/skills",
+      ]);
 
       expect(saveConfig).toHaveBeenCalledWith(
         expect.objectContaining({ skillsDir: ".custom/skills" }),
@@ -88,7 +101,14 @@ describe("config command", () => {
     });
 
     it("rejects unknown key with error", async () => {
-      await program.parseAsync(["node", "ms", "config", "set", "badKey", "value"]);
+      await program.parseAsync([
+        "node",
+        "ms",
+        "config",
+        "set",
+        "badKey",
+        "value",
+      ]);
 
       expect(console.log).toHaveBeenCalledWith(
         expect.stringContaining("Unknown config key"),

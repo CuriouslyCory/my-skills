@@ -5,10 +5,10 @@ import ora from "ora";
 import type { SkillEntry } from "@curiouslycory/shared-types";
 
 import type { GitHubSource } from "../services/source-parser.js";
-import { fetchRepo } from "../services/cache.js";
-import { resolveSkill } from "../core/skill-resolver.js";
 import { loadManifest } from "../core/manifest.js";
 import { computeSkillHash } from "../core/skill-hasher.js";
+import { resolveSkill } from "../core/skill-resolver.js";
+import { fetchRepo } from "../services/cache.js";
 
 type CheckStatus = "up-to-date" | "update available" | "remote unavailable";
 

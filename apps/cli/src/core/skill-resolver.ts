@@ -1,8 +1,8 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { parseSkillFrontmatter } from "@curiouslycory/shared-types";
 import type { SkillFrontmatter } from "@curiouslycory/shared-types";
+import { parseSkillFrontmatter } from "@curiouslycory/shared-types";
 
 export interface ResolvedSkill {
   name: string;

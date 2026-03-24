@@ -56,10 +56,7 @@ function parseIntoSections(text: string): Section[] {
 /**
  * Get the structural signature of a section: its child heading names in order.
  */
-function getChildSignature(
-  sections: Section[],
-  startIdx: number,
-): string[] {
+function getChildSignature(sections: Section[], startIdx: number): string[] {
   const parent = sections[startIdx];
   if (!parent) return [];
   const result: string[] = [];
@@ -140,7 +137,10 @@ function findInMerged(
 
   // Level-offset matching: look for same heading name at different level with matching structure
   for (const ms of merged) {
-    if (ms.normalizedHeading === normalizedHeading && ms.level !== _sourceLevel) {
+    if (
+      ms.normalizedHeading === normalizedHeading &&
+      ms.level !== _sourceLevel
+    ) {
       const sourceChildren = getChildSignature(sourceSections, sourceIdx);
       // Check if structural pattern matches (simplified: just match heading name)
       if (sourceChildren.length === 0) {
@@ -237,7 +237,8 @@ function getParentChain(sections: Section[], idx: number): string[] {
  */
 export function mergeFragments(fragments: string[]): string {
   if (fragments.length === 0) return "";
-  if (fragments.length === 1) return ensureTrailingNewline(collapseBlankLines(fragments[0] ?? ""));
+  if (fragments.length === 1)
+    return ensureTrailingNewline(collapseBlankLines(fragments[0] ?? ""));
 
   const mergedTree: MergedSection[] = [];
   const preambleParts: string[][] = [];

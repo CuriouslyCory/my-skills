@@ -1,26 +1,29 @@
-import { join, resolve } from "node:path";
-import { homedir } from "node:os";
 import { rm } from "node:fs/promises";
-
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import type { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 
-import type { AgentId, Manifest, SkillEntry } from "@curiouslycory/shared-types";
+import type {
+  AgentId,
+  Manifest,
+  SkillEntry,
+} from "@curiouslycory/shared-types";
 
+import type { AdapterSkillEntry } from "../adapters/index.js";
 import type { GitHubSource } from "../services/source-parser.js";
-import { fetchRepo } from "../services/cache.js";
-import { resolveSkill } from "../core/skill-resolver.js";
-import { installSkill } from "../core/skill-installer.js";
+import { getEnabledAdapters } from "../adapters/index.js";
+import { loadConfig } from "../core/config.js";
 import {
-  loadManifest,
-  saveManifest,
   addSkill,
   getSkill,
+  loadManifest,
+  saveManifest,
 } from "../core/manifest.js";
-import { loadConfig } from "../core/config.js";
-import { getEnabledAdapters } from "../adapters/index.js";
-import type { AdapterSkillEntry } from "../adapters/index.js";
+import { installSkill } from "../core/skill-installer.js";
+import { resolveSkill } from "../core/skill-resolver.js";
+import { fetchRepo } from "../services/cache.js";
 
 interface UpdateOptions {
   global?: boolean;
@@ -81,12 +84,17 @@ async function updateSingleSkill(
   targetDir: string,
   projectRoot: string,
   manifest: Manifest,
-): Promise<{ manifest: Manifest; status: "updated" | "up-to-date" | "failed" }> {
+): Promise<{
+  manifest: Manifest;
+  status: "updated" | "up-to-date" | "failed";
+}> {
   const spinner = ora(`Updating ${skillName}...`).start();
 
   try {
     if (entry.sourceType !== "github") {
-      spinner.fail(`${skillName} - unsupported source type "${entry.sourceType}"`);
+      spinner.fail(
+        `${skillName} - unsupported source type "${entry.sourceType}"`,
+      );
       return { manifest, status: "failed" };
     }
 
@@ -130,7 +138,9 @@ async function updateSingleSkill(
 
     return { manifest, status: "updated" };
   } catch (err) {
-    spinner.fail(`${skillName} - ${err instanceof Error ? err.message : "Unknown error"}`);
+    spinner.fail(
+      `${skillName} - ${err instanceof Error ? err.message : "Unknown error"}`,
+    );
     return { manifest, status: "failed" };
   }
 }
@@ -151,7 +161,9 @@ export function registerUpdateCommand(program: Command): void {
       const manifest = await loadManifest(projectRoot);
       if (!manifest || Object.keys(manifest.skills).length === 0) {
         console.log(
-          chalk.yellow("No skills installed. Use ms add <owner/repo/skill-name> to install one."),
+          chalk.yellow(
+            "No skills installed. Use ms add <owner/repo/skill-name> to install one.",
+          ),
         );
         return;
       }

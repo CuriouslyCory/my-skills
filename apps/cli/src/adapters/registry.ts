@@ -1,12 +1,12 @@
 import type { AgentId } from "@curiouslycory/shared-types";
 import { AgentIdSchema } from "@curiouslycory/shared-types";
 
+import type { AgentAdapter } from "./types.js";
 import { CodexAdapter } from "./codex.js";
 import { CopilotAdapter } from "./copilot.js";
 import { GeminiAdapter } from "./gemini.js";
 import { NativeAdapter } from "./native.js";
 import { SymlinkAdapter } from "./symlink.js";
-import type { AgentAdapter } from "./types.js";
 
 /** Central registry mapping agent IDs to their adapter implementations. */
 const adapterRegistry = new Map<AgentId, AgentAdapter>();
@@ -49,10 +49,7 @@ adapterRegistry.set("gemini-cli", new GeminiAdapter());
 // Remaining agents get NativeAdapter as fallback
 for (const id of AgentIdSchema.options) {
   if (!adapterRegistry.has(id)) {
-    adapterRegistry.set(
-      id,
-      new NativeAdapter(id, AGENT_DISPLAY_NAMES[id]),
-    );
+    adapterRegistry.set(id, new NativeAdapter(id, AGENT_DISPLAY_NAMES[id]));
   }
 }
 

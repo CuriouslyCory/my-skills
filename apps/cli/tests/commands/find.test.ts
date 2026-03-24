@@ -1,7 +1,11 @@
+import checkbox from "@inquirer/checkbox";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Config, Manifest } from "@curiouslycory/shared-types";
+
+import { registerFindCommand } from "../../src/commands/find.js";
+import { discoverSkills } from "../../src/services/cache.js";
 
 let mockManifest: Manifest | null = null;
 let mockConfig: Config;
@@ -73,10 +77,6 @@ vi.mock("ora", () => ({
     },
   }),
 }));
-
-import { discoverSkills } from "../../src/services/cache.js";
-import checkbox from "@inquirer/checkbox";
-import { registerFindCommand } from "../../src/commands/find.js";
 
 describe("find command", () => {
   let program: Command;
@@ -168,7 +168,11 @@ describe("find command", () => {
     mockConfig.favoriteRepos = ["https://github.com/owner/repo.git"];
     vi.mocked(discoverSkills).mockImplementation(() =>
       Promise.resolve([
-        { name: "discovered-skill", description: "A discovered skill", sourcePath: "/tmp/skill" },
+        {
+          name: "discovered-skill",
+          description: "A discovered skill",
+          sourcePath: "/tmp/skill",
+        },
       ]),
     );
 

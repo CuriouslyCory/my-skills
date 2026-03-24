@@ -21,7 +21,12 @@ import {
 } from "@curiouslycory/ui/alert-dialog";
 import { Badge } from "@curiouslycory/ui/badge";
 import { Button } from "@curiouslycory/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@curiouslycory/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@curiouslycory/ui/card";
 import { Separator } from "@curiouslycory/ui/separator";
 
 import { DiffViewer } from "~/app/_components/diff-viewer";
@@ -138,9 +143,7 @@ export function ArtifactDetail({
               <Link href="/artifacts">&larr; Back</Link>
             </Button>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {artifact.name}
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">{artifact.name}</h1>
           <p className="text-muted-foreground">{artifact.description}</p>
         </div>
         <div className="flex gap-2">
@@ -167,7 +170,7 @@ export function ArtifactDetail({
                 <AlertDialogAction
                   onClick={() => deleteMutation.mutate({ id: artifact.id })}
                   className={cn(
-                    "bg-destructive text-white hover:bg-destructive/90",
+                    "bg-destructive hover:bg-destructive/90 text-white",
                   )}
                 >
                   {deleteMutation.isPending ? "Deleting..." : "Delete"}
@@ -276,7 +279,7 @@ export function ArtifactDetail({
               return (
                 <div key={commit.hash}>
                   <div
-                    className="bg-muted/50 flex cursor-pointer items-start justify-between gap-4 rounded-lg border p-3 transition-colors hover:bg-muted"
+                    className="bg-muted/50 hover:bg-muted flex cursor-pointer items-start justify-between gap-4 rounded-lg border p-3 transition-colors"
                     onClick={() =>
                       setExpandedCommit(isExpanded ? null : commit.hash)
                     }

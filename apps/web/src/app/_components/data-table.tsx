@@ -6,6 +6,12 @@ import type {
   PaginationState,
   SortingState,
 } from "@tanstack/react-table";
+import { useState } from "react";
+import {
+  CaretSortIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+} from "@radix-ui/react-icons";
 import {
   flexRender,
   getCoreRowModel,
@@ -14,12 +20,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useState } from "react";
-import {
-  CaretSortIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from "@radix-ui/react-icons";
 
 import { Button } from "@curiouslycory/ui/button";
 import {
@@ -91,7 +91,7 @@ export function DataTable<TData, TValue>({
                     {header.isPlaceholder ? null : header.column.getCanSort() ? (
                       <button
                         type="button"
-                        className="flex items-center gap-1 hover:text-foreground"
+                        className="hover:text-foreground flex items-center gap-1"
                         onClick={header.column.getToggleSortingHandler()}
                       >
                         {flexRender(
@@ -103,7 +103,7 @@ export function DataTable<TData, TValue>({
                         ) : header.column.getIsSorted() === "desc" ? (
                           <ChevronDownIcon className="h-4 w-4" />
                         ) : (
-                          <CaretSortIcon className="h-4 w-4 text-muted-foreground" />
+                          <CaretSortIcon className="text-muted-foreground h-4 w-4" />
                         )}
                       </button>
                     ) : (

@@ -1,9 +1,9 @@
-import { readdir, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
-import { eq } from "@curiouslycory/db";
 import type { db as dbInstance } from "@curiouslycory/db/client";
+import { eq } from "@curiouslycory/db";
 import { skills } from "@curiouslycory/db/schema";
 import {
   CATEGORY_DIR_MAP,
@@ -108,11 +108,7 @@ export async function scanAndSync(
   const artifactCategories = ["agent", "prompt", "claudemd"] as const;
 
   for (const category of artifactCategories) {
-    const artifactDir = join(
-      repoPath,
-      "artifacts",
-      CATEGORY_DIR_MAP[category],
-    );
+    const artifactDir = join(repoPath, "artifacts", CATEGORY_DIR_MAP[category]);
     const artifactDirs = await walkDirs(artifactDir);
 
     for (const { dirPath, skillMdPath } of artifactDirs) {

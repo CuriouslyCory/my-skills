@@ -1,8 +1,8 @@
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { ManifestSchema } from "@curiouslycory/shared-types";
 import type { Manifest, SkillEntry } from "@curiouslycory/shared-types";
+import { ManifestSchema } from "@curiouslycory/shared-types";
 
 const MANIFEST_FILE = ".my-skills.json";
 

@@ -292,6 +292,9 @@ importers:
       '@curiouslycory/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/typescript
+      '@tailwindcss/postcss':
+        specifier: 'catalog:'
+        version: 4.1.16
       '@types/node':
         specifier: 'catalog:'
         version: 22.18.12
