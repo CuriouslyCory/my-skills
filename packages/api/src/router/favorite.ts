@@ -170,8 +170,7 @@ export const favoriteRouter = {
         );
       }
 
-      const where =
-        conditions.length > 0 ? and(...conditions) : undefined;
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
 
       // Get total count
       const [countResult] = await ctx.db

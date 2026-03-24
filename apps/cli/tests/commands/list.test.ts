@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Config, Manifest } from "@curiouslycory/shared-types";
 
+import { registerListCommand } from "../../src/commands/list.js";
+
 let mockManifest: Manifest | null = null;
 let mockConfig: Config;
 
@@ -18,16 +20,17 @@ vi.mock("../../src/adapters/index.js", () => ({
   resolveAgents: vi.fn(() => Promise.resolve([])),
 }));
 
-import { registerListCommand } from "../../src/commands/list.js";
-
 function makeManifest(skills: Manifest["skills"] = {}): Manifest {
   return { version: 1, agents: [], skills };
 }
 
 function getJsonOutput(): unknown[] {
-  const jsonCall = vi.mocked(console.log).mock.calls.find(
-    (call): call is [string] => typeof call[0] === "string" && call[0].startsWith("["),
-  );
+  const jsonCall = vi
+    .mocked(console.log)
+    .mock.calls.find(
+      (call): call is [string] =>
+        typeof call[0] === "string" && call[0].startsWith("["),
+    );
   if (!jsonCall) throw new Error("No JSON output found");
   return JSON.parse(jsonCall[0]) as unknown[];
 }
@@ -141,7 +144,14 @@ describe("list command", () => {
       },
     });
 
-    await program.parseAsync(["node", "ms", "list", "--agent", "claude-code", "--json"]);
+    await program.parseAsync([
+      "node",
+      "ms",
+      "list",
+      "--agent",
+      "claude-code",
+      "--json",
+    ]);
 
     const parsed = getJsonOutput();
     expect(parsed).toHaveLength(1);

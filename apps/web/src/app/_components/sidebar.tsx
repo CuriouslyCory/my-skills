@@ -1,14 +1,14 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   DashboardIcon,
   FileTextIcon,
-  MixIcon,
   GearIcon,
   GitHubLogoIcon,
   MagicWandIcon,
+  MixIcon,
   StarFilledIcon,
 } from "@radix-ui/react-icons";
 

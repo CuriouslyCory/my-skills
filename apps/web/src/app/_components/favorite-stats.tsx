@@ -33,9 +33,7 @@ function formatRelativeTime(date: Date | string | null): string {
 
 export function FavoriteStats() {
   const trpc = useTRPC();
-  const { data: stats } = useSuspenseQuery(
-    trpc.favorite.stats.queryOptions(),
-  );
+  const { data: stats } = useSuspenseQuery(trpc.favorite.stats.queryOptions());
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

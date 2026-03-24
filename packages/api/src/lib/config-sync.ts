@@ -2,8 +2,8 @@ import { mkdir, rename, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import type { Config } from "@curiouslycory/shared-types";
 import type { db as dbInstance } from "@curiouslycory/db/client";
+import type { Config } from "@curiouslycory/shared-types";
 import { config, favorites } from "@curiouslycory/db/schema";
 
 type DB = typeof dbInstance;
@@ -34,7 +34,9 @@ export async function syncConfigToFile(db: DB): Promise<void> {
     switch (row.key) {
       case "defaultAgents":
         try {
-          assembled.defaultAgents = JSON.parse(row.value) as Config["defaultAgents"];
+          assembled.defaultAgents = JSON.parse(
+            row.value,
+          ) as Config["defaultAgents"];
         } catch {
           // keep default
         }

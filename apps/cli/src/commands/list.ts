@@ -1,17 +1,16 @@
-import { join, resolve } from "node:path";
-import { homedir } from "node:os";
 import { readdir, readFile } from "node:fs/promises";
-
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import type { Command } from "commander";
-import chalk from "chalk";
 import checkbox from "@inquirer/checkbox";
+import chalk from "chalk";
 
 import type { Manifest } from "@curiouslycory/shared-types";
 import { parseSkillFrontmatter } from "@curiouslycory/shared-types";
 
+import { resolveAgents } from "../adapters/index.js";
 import { loadConfig } from "../core/config.js";
 import { loadManifest } from "../core/manifest.js";
-import { resolveAgents } from "../adapters/index.js";
 import { removeSingleSkill } from "./remove.js";
 
 interface ListOptions {
@@ -111,7 +110,10 @@ export function registerListCommand(program: Command): void {
     .command("list")
     .alias("ls")
     .description("List installed skills")
-    .option("-g, --global", "List globally installed skills from ~/.agents/skills/")
+    .option(
+      "-g, --global",
+      "List globally installed skills from ~/.agents/skills/",
+    )
     .option("--agent <name>", "Filter to skills targeting a specific agent")
     .option("--json", "Output as machine-readable JSON")
     .option("--favorites", "Show only skills from favorited repos")
@@ -151,7 +153,8 @@ export function registerListCommand(program: Command): void {
         const agentFilter = opts.agent;
         rows = rows.filter((r) => {
           if (!r.agents) return false;
-          if (typeof r.agents === "string") return r.agents.includes(agentFilter);
+          if (typeof r.agents === "string")
+            return r.agents.includes(agentFilter);
           return r.agents.includes(agentFilter);
         });
       }

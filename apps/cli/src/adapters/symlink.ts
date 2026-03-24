@@ -32,10 +32,7 @@ export class SymlinkAdapter implements AgentAdapter {
     return Promise.resolve(true);
   }
 
-  async install(
-    projectRoot: string,
-    skill: AdapterSkillEntry,
-  ): Promise<void> {
+  async install(projectRoot: string, skill: AdapterSkillEntry): Promise<void> {
     const agentDir = this.getSkillsPath(projectRoot);
     await mkdir(agentDir, { recursive: true });
 
@@ -69,10 +66,7 @@ export class SymlinkAdapter implements AgentAdapter {
     }
   }
 
-  async sync(
-    projectRoot: string,
-    skills: AdapterSkillEntry[],
-  ): Promise<void> {
+  async sync(projectRoot: string, skills: AdapterSkillEntry[]): Promise<void> {
     const agentDir = this.getSkillsPath(projectRoot);
 
     // Remove existing symlinks in the agent skills directory

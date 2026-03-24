@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { registerInitCommand } from "../../src/commands/init.js";
+
 vi.mock("../../src/core/config.js", () => ({
   loadConfig: vi.fn(() =>
     Promise.resolve({
@@ -20,8 +22,6 @@ vi.mock("../../src/core/config.js", () => ({
 vi.mock("@inquirer/input", () => ({
   default: vi.fn(() => Promise.resolve("prompted-skill")),
 }));
-
-import { registerInitCommand } from "../../src/commands/init.js";
 
 describe("init command", () => {
   let program: Command;
@@ -49,11 +49,19 @@ describe("init command", () => {
 
   it("creates SKILL.md with provided name and description", async () => {
     const { default: inputMock } = await import("@inquirer/input");
-    vi.mocked(inputMock).mockImplementation(() => Promise.resolve("A test skill"));
+    vi.mocked(inputMock).mockImplementation(() =>
+      Promise.resolve("A test skill"),
+    );
 
     await program.parseAsync(["node", "ms", "init", "my-test-skill"]);
 
-    const skillFile = join(projectRoot, ".agents", "skills", "my-test-skill", "SKILL.md");
+    const skillFile = join(
+      projectRoot,
+      ".agents",
+      "skills",
+      "my-test-skill",
+      "SKILL.md",
+    );
     const content = await readFile(skillFile, "utf-8");
     expect(content).toContain("name: my-test-skill");
     expect(content).toContain("A test skill");
@@ -85,9 +93,17 @@ describe("init command", () => {
     await writeFile(join(skillDir, "SKILL.md"), "old content");
 
     const { default: inputMock } = await import("@inquirer/input");
-    vi.mocked(inputMock).mockImplementation(() => Promise.resolve("New description"));
+    vi.mocked(inputMock).mockImplementation(() =>
+      Promise.resolve("New description"),
+    );
 
-    await program.parseAsync(["node", "ms", "init", "existing-skill", "--force"]);
+    await program.parseAsync([
+      "node",
+      "ms",
+      "init",
+      "existing-skill",
+      "--force",
+    ]);
 
     const content = await readFile(join(skillDir, "SKILL.md"), "utf-8");
     expect(content).toContain("name: existing-skill");

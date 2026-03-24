@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 
-import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 import {
   CompositionDetail,
   CompositionDetailSkeleton,
 } from "~/app/_components/composition-detail";
+import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 
 export default async function CompositionDetailPage({
   params,

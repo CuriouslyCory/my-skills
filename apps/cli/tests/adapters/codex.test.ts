@@ -1,12 +1,11 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { parse } from "smol-toml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { parse } from "smol-toml";
-
-import { CodexAdapter } from "../../src/adapters/codex.js";
 import type { AdapterSkillEntry } from "../../src/adapters/types.js";
+import { CodexAdapter } from "../../src/adapters/codex.js";
 
 function makeSkill(
   name: string,
@@ -67,7 +66,10 @@ describe("CodexAdapter", () => {
       await adapter.install(projectRoot, makeSkill("my-skill"));
 
       const raw = await readFile(codexFile(), "utf-8");
-      const doc = parse(raw) as Record<string, Record<string, Record<string, unknown>>>;
+      const doc = parse(raw) as Record<
+        string,
+        Record<string, Record<string, unknown>>
+      >;
       expect(doc.skills).toBeDefined();
       expect(doc.skills["my-skill"]).toBeDefined();
       expect(doc.skills["my-skill"]?.description).toBe("my-skill skill");
@@ -83,23 +85,23 @@ describe("CodexAdapter", () => {
       await adapter.install(projectRoot, makeSkill("test"));
 
       const raw = await readFile(codexFile(), "utf-8");
-      const doc = parse(raw) as Record<string, Record<string, Record<string, unknown>>>;
+      const doc = parse(raw) as Record<
+        string,
+        Record<string, Record<string, unknown>>
+      >;
       expect(doc.model).toBe("gpt-4");
       expect(doc.skills.test?.instructions).toBe("Instructions for test");
     });
 
     it("replaces existing skill on re-install", async () => {
-      await adapter.install(
-        projectRoot,
-        makeSkill("my-skill", "v1 content"),
-      );
-      await adapter.install(
-        projectRoot,
-        makeSkill("my-skill", "v2 content"),
-      );
+      await adapter.install(projectRoot, makeSkill("my-skill", "v1 content"));
+      await adapter.install(projectRoot, makeSkill("my-skill", "v2 content"));
 
       const raw = await readFile(codexFile(), "utf-8");
-      const doc = parse(raw) as Record<string, Record<string, Record<string, unknown>>>;
+      const doc = parse(raw) as Record<
+        string,
+        Record<string, Record<string, unknown>>
+      >;
       expect(doc.skills["my-skill"]?.instructions).toBe("v2 content");
     });
   });
@@ -135,10 +137,7 @@ describe("CodexAdapter", () => {
     it("replaces entire skills table", async () => {
       await adapter.install(projectRoot, makeSkill("old"));
 
-      await adapter.sync(projectRoot, [
-        makeSkill("alpha"),
-        makeSkill("beta"),
-      ]);
+      await adapter.sync(projectRoot, [makeSkill("alpha"), makeSkill("beta")]);
 
       const raw = await readFile(codexFile(), "utf-8");
       const doc = parse(raw) as Record<string, Record<string, unknown>>;

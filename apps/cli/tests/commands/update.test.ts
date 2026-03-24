@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Manifest } from "@curiouslycory/shared-types";
 
+import { registerUpdateCommand } from "../../src/commands/update.js";
+import { saveManifest } from "../../src/core/manifest.js";
+
 let mockManifest: Manifest | null = null;
 
 vi.mock("../../src/core/manifest.js", () => ({
@@ -65,9 +68,6 @@ vi.mock("ora", () => ({
     },
   }),
 }));
-
-import { saveManifest } from "../../src/core/manifest.js";
-import { registerUpdateCommand } from "../../src/commands/update.js";
 
 function makeManifest(skills: Manifest["skills"] = {}): Manifest {
   return { version: 1, agents: [], skills };

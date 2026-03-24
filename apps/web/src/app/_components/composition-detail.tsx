@@ -53,10 +53,9 @@ export function CompositionDetail({ id }: { id: string }) {
   }
 
   // Check if any fragment has been updated after the composition
-  const outdated =
-    composition.resolvedFragments.some(
-      (f) => f.updatedAt > composition.updatedAt,
-    );
+  const outdated = composition.resolvedFragments.some(
+    (f) => f.updatedAt > composition.updatedAt,
+  );
 
   return (
     <div className="space-y-6">
@@ -70,9 +69,7 @@ export function CompositionDetail({ id }: { id: string }) {
           <h1 className="text-3xl font-bold tracking-tight">
             {composition.name}
           </h1>
-          {outdated && (
-            <Badge variant="destructive">outdated</Badge>
-          )}
+          {outdated && <Badge variant="destructive">outdated</Badge>}
         </div>
         {composition.description && (
           <p className="text-muted-foreground">{composition.description}</p>

@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify } from "jose";
+import { jwtVerify, SignJWT } from "jose";
 
 export interface Session {
   user: {
@@ -47,9 +47,7 @@ export async function createSession(username: string): Promise<string> {
 /**
  * Verifies a JWT token and returns the decoded session or null.
  */
-export async function verifySession(
-  token: string,
-): Promise<Session | null> {
+export async function verifySession(token: string): Promise<Session | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
     if (typeof payload.username !== "string") return null;

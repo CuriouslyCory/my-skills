@@ -3,11 +3,11 @@ import Link from "next/link";
 
 import { Button } from "@curiouslycory/ui/button";
 
-import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 import {
   CompositionList,
   CompositionListSkeleton,
 } from "~/app/_components/composition-list";
+import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 
 export default function CompositionsPage() {
   prefetch(trpc.composition.list.queryOptions());

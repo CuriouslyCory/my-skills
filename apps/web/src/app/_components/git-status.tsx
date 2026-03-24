@@ -1,12 +1,22 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 
 import { cn } from "@curiouslycory/ui";
 import { Badge } from "@curiouslycory/ui/badge";
 import { Button } from "@curiouslycory/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@curiouslycory/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@curiouslycory/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -107,9 +117,7 @@ export function GitStatus() {
   const [page, setPage] = useState(0);
   const [expandedCommit, setExpandedCommit] = useState<string | null>(null);
 
-  const { data: status } = useSuspenseQuery(
-    trpc.git.status.queryOptions(),
-  );
+  const { data: status } = useSuspenseQuery(trpc.git.status.queryOptions());
 
   const { data: logData } = useSuspenseQuery(
     trpc.git.log.queryOptions({
@@ -126,8 +134,12 @@ export function GitStatus() {
     trpc.git.push.mutationOptions({
       onSuccess: () => {
         toast.success("Pushed successfully");
-        void queryClient.invalidateQueries({ queryKey: trpc.git.status.queryKey() });
-        void queryClient.invalidateQueries({ queryKey: trpc.git.log.queryKey() });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.git.status.queryKey(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.git.log.queryKey(),
+        });
       },
       onError: (error) => {
         toast.error(`Push failed: ${error.message}`);
@@ -139,9 +151,15 @@ export function GitStatus() {
     trpc.git.checkout.mutationOptions({
       onSuccess: () => {
         toast.success("Branch switched");
-        void queryClient.invalidateQueries({ queryKey: trpc.git.status.queryKey() });
-        void queryClient.invalidateQueries({ queryKey: trpc.git.log.queryKey() });
-        void queryClient.invalidateQueries({ queryKey: trpc.git.branches.queryKey() });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.git.status.queryKey(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.git.log.queryKey(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.git.branches.queryKey(),
+        });
       },
       onError: (error) => {
         toast.error(`Checkout failed: ${error.message}`);
@@ -161,9 +179,15 @@ export function GitStatus() {
     trpc.git.pull.mutationOptions({
       onSuccess: () => {
         toast.success("Pulled successfully");
-        void queryClient.invalidateQueries({ queryKey: trpc.git.status.queryKey() });
-        void queryClient.invalidateQueries({ queryKey: trpc.git.log.queryKey() });
-        void queryClient.invalidateQueries({ queryKey: trpc.git.branches.queryKey() });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.git.status.queryKey(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.git.log.queryKey(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.git.branches.queryKey(),
+        });
         // Resync DB since files may have changed on disk
         skillSyncMutation.mutate();
         artifactSyncMutation.mutate();
@@ -178,7 +202,9 @@ export function GitStatus() {
     trpc.git.fetch.mutationOptions({
       onSuccess: () => {
         toast.success("Fetched successfully");
-        void queryClient.invalidateQueries({ queryKey: trpc.git.branches.queryKey() });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.git.branches.queryKey(),
+        });
       },
       onError: (error) => {
         toast.error(`Fetch failed: ${error.message}`);
@@ -187,9 +213,15 @@ export function GitStatus() {
   );
 
   const grouped = {
-    staged: status.files.filter((f) => groupFile(f.index, f.workingDir) === "staged"),
-    unstaged: status.files.filter((f) => groupFile(f.index, f.workingDir) === "unstaged"),
-    untracked: status.files.filter((f) => groupFile(f.index, f.workingDir) === "untracked"),
+    staged: status.files.filter(
+      (f) => groupFile(f.index, f.workingDir) === "staged",
+    ),
+    unstaged: status.files.filter(
+      (f) => groupFile(f.index, f.workingDir) === "unstaged",
+    ),
+    untracked: status.files.filter(
+      (f) => groupFile(f.index, f.workingDir) === "untracked",
+    ),
   };
 
   const totalPages = Math.ceil(logData.total / PAGE_SIZE);
@@ -310,7 +342,7 @@ export function GitStatus() {
               return (
                 <div key={group}>
                   <div className="bg-muted/50 border-b px-4 py-2">
-                    <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                    <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                       {group} ({files.length})
                     </span>
                   </div>
@@ -323,7 +355,9 @@ export function GitStatus() {
                               {f.path}
                             </TableCell>
                             <TableCell className="w-40 text-right">
-                              <Badge variant={statusVariant(f.index, f.workingDir)}>
+                              <Badge
+                                variant={statusVariant(f.index, f.workingDir)}
+                              >
                                 {statusLabel(f.index, f.workingDir)}
                               </Badge>
                             </TableCell>
@@ -379,9 +413,7 @@ export function GitStatus() {
                           {formatRelativeDate(commit.date)}
                         </TableCell>
                       </TableRow>
-                      {isExpanded && (
-                        <CommitDiffRow commitHash={commit.hash} />
-                      )}
+                      {isExpanded && <CommitDiffRow commitHash={commit.hash} />}
                     </Fragment>
                   );
                 })}

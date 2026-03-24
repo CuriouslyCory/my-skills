@@ -1,13 +1,15 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
-
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
 
 import { desc, eq } from "@curiouslycory/db";
 import { skills } from "@curiouslycory/db/schema";
-import { CATEGORY_DIR_MAP, buildSkillContent } from "@curiouslycory/shared-types";
+import {
+  buildSkillContent,
+  CATEGORY_DIR_MAP,
+} from "@curiouslycory/shared-types";
 
 import { scanAndSync } from "../lib/disk-sync";
 import { protectedProcedure, publicProcedure } from "../trpc";

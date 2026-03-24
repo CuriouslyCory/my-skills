@@ -49,10 +49,7 @@ function parseSections(content: string): {
   }
 
   const before = content.slice(0, startIdx);
-  const managed = content.slice(
-    startIdx + MANAGED_START.length,
-    endIdx,
-  );
+  const managed = content.slice(startIdx + MANAGED_START.length, endIdx);
   const after = content.slice(endIdx + MANAGED_END.length);
 
   return { before, managed, after };
@@ -103,10 +100,7 @@ export class CopilotAdapter implements AgentAdapter {
     }
   }
 
-  async install(
-    projectRoot: string,
-    skill: AdapterSkillEntry,
-  ): Promise<void> {
+  async install(projectRoot: string, skill: AdapterSkillEntry): Promise<void> {
     const filePath = join(projectRoot, COPILOT_FILE);
     const existing = await readCopilotFile(filePath);
     const block = buildSkillBlock(skill);
@@ -152,9 +146,7 @@ export class CopilotAdapter implements AgentAdapter {
 
     // Add new skill block to managed section
     const trimmedManaged = managed.trimEnd();
-    const newManaged = trimmedManaged
-      ? trimmedManaged + "\n" + block
-      : block;
+    const newManaged = trimmedManaged ? trimmedManaged + "\n" + block : block;
     await writeCopilotFile(
       filePath,
       before + MANAGED_START + "\n" + newManaged + "\n" + MANAGED_END + after,
@@ -181,8 +173,7 @@ export class CopilotAdapter implements AgentAdapter {
 
     // Remove the skill block and any surrounding blank line
     let updatedManaged =
-      managed.slice(0, startIdx) +
-      managed.slice(endIdx + sEnd.length);
+      managed.slice(0, startIdx) + managed.slice(endIdx + sEnd.length);
 
     // Clean up extra newlines
     updatedManaged = updatedManaged.replace(/\n{3,}/g, "\n");
@@ -197,10 +188,7 @@ export class CopilotAdapter implements AgentAdapter {
     );
   }
 
-  async sync(
-    projectRoot: string,
-    skills: AdapterSkillEntry[],
-  ): Promise<void> {
+  async sync(projectRoot: string, skills: AdapterSkillEntry[]): Promise<void> {
     const filePath = join(projectRoot, COPILOT_FILE);
     const existing = await readCopilotFile(filePath);
     const blocks = skills.map((s) => buildSkillBlock(s));

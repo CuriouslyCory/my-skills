@@ -1,10 +1,10 @@
 import type { Command } from "commander";
 import chalk from "chalk";
 
-import { ConfigSchema } from "@curiouslycory/shared-types";
 import type { Config } from "@curiouslycory/shared-types";
+import { ConfigSchema } from "@curiouslycory/shared-types";
 
-import { loadConfig, saveConfig, DEFAULT_CONFIG } from "../core/config.js";
+import { DEFAULT_CONFIG, loadConfig, saveConfig } from "../core/config.js";
 
 type ConfigKey = keyof Config;
 
@@ -17,7 +17,11 @@ function getConfigValue(config: Config, key: string): unknown {
   const parts = key.split(".");
   let current: unknown = config;
   for (const part of parts) {
-    if (current === null || current === undefined || typeof current !== "object") {
+    if (
+      current === null ||
+      current === undefined ||
+      typeof current !== "object"
+    ) {
       return undefined;
     }
     current = (current as Record<string, unknown>)[part];
@@ -25,8 +29,13 @@ function getConfigValue(config: Config, key: string): unknown {
   return current;
 }
 
-const ARRAY_KEYS: ReadonlySet<ConfigKey> = new Set<ConfigKey>(["defaultAgents", "favoriteRepos"]);
-const BOOLEAN_KEYS: ReadonlySet<ConfigKey> = new Set<ConfigKey>(["autoDetectAgents"]);
+const ARRAY_KEYS: ReadonlySet<ConfigKey> = new Set<ConfigKey>([
+  "defaultAgents",
+  "favoriteRepos",
+]);
+const BOOLEAN_KEYS: ReadonlySet<ConfigKey> = new Set<ConfigKey>([
+  "autoDetectAgents",
+]);
 
 /**
  * Parse a string value into the appropriate type for a config key.
@@ -99,7 +108,11 @@ export function registerConfigCommand(program: Command): void {
       // Validate the full config
       const result = ConfigSchema.safeParse(updated);
       if (!result.success) {
-        console.log(chalk.red(`Invalid value for ${key}: ${result.error.issues[0]?.message}`));
+        console.log(
+          chalk.red(
+            `Invalid value for ${key}: ${result.error.issues[0]?.message}`,
+          ),
+        );
         process.exitCode = 1;
         return;
       }
@@ -115,7 +128,9 @@ export function registerConfigCommand(program: Command): void {
       const config = await loadConfig();
 
       const keyWidth = Math.max(...CONFIG_KEYS.map((k) => k.length));
-      console.log(chalk.bold("KEY".padEnd(keyWidth)) + "  " + chalk.bold("VALUE"));
+      console.log(
+        chalk.bold("KEY".padEnd(keyWidth)) + "  " + chalk.bold("VALUE"),
+      );
 
       for (const key of CONFIG_KEYS) {
         const value = config[key];
@@ -139,6 +154,8 @@ export function registerConfigCommand(program: Command): void {
       const updated = { ...config, [key]: defaultValue };
 
       await saveConfig(updated);
-      console.log(`${chalk.green("✓")} ${key} reset to default: ${formatValue(defaultValue)}`);
+      console.log(
+        `${chalk.green("✓")} ${key} reset to default: ${formatValue(defaultValue)}`,
+      );
     });
 }

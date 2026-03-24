@@ -3,15 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Config } from "@curiouslycory/shared-types";
 
+import { registerFavoriteCommand } from "../../src/commands/favorite.js";
+import { saveConfig } from "../../src/core/config.js";
+
 let mockConfig: Config;
 
 vi.mock("../../src/core/config.js", () => ({
   loadConfig: vi.fn(() => Promise.resolve(mockConfig)),
   saveConfig: vi.fn(() => Promise.resolve(undefined)),
 }));
-
-import { saveConfig } from "../../src/core/config.js";
-import { registerFavoriteCommand } from "../../src/commands/favorite.js";
 
 describe("favorite command", () => {
   let program: Command;
@@ -68,7 +68,13 @@ describe("favorite command", () => {
     it("removes repo URL from config.favoriteRepos", async () => {
       mockConfig.favoriteRepos = ["https://github.com/owner/repo.git"];
 
-      await program.parseAsync(["node", "ms", "favorite", "remove", "owner/repo"]);
+      await program.parseAsync([
+        "node",
+        "ms",
+        "favorite",
+        "remove",
+        "owner/repo",
+      ]);
 
       expect(saveConfig).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -81,7 +87,13 @@ describe("favorite command", () => {
     });
 
     it("warns when repo is not in favorites", async () => {
-      await program.parseAsync(["node", "ms", "favorite", "remove", "owner/repo"]);
+      await program.parseAsync([
+        "node",
+        "ms",
+        "favorite",
+        "remove",
+        "owner/repo",
+      ]);
 
       expect(saveConfig).not.toHaveBeenCalled();
       expect(console.log).toHaveBeenCalledWith(

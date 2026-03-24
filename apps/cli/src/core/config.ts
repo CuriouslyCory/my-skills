@@ -2,8 +2,8 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { ConfigSchema } from "@curiouslycory/shared-types";
 import type { Config } from "@curiouslycory/shared-types";
+import { ConfigSchema } from "@curiouslycory/shared-types";
 
 const CONFIG_DIR = join(homedir(), ".my-skills");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");

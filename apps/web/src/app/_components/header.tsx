@@ -1,11 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { HamburgerMenuIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
 
-import { Input } from "@curiouslycory/ui/input";
 import { Button } from "@curiouslycory/ui/button";
+import { Input } from "@curiouslycory/ui/input";
 import { ThemeToggle } from "@curiouslycory/ui/theme";
 
 export function Header({ onMenuClick }: { onMenuClick: () => void }) {
@@ -21,7 +21,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
   }
 
   return (
-    <header className="bg-background border-b flex h-14 items-center gap-4 px-4">
+    <header className="bg-background flex h-14 items-center gap-4 border-b px-4">
       <Button
         variant="ghost"
         size="icon"
@@ -37,7 +37,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
         className="ml-auto flex w-full max-w-sm items-center gap-2"
       >
         <div className="relative w-full">
-          <MagnifyingGlassIcon className="text-muted-foreground absolute left-2.5 top-1/2 size-4 -translate-y-1/2" />
+          <MagnifyingGlassIcon className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
           <Input
             type="search"
             placeholder="Search skills, artifacts..."

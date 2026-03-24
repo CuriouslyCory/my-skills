@@ -1,5 +1,7 @@
 "use client";
+"use no memo";
 
+import type { DragEndEvent } from "@dnd-kit/core";
 import { useCallback, useMemo, useState } from "react";
 import {
   closestCenter,
@@ -9,7 +11,6 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import type { DragEndEvent } from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
@@ -18,6 +19,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import {
   createColumnHelper,
@@ -25,13 +27,17 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 
 import type { RouterOutputs } from "@curiouslycory/api";
 import { cn } from "@curiouslycory/ui";
 import { Badge } from "@curiouslycory/ui/badge";
 import { Button } from "@curiouslycory/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@curiouslycory/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@curiouslycory/ui/card";
 import { Checkbox } from "@curiouslycory/ui/checkbox";
 import {
   Table,
@@ -41,7 +47,6 @@ import {
   TableHeader,
   TableRow,
 } from "@curiouslycory/ui/table";
-
 import { toast } from "@curiouslycory/ui/toast";
 
 import { useTRPC } from "~/trpc/react";
@@ -70,13 +75,7 @@ function formatDate(date: Date | string | null): string {
   });
 }
 
-function SortableFragmentItem({
-  id,
-  name,
-}: {
-  id: string;
-  name: string;
-}) {
+function SortableFragmentItem({ id, name }: { id: string; name: string }) {
   const {
     attributes,
     listeners,
@@ -146,9 +145,7 @@ export function FragmentSelectionTable({
             table.getIsAllPageRowsSelected() ||
             (table.getIsSomePageRowsSelected() && "indeterminate")
           }
-          onCheckedChange={(value) =>
-            table.toggleAllPageRowsSelected(!!value)
-          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
           aria-label="Select all"
         />
       ),
@@ -162,9 +159,7 @@ export function FragmentSelectionTable({
     }),
     columnHelper.accessor("name", {
       header: "Name",
-      cell: (info) => (
-        <span className="font-medium">{info.getValue()}</span>
-      ),
+      cell: (info) => <span className="font-medium">{info.getValue()}</span>,
     }),
     columnHelper.accessor("description", {
       header: "Description",

@@ -1,16 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlateEditor as PlateEditorType } from "platejs/react";
-import { Plate, PlateContent, usePlateEditor } from "platejs/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  BoldPlugin,
-  ItalicPlugin,
-  CodePlugin,
   BlockquotePlugin,
+  BoldPlugin,
+  CodePlugin,
   H1Plugin,
   H2Plugin,
   H3Plugin,
+  ItalicPlugin,
 } from "@platejs/basic-nodes/react";
 import {
   CodeBlockPlugin,
@@ -20,12 +19,18 @@ import {
 import { LinkPlugin } from "@platejs/link/react";
 import { ListPlugin } from "@platejs/list/react";
 import { MarkdownPlugin } from "@platejs/markdown";
-import { useQuery } from "@tanstack/react-query";
 import { ClipboardCopyIcon } from "@radix-ui/react-icons";
+import { useQuery } from "@tanstack/react-query";
+import { Plate, PlateContent, usePlateEditor } from "platejs/react";
 
 import { Button } from "@curiouslycory/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@curiouslycory/ui/card";
 import { toast } from "@curiouslycory/ui/toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@curiouslycory/ui/card";
 
 import { useTRPC } from "~/trpc/react";
 
@@ -202,8 +207,11 @@ export function CompositionPreview({
   useEffect(() => {
     if (markdown !== prevMarkdownRef.current) {
       prevMarkdownRef.current = markdown;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const nodes = editor.getApi(MarkdownPlugin).markdown.deserialize(markdown || " ");
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+      const nodes = editor
+        .getApi(MarkdownPlugin)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        .markdown.deserialize(markdown || " ");
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       editor.tf.replaceNodes(nodes, {
         at: [],

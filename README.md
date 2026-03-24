@@ -193,10 +193,16 @@ cd my-skills
 # 2. Install dependencies
 pnpm install
 
-# 3. Build all packages
+# 3. Copy and configure environment
+cp .env.example .env
+
+# 4. Create the database
+pnpm db:push
+
+# 5. Build all packages
 pnpm build
 
-# 4. Run in watch mode
+# 6. Run in watch mode
 pnpm dev
 ```
 
@@ -230,12 +236,12 @@ You'll need a PostgreSQL database. Any of these work well with Vercel:
 - [Neon](https://neon.tech) — serverless Postgres with branching, great free tier
 - [Vercel Postgres](https://vercel.com/docs/storage/vercel-postgres) — native Vercel integration, zero-config
 
-| Variable | Description |
-| --- | --- |
-| `POSTGRES_URL` | PostgreSQL connection string |
-| `AUTH_SECRET` | Secret for session encryption (generate via `openssl rand -base64 32`) |
-| `AUTH_DISCORD_ID` | Discord OAuth application ID |
-| `AUTH_DISCORD_SECRET` | Discord OAuth application secret |
+| Variable              | Description                                                            |
+| --------------------- | ---------------------------------------------------------------------- |
+| `POSTGRES_URL`        | PostgreSQL connection string                                           |
+| `AUTH_SECRET`         | Secret for session encryption (generate via `openssl rand -base64 32`) |
+| `AUTH_DISCORD_ID`     | Discord OAuth application ID                                           |
+| `AUTH_DISCORD_SECRET` | Discord OAuth application secret                                       |
 
 ### Project Structure
 

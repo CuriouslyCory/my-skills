@@ -1,22 +1,21 @@
-import { join, resolve } from "node:path";
-import { homedir } from "node:os";
 import { rm, stat } from "node:fs/promises";
-
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import type { Command } from "commander";
+import checkbox from "@inquirer/checkbox";
 import chalk from "chalk";
 import ora from "ora";
-import checkbox from "@inquirer/checkbox";
 
 import type { AgentId, Manifest } from "@curiouslycory/shared-types";
 
-import {
-  loadManifest,
-  saveManifest,
-  removeSkill,
-  getSkill,
-} from "../core/manifest.js";
-import { loadConfig } from "../core/config.js";
 import { getEnabledAdapters, resolveAgents } from "../adapters/index.js";
+import { loadConfig } from "../core/config.js";
+import {
+  getSkill,
+  loadManifest,
+  removeSkill,
+  saveManifest,
+} from "../core/manifest.js";
 
 interface RemoveOptions {
   skill?: string;
@@ -28,7 +27,10 @@ interface RemoveOptions {
 /**
  * Resolve the target directory for skill removal.
  */
-function resolveTargetDir(config: { skillsDir: string }, opts: RemoveOptions): string {
+function resolveTargetDir(
+  config: { skillsDir: string },
+  opts: RemoveOptions,
+): string {
   if (opts.global) {
     return join(homedir(), ".agents", "skills");
   }
@@ -39,7 +41,10 @@ function resolveTargetDir(config: { skillsDir: string }, opts: RemoveOptions): s
  * Parse comma-separated skill names from --skill flag.
  */
 function parseSkillNames(raw: string): string[] {
-  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /**
@@ -104,7 +109,9 @@ export async function removeSingleSkill(
   const spinner = ora(`Removing ${skillName}...`).start();
   try {
     const skillPath = join(targetDir, skillName);
-    const exists = await stat(skillPath).then(() => true).catch(() => false);
+    const exists = await stat(skillPath)
+      .then(() => true)
+      .catch(() => false);
     if (exists) {
       await rm(skillPath, { recursive: true, force: true });
     }
@@ -133,7 +140,10 @@ export function registerRemoveCommand(program: Command): void {
     .description("Remove an installed skill")
     .option("--skill <names>", "Comma-separated skill names to remove")
     .option("-y, --yes", "Skip confirmation prompts")
-    .option("-g, --global", "Remove from ~/.agents/skills/ instead of project directory")
+    .option(
+      "-g, --global",
+      "Remove from ~/.agents/skills/ instead of project directory",
+    )
     .option("--all", "Remove all installed skills")
     .action(async (skillName: string | undefined, opts: RemoveOptions) => {
       const projectRoot = process.cwd();

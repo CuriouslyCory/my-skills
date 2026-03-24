@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 
 import { Button } from "@curiouslycory/ui/button";
 import { Input } from "@curiouslycory/ui/input";
 import { Label } from "@curiouslycory/ui/label";
 
-import { useTRPC } from "~/trpc/react";
-import { useMutation } from "@tanstack/react-query";
 import { setSessionCookie } from "~/auth/actions";
+import { useTRPC } from "~/trpc/react";
 
 export function LoginForm() {
   const router = useRouter();
@@ -63,9 +63,7 @@ export function LoginForm() {
           autoComplete="current-password"
         />
       </div>
-      {error && (
-        <p className="text-destructive text-sm">{error}</p>
-      )}
+      {error && <p className="text-destructive text-sm">{error}</p>}
       <Button type="submit" disabled={loginMutation.isPending}>
         {loginMutation.isPending ? "Signing in..." : "Sign in"}
       </Button>

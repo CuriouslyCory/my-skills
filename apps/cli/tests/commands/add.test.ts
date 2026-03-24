@@ -1,4 +1,11 @@
-import { lstat, mkdir, mkdtemp, readlink, rm, writeFile } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  readlink,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -43,9 +50,7 @@ describe("restoreFromManifest", () => {
     // Build a manifest that references this skill.
     // Use a hash that matches what computeSkillHash will produce so the
     // skill is treated as "already up to date" (the branch we're fixing).
-    const { computeSkillHash } = await import(
-      "../../src/core/skill-hasher.js"
-    );
+    const { computeSkillHash } = await import("../../src/core/skill-hasher.js");
     const hash = await computeSkillHash(
       join(projectRoot, ".agents", "skills", "test-skill"),
     );
@@ -75,17 +80,13 @@ describe("restoreFromManifest", () => {
     expect(stat.isSymbolicLink()).toBe(true);
 
     const target = await readlink(linkPath);
-    expect(target).toBe(
-      join("..", "..", ".agents", "skills", "test-skill"),
-    );
+    expect(target).toBe(join("..", "..", ".agents", "skills", "test-skill"));
   });
 
   it("creates symlinks for multiple agents during restore", async () => {
     await seedSkill(projectRoot, "multi-agent-skill");
 
-    const { computeSkillHash } = await import(
-      "../../src/core/skill-hasher.js"
-    );
+    const { computeSkillHash } = await import("../../src/core/skill-hasher.js");
     const hash = await computeSkillHash(
       join(projectRoot, ".agents", "skills", "multi-agent-skill"),
     );
@@ -130,9 +131,7 @@ describe("restoreFromManifest", () => {
   it("uses manifest-level agents when skill entry has no agents", async () => {
     await seedSkill(projectRoot, "no-agent-skill");
 
-    const { computeSkillHash } = await import(
-      "../../src/core/skill-hasher.js"
-    );
+    const { computeSkillHash } = await import("../../src/core/skill-hasher.js");
     const hash = await computeSkillHash(
       join(projectRoot, ".agents", "skills", "no-agent-skill"),
     );

@@ -21,7 +21,12 @@ import {
 } from "@curiouslycory/ui/alert-dialog";
 import { Badge } from "@curiouslycory/ui/badge";
 import { Button } from "@curiouslycory/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@curiouslycory/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@curiouslycory/ui/card";
 import { Separator } from "@curiouslycory/ui/separator";
 
 import { DiffViewer } from "~/app/_components/diff-viewer";
@@ -155,7 +160,7 @@ export function SkillDetail({ id }: { id: string }) {
                 <AlertDialogAction
                   onClick={() => deleteMutation.mutate({ id: skill.id })}
                   className={cn(
-                    "bg-destructive text-white hover:bg-destructive/90",
+                    "bg-destructive hover:bg-destructive/90 text-white",
                   )}
                 >
                   {deleteMutation.isPending ? "Deleting..." : "Delete"}
@@ -171,9 +176,7 @@ export function SkillDetail({ id }: { id: string }) {
         <div className="lg:col-span-2">
           <Card>
             <CardContent className="prose dark:prose-invert max-w-none pt-6">
-              <Markdown remarkPlugins={[remarkGfm]}>
-                {skill.content}
-              </Markdown>
+              <Markdown remarkPlugins={[remarkGfm]}>{skill.content}</Markdown>
             </CardContent>
           </Card>
         </div>
@@ -264,7 +267,7 @@ export function SkillDetail({ id }: { id: string }) {
               return (
                 <div key={commit.hash}>
                   <div
-                    className="bg-muted/50 flex cursor-pointer items-start justify-between gap-4 rounded-lg border p-3 transition-colors hover:bg-muted"
+                    className="bg-muted/50 hover:bg-muted flex cursor-pointer items-start justify-between gap-4 rounded-lg border p-3 transition-colors"
                     onClick={() =>
                       setExpandedCommit(isExpanded ? null : commit.hash)
                     }
@@ -285,9 +288,7 @@ export function SkillDetail({ id }: { id: string }) {
                       {formatRelativeDate(commit.date)}
                     </p>
                   </div>
-                  {isExpanded && (
-                    <SkillCommitDiff commitHash={commit.hash} />
-                  )}
+                  {isExpanded && <SkillCommitDiff commitHash={commit.hash} />}
                 </div>
               );
             })}

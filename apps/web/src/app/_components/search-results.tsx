@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
+import { useQuery } from "@tanstack/react-query";
 
 import { cn } from "@curiouslycory/ui";
 import { Badge } from "@curiouslycory/ui/badge";
@@ -73,21 +73,24 @@ export function SearchResults() {
     }),
   );
 
-  const getDetailLink = useCallback((result: { id: string; category: string | null }) => {
-    if (result.category === "skill") {
+  const getDetailLink = useCallback(
+    (result: { id: string; category: string | null }) => {
+      if (result.category === "skill") {
+        return `/skills/${result.id}`;
+      }
+      if (result.category) {
+        return `/artifacts/${result.category}/${result.id}`;
+      }
       return `/skills/${result.id}`;
-    }
-    if (result.category) {
-      return `/artifacts/${result.category}/${result.id}`;
-    }
-    return `/skills/${result.id}`;
-  }, []);
+    },
+    [],
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <MagnifyingGlassIcon className="text-muted-foreground absolute left-2.5 top-1/2 size-4 -translate-y-1/2" />
+          <MagnifyingGlassIcon className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
           <Input
             type="search"
             placeholder="Search skills, artifacts..."
@@ -99,7 +102,7 @@ export function SearchResults() {
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="border-input bg-background ring-offset-background focus:ring-ring h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+          className="border-input bg-background ring-offset-background focus:ring-ring h-9 rounded-md border px-3 text-sm focus:ring-2 focus:ring-offset-2 focus:outline-none"
         >
           <option value="">All categories</option>
           {CATEGORIES.map((cat) => (
@@ -139,7 +142,7 @@ export function SearchResults() {
                 <CardContent className="space-y-2">
                   {result.snippet && (
                     <p
-                      className="text-muted-foreground text-sm [&_mark]:bg-yellow-200 [&_mark]:text-foreground dark:[&_mark]:bg-yellow-800"
+                      className="text-muted-foreground [&_mark]:text-foreground text-sm [&_mark]:bg-yellow-200 dark:[&_mark]:bg-yellow-800"
                       dangerouslySetInnerHTML={{ __html: result.snippet }}
                     />
                   )}
@@ -169,13 +172,21 @@ export function SearchResultsSkeleton() {
         <Card key={i}>
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between gap-2">
-              <div className={cn("bg-muted h-5 w-1/3 animate-pulse rounded-sm")} />
-              <div className={cn("bg-muted h-5 w-16 animate-pulse rounded-md")} />
+              <div
+                className={cn("bg-muted h-5 w-1/3 animate-pulse rounded-sm")}
+              />
+              <div
+                className={cn("bg-muted h-5 w-16 animate-pulse rounded-md")}
+              />
             </div>
-            <div className={cn("bg-muted mt-1 h-4 w-2/3 animate-pulse rounded-sm")} />
+            <div
+              className={cn("bg-muted mt-1 h-4 w-2/3 animate-pulse rounded-sm")}
+            />
           </CardHeader>
           <CardContent>
-            <div className={cn("bg-muted h-4 w-full animate-pulse rounded-sm")} />
+            <div
+              className={cn("bg-muted h-4 w-full animate-pulse rounded-sm")}
+            />
           </CardContent>
         </Card>
       ))}

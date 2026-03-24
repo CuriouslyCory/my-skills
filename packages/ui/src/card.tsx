@@ -1,9 +1,6 @@
 import { cn } from "@curiouslycory/ui";
 
-export function Card({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"

@@ -1,12 +1,12 @@
-import simpleGit from "simple-git";
 import type {
-  SimpleGit,
-  StatusResult,
-  LogResult,
+  BranchSummary,
   DefaultLogFields,
   DiffResult,
-  BranchSummary,
+  LogResult,
+  SimpleGit,
+  StatusResult,
 } from "simple-git";
+import simpleGit from "simple-git";
 
 export interface CloneOptions {
   depth?: number;
@@ -113,9 +113,18 @@ export class GitService {
     await this.git.reset(args);
   }
 
-  async showFileAtCommit(filePath: string, commitHash: string): Promise<string> {
+  async showFileAtCommit(
+    filePath: string,
+    commitHash: string,
+  ): Promise<string> {
     return this.git.show([`${commitHash}:${filePath}`]);
   }
 }
 
-export type { StatusResult, LogResult, DefaultLogFields, DiffResult, BranchSummary };
+export type {
+  StatusResult,
+  LogResult,
+  DefaultLogFields,
+  DiffResult,
+  BranchSummary,
+};
