@@ -19,6 +19,23 @@ const GITHUB_URL_RE =
   /^https?:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/([^/]+))?$/;
 const SHORTHAND_RE = /^([^/.][^/]*)\/([^/]+)(?:\/(.+))?$/;
 
+/**
+ * Parse an "owner/repo" source string from a manifest entry into a GitHubSource.
+ */
+export function sourceToGitHub(source: string): GitHubSource {
+  const parts = source.split("/");
+  if (parts.length < 2 || !parts[0] || !parts[1]) {
+    throw new Error(`Invalid manifest source format: "${source}"`);
+  }
+  return {
+    type: "github",
+    owner: parts[0],
+    repo: parts[1],
+    skill: undefined,
+    url: `https://github.com/${parts[0]}/${parts[1]}.git`,
+  };
+}
+
 export function parseSource(source: string): SkillSource {
   // Local path: starts with ./ or ../ or /
   if (

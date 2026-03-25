@@ -5,7 +5,10 @@ import type {
   GitHubSource,
   LocalSource,
 } from "../../src/services/source-parser.js";
-import { parseSource } from "../../src/services/source-parser.js";
+import {
+  parseSource,
+  sourceToGitHub,
+} from "../../src/services/source-parser.js";
 
 describe("source-parser", () => {
   describe("local paths", () => {
@@ -98,6 +101,31 @@ describe("source-parser", () => {
 
     it("throws for empty-ish invalid strings", () => {
       expect(() => parseSource(".hidden")).toThrow(/Unable to parse source/);
+    });
+  });
+
+  describe("sourceToGitHub", () => {
+    it("valid 'owner/repo' returns GitHubSource with correct url", () => {
+      const result = sourceToGitHub("owner/repo");
+      expect(result).toEqual({
+        type: "github",
+        owner: "owner",
+        repo: "repo",
+        skill: undefined,
+        url: "https://github.com/owner/repo.git",
+      });
+    });
+
+    it("throws on single segment", () => {
+      expect(() => sourceToGitHub("just-owner")).toThrow(
+        /Invalid manifest source format/,
+      );
+    });
+
+    it("throws on empty string", () => {
+      expect(() => sourceToGitHub("")).toThrow(
+        /Invalid manifest source format/,
+      );
     });
   });
 });

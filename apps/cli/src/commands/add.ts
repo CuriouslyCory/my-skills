@@ -15,6 +15,7 @@ import { AgentIdSchema } from "@curiouslycory/shared-types";
 
 import type { AdapterSkillEntry } from "../adapters/index.js";
 import type { GitHubSource } from "../services/source-parser.js";
+import { sourceToGitHub } from "../services/source-parser.js";
 import { getEnabledAdapters, resolveAgents } from "../adapters/index.js";
 import { loadConfig, saveConfig } from "../core/config.js";
 import {
@@ -39,23 +40,6 @@ interface AddOptions {
   all?: boolean;
   list?: boolean;
   favorite?: boolean;
-}
-
-/**
- * Parse an "owner/repo" source string from a manifest entry into a GitHubSource.
- */
-function sourceToGitHub(source: string): GitHubSource {
-  const parts = source.split("/");
-  if (parts.length < 2 || !parts[0] || !parts[1]) {
-    throw new Error(`Invalid manifest source format: "${source}"`);
-  }
-  return {
-    type: "github",
-    owner: parts[0],
-    repo: parts[1],
-    skill: undefined,
-    url: `https://github.com/${parts[0]}/${parts[1]}.git`,
-  };
 }
 
 /**
