@@ -239,6 +239,7 @@ export async function installSingleSkill(
     return manifest;
   } catch (err) {
     installSpinner.fail(`Failed to install ${skillName}`);
+    process.exitCode = 1;
     if (
       err instanceof Error &&
       err.message.includes("not found in repository")
