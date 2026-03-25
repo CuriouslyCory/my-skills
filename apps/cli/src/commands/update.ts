@@ -200,5 +200,9 @@ export function registerUpdateCommand(program: Command): void {
       if (upToDate > 0) parts.push(chalk.dim(`${upToDate} already up-to-date`));
       if (failed > 0) parts.push(chalk.red(`${failed} failed`));
       console.log(`Summary: ${parts.join(", ")}`);
+
+      if (failed > 0) {
+        process.exitCode = 1;
+      }
     });
 }
