@@ -2,6 +2,7 @@ import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { Manifest } from "@curiouslycory/shared-types";
+import chalk from "chalk";
 
 import { saveManifest } from "./manifest.js";
 
@@ -41,22 +42,36 @@ export async function migrateFromSkillsLock(
     return null;
   }
 
-  const lock: SkillsLock = JSON.parse(lockContent) as SkillsLock;
+  let lock: SkillsLock;
+  try {
+    lock = JSON.parse(lockContent) as SkillsLock;
+  } catch {
+    console.warn(
+      chalk.yellow(`Warning: corrupt skills-lock.json in ${projectRoot}, skipping migration`),
+    );
+    return null;
+  }
+
   const now = new Date().toISOString();
 
   const manifest: Manifest = {
     version: 1,
     agents: [],
     skills: Object.fromEntries(
-      Object.entries(lock.skills).map(([name, entry]) => [
-        name,
-        {
-          source: entry.source,
-          sourceType: entry.sourceType as "github" | "gitlab" | "url" | "local",
-          computedHash: entry.computedHash,
-          installedAt: now,
-        },
-      ]),
+      Object.entries(lock.skills).map(([name, entry]) => {
+        // Default legacy 'gitlab' sourceType to 'github'
+        const sourceType =
+          entry.sourceType === "gitlab" ? "github" : entry.sourceType;
+        return [
+          name,
+          {
+            source: entry.source,
+            sourceType: sourceType as "github" | "url" | "local",
+            computedHash: entry.computedHash,
+            installedAt: now,
+          },
+        ];
+      }),
     ),
   };
 
