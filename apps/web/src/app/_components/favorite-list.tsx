@@ -28,6 +28,7 @@ import { Input } from "@curiouslycory/ui/input";
 import { toast } from "@curiouslycory/ui/toast";
 
 import { useTRPC } from "~/trpc/react";
+import { AddFavoriteDialog } from "./add-favorite-dialog";
 import { DataTable } from "./data-table";
 
 interface FavoriteItem {
@@ -286,10 +287,11 @@ export function FavoriteList() {
   if (data.items.length === 0 && !debouncedSearch && urlType === "all") {
     return (
       <Card>
-        <CardContent className="py-10 text-center">
+        <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
           <p className="text-muted-foreground">
-            No favorites yet. Star repos and skills to see them here.
+            No favorites yet. Add a repo or skill to get started.
           </p>
+          <AddFavoriteDialog />
         </CardContent>
       </Card>
     );
@@ -315,6 +317,7 @@ export function FavoriteList() {
               {type === "all" ? "All" : type === "repo" ? "Repos" : "Skills"}
             </Button>
           ))}
+          <AddFavoriteDialog />
         </div>
       </div>
       <DataTable
