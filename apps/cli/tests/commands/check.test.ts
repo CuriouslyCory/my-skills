@@ -142,4 +142,112 @@ describe("check command", () => {
       expect.stringContaining("remote unavailable"),
     );
   });
+
+  describe("checkSingleSkill error type distinction", () => {
+    it("logs unsupported source type for non-github skills", async () => {
+      mockManifest = makeManifest({
+        "local-skill": {
+          source: "./local",
+          sourceType: "local",
+          computedHash: "abc12345",
+          installedAt: new Date().toISOString(),
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "check"]);
+
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining('unsupported source type "local"'),
+      );
+    });
+
+    it("logs actual error message on network failure", async () => {
+      vi.mocked(fetchRepo).mockImplementation(() =>
+        Promise.reject(new Error("ECONNREFUSED: connection refused")),
+      );
+      mockManifest = makeManifest({
+        "net-fail": {
+          source: "owner/repo",
+          sourceType: "github",
+          computedHash: "abc12345",
+          installedAt: new Date().toISOString(),
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "check"]);
+
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining("ECONNREFUSED: connection refused"),
+      );
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining("remote unavailable"),
+      );
+    });
+
+    it("logs actual error message when resolveSkill throws", async () => {
+      const { resolveSkill } = await import(
+        "../../src/core/skill-resolver.js"
+      );
+      vi.mocked(resolveSkill).mockImplementation(() =>
+        Promise.reject(new Error('Skill "missing" not found in repository')),
+      );
+      mockManifest = makeManifest({
+        missing: {
+          source: "owner/repo",
+          sourceType: "github",
+          computedHash: "abc12345",
+          installedAt: new Date().toISOString(),
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "check"]);
+
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Skill "missing" not found in repository'),
+      );
+    });
+
+    it("handles non-Error thrown values", async () => {
+      vi.mocked(fetchRepo).mockImplementation(
+        () =>
+          new Promise((_resolve, reject) => {
+            reject("string error"); // eslint-disable-line @typescript-eslint/prefer-promise-reject-errors
+          }),
+      );
+      mockManifest = makeManifest({
+        "str-err": {
+          source: "owner/repo",
+          sourceType: "github",
+          computedHash: "abc12345",
+          installedAt: new Date().toISOString(),
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "check"]);
+
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining("string error"),
+      );
+    });
+
+    it("shows no-skills message when manifest is null", async () => {
+      mockManifest = null;
+
+      await program.parseAsync(["node", "ms", "check"]);
+
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining("No skills installed"),
+      );
+    });
+
+    it("shows no-skills message when manifest has empty skills", async () => {
+      mockManifest = makeManifest({});
+
+      await program.parseAsync(["node", "ms", "check"]);
+
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining("No skills installed"),
+      );
+    });
+  });
 });

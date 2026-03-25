@@ -30,6 +30,11 @@ async function checkSingleSkill(
 
   try {
     if (entry.sourceType !== "github") {
+      console.warn(
+        chalk.yellow(
+          `Skipping ${skillName}: unsupported source type "${entry.sourceType}"`,
+        ),
+      );
       return {
         name: skillName,
         status: "remote unavailable",
@@ -55,7 +60,11 @@ async function checkSingleSkill(
       currentHash,
       latestHash: latestHashShort,
     };
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(
+      chalk.yellow(`Error checking ${skillName}: ${message}`),
+    );
     return {
       name: skillName,
       status: "remote unavailable",
