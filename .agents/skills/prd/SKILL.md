@@ -13,50 +13,67 @@ Create detailed Product Requirements Documents that are clear, actionable, and s
 ## The Job
 
 1. Receive a feature description from the user
-2. Ask 3-5 essential clarifying questions (with lettered options)
-3. Generate a structured PRD based on answers
-4. Save to `tasks/prd-[feature-name].md`
+2. **Explore the codebase** to understand relevant architecture, patterns, and constraints
+3. Present a brief reconnaissance summary, then ask informed clarifying questions
+4. Generate a structured PRD grounded in what was discovered
+5. Save to `tasks/prd-[feature-name].md`
 
 **Important:** Do NOT start implementing. Just create the PRD.
 
 ---
 
-## Step 1: Clarifying Questions
+## Phase 1: Codebase Reconnaissance
 
-Ask only critical questions where the initial prompt is ambiguous. Focus on:
+Before asking a single question, explore the codebase to understand the landscape. **If a question can be answered by exploring the codebase, explore the codebase instead of asking.**
 
-- **Problem/Goal:** What problem does this solve?
-- **Core Functionality:** What are the key actions?
-- **Scope/Boundaries:** What should it NOT do?
-- **Success Criteria:** How do we know it's done?
+Use Read, Glob, and Grep to investigate areas relevant to the feature:
 
-### Format Questions Like This:
+- **Adjacent features:** Find existing features similar to the request. These are your strongest reference — trace them end-to-end (DB → API → UI/CLI) to understand conventions.
+- **Data layer:** Schemas, migrations, ORM config. What tables and columns already exist? What patterns does the project use for data access?
+- **API patterns:** Routers, procedures, endpoints. Note conventions for input validation, error handling, and response shapes.
+- **UI components:** Reusable components (tables, forms, modals, badges). What design system or component library is in use?
+- **CLI patterns:** Existing commands, flag conventions, output formatting (if the feature touches the CLI).
+- **Types & validation:** Shared type definitions and validation schemas the feature would need to extend.
 
-```
-1. What is the primary goal of this feature?
-   A. Improve user onboarding experience
-   B. Increase user retention
-   C. Reduce support burden
-   D. Other: [please specify]
-
-2. Who is the target user?
-   A. New users only
-   B. Existing users only
-   C. All users
-   D. Admin users only
-
-3. What is the scope?
-   A. Minimal viable version
-   B. Full-featured implementation
-   C. Just the backend/API
-   D. Just the UI
-```
-
-This lets users respond with "1A, 2C, 3B" for quick iteration.
+Only explore areas relevant to the feature. Do NOT exhaustively catalog the codebase. Spend time on targeted exploration, then synthesize your findings.
 
 ---
 
-## Step 2: PRD Structure
+## Phase 2: Informed Questions
+
+Present your findings as a **reconnaissance summary** (3-5 bullets), then ask clarifying questions.
+
+### Rules
+
+- **Never ask what the code already told you.** Do not ask about technology choices, database engines, frameworks, existing patterns, or component libraries you already discovered.
+- **Only ask about genuine product decisions:** scope trade-offs, priority between approaches, user experience preferences, ambiguous requirements that code cannot clarify.
+- **Reference your findings in questions.** Good: "I see you have a `DataTable` component in `apps/web/src/app/_components/` — should we reuse it here or does this need something custom?" Bad: "What kind of table component should we use?"
+
+### Format
+
+```
+**What I found:**
+- The project uses [X] for [Y], with existing [Z] at `path/to/file`
+- Related feature: [feature name] follows [pattern] — see `path/to/reference`
+- Reusable components available: [list with paths]
+- [Any relevant constraints or technical details discovered]
+
+**Questions (answer with "1A, 2C, 3B"):**
+
+1. [Informed question grounded in what was found]
+   A. [Option]
+   B. [Option]
+   C. [Option]
+   D. Other: [please specify]
+
+2. ...
+```
+
+Ask 3-5 questions, but fewer is fine if the codebase answered most of them. The goal is to resolve only what genuinely requires human input.
+
+---
+
+## Phase 3: PRD Structure
 
 Generate the PRD with these sections:
 
@@ -86,7 +103,7 @@ Each story should be small enough to implement in one focused session.
 - [ ] **[UI stories only]** Verify in browser using dev-browser skill
 ```
 
-**Important:** 
+**Important:**
 - Acceptance criteria must be verifiable, not vague. "Works correctly" is bad. "Button shows confirmation dialog before deleting" is good.
 - **For any story with UI changes:** Always include "Verify in browser using dev-browser skill" as acceptance criteria. This ensures visual verification of frontend work.
 
@@ -100,14 +117,14 @@ Be explicit and unambiguous.
 ### 5. Non-Goals (Out of Scope)
 What this feature will NOT include. Critical for managing scope.
 
-### 6. Design Considerations (Optional)
+### 6. Design Considerations
 - UI/UX requirements
 - Link to mockups if available
-- Relevant existing components to reuse
+- **Cite actual existing components to reuse, with file paths** (discovered during reconnaissance)
 
-### 7. Technical Considerations (Optional)
-- Known constraints or dependencies
-- Integration points with existing systems
+### 7. Technical Considerations
+- **Reference real constraints and dependencies discovered in the codebase**
+- Integration points with existing systems, citing actual file paths and patterns
 - Performance requirements
 
 ### 8. Success Metrics
@@ -233,9 +250,12 @@ Add priority levels to tasks so users can focus on what matters most. Tasks can 
 
 Before saving the PRD:
 
-- [ ] Asked clarifying questions with lettered options
+- [ ] Explored codebase for relevant architecture, patterns, and components
+- [ ] Presented reconnaissance summary to user
+- [ ] Asked informed clarifying questions with lettered options
 - [ ] Incorporated user's answers
 - [ ] User stories are small and specific
 - [ ] Functional requirements are numbered and unambiguous
 - [ ] Non-goals section defines clear boundaries
+- [ ] Design/Technical Considerations reference actual code paths and components
 - [ ] Saved to `tasks/prd-[feature-name].md`
