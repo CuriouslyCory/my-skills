@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Manifest, SkillEntry } from "@curiouslycory/shared-types";
 
@@ -129,6 +129,70 @@ describe("manifest", () => {
     it("returns undefined for non-existent skill", () => {
       const manifest = makeManifest();
       expect(getSkill(manifest, "missing")).toBeUndefined();
+    });
+  });
+
+  describe("loadManifest error paths", () => {
+    it("returns null and logs warning for corrupted JSON", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      await writeFile(join(testDir, ".my-skills.json"), "this is not json {{");
+
+      const result = await loadManifest(testDir);
+
+      expect(result).toBeNull();
+      expect(warnSpy).toHaveBeenCalledOnce();
+      expect(warnSpy.mock.calls[0]?.[0]).toContain("invalid JSON");
+      warnSpy.mockRestore();
+    });
+
+    it("returns null and logs warning for invalid Zod shape", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      // Valid JSON but missing required 'version' field
+      await writeFile(
+        join(testDir, ".my-skills.json"),
+        JSON.stringify({ skills: {} }),
+      );
+
+      const result = await loadManifest(testDir);
+
+      expect(result).toBeNull();
+      expect(warnSpy).toHaveBeenCalledOnce();
+      expect(warnSpy.mock.calls[0]?.[0]).toContain("schema");
+      warnSpy.mockRestore();
+    });
+
+    it("re-throws non-ENOENT filesystem errors", async () => {
+      // Use a directory path instead of a file to trigger EISDIR
+      const dirPath = await mkdtemp(join(testDir, "subdir-"));
+      // Create .my-skills.json as a directory so readFile throws EISDIR
+      const { mkdir } = await import("node:fs/promises");
+      await mkdir(join(dirPath, ".my-skills.json"));
+
+      await expect(loadManifest(dirPath)).rejects.toThrow();
+    });
+  });
+
+  describe("getSkill edge cases", () => {
+    it("returns undefined for missing key in populated manifest", () => {
+      const manifest = makeManifest({
+        "skill-a": makeEntry(),
+        "skill-b": makeEntry(),
+      });
+      expect(getSkill(manifest, "skill-c")).toBeUndefined();
+    });
+  });
+
+  describe("removeSkill edge cases", () => {
+    it("returns manifest unchanged when removing missing key", () => {
+      const manifest = makeManifest({
+        "skill-a": makeEntry(),
+        "skill-b": makeEntry(),
+      });
+      const updated = removeSkill(manifest, "nonexistent");
+
+      expect(Object.keys(updated.skills)).toHaveLength(2);
+      expect(updated.skills["skill-a"]).toBeDefined();
+      expect(updated.skills["skill-b"]).toBeDefined();
     });
   });
 });

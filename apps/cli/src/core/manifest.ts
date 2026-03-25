@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import type { Manifest, SkillEntry } from "@curiouslycory/shared-types";
 import { ManifestSchema } from "@curiouslycory/shared-types";
+import chalk from "chalk";
 
 const MANIFEST_FILE = ".my-skills.json";
 
@@ -11,11 +12,38 @@ export async function loadManifest(
 ): Promise<Manifest | null> {
   const manifestPath = join(projectRoot, MANIFEST_FILE);
 
+  let content: string;
   try {
-    const content = await readFile(manifestPath, "utf-8");
-    const raw: unknown = JSON.parse(content);
+    content = await readFile(manifestPath, "utf-8");
+  } catch (err: unknown) {
+    if (
+      err instanceof Error &&
+      "code" in err &&
+      (err as NodeJS.ErrnoException).code === "ENOENT"
+    ) {
+      return null;
+    }
+    throw err;
+  }
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(content);
+  } catch {
+    console.warn(
+      chalk.yellow(`Warning: ${manifestPath} contains invalid JSON, ignoring.`),
+    );
+    return null;
+  }
+
+  try {
     return ManifestSchema.parse(raw);
   } catch {
+    console.warn(
+      chalk.yellow(
+        `Warning: ${manifestPath} does not match expected schema, ignoring.`,
+      ),
+    );
     return null;
   }
 }
