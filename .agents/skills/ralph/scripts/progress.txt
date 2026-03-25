@@ -1,153 +1,22 @@
 # Ralph Progress Log
-Started: Thu Mar 19 06:34:15 PM MST 2026
+Started: Tue Mar 25 03:48:00 PM MST 2026
 ---
 
 ## Codebase Patterns
-- drizzle-kit push: Use `pnpm --filter @curiouslycory/db push` (wraps `pnpm with-env drizzle-kit push`)
-- drizzle-kit push will try to drop FTS virtual tables — apply schema changes via direct SQL if push hangs or errors on those tables
-- DB location: `$DB_PATH` from .env, defaults to `./data/my-skills.db` relative to packages/db (resolves to repo root `data/my-skills.db`)
-- Composite unique constraints in drizzle: use `unique()` import from `drizzle-orm/sqlite-core`, define in table's third argument as `(table) => [unique().on(table.col1, table.col2)]`
-- SQLite NULL handling: NULL values are treated as distinct in unique constraints — add procedures must use explicit existence checks
-- `isNull` from drizzle-orm is NOT re-exported from `drizzle-orm/sql` — added explicit re-export from `drizzle-orm/sql/expressions/conditions` in `packages/db/src/index.ts`
-- When moving tRPC sub-routes (e.g., `config.favorites.*` → `favorite.*`), update all client references in web app components AND server prefetch calls
-- zod/v4: `.default({})` on an object with inner `.default()` fields fails — outer default must include all required fields (e.g., `.default({ page: 1, pageSize: 30 })`)
-- When changing a tRPC procedure return type, search for all consumers in the web app with `grep` and update them
-- Server component prefetch pattern: `prefetch(trpc.X.queryOptions())` + `HydrateClient` wrapper + client `useSuspenseQuery(trpc.X.queryOptions())`
-- Card imports from `@curiouslycory/ui/card`: `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`
-- DataTable component at `apps/web/src/app/_components/data-table.tsx` — generic reusable table with sorting, filtering, pagination built on @tanstack/react-table + @curiouslycory/ui/table; supports optional `manualSorting`, `manualPagination`, `pageCount`, external `sorting`/`onSortingChange`/`pagination`/`onPaginationChange` props for server-side control
-- URL state sync pattern: `useSearchParams` + `router.replace()` with `{ scroll: false }` — use `useMemo` for derived state to avoid lint warnings about unstable deps in `useCallback`
-- ESLint requires top-level `import type` statements, not inline `type` specifiers (e.g., `import type { Foo } from "x"` not `import { type Foo } from "x"`)
-- `useReactTable` triggers a `react-hooks/incompatible-library` warning — this is expected and matches the existing `fragment-selection-table.tsx` pattern
-- chalk-colored strings break `String.padEnd()` due to ANSI escape codes — use fixed spacing for colored table columns
+- shared-types vitest config: `vitest.config.ts` with `globals: true`, import `{ describe, it, expect }` from "vitest" explicitly in test files
+- shared-types test location: `packages/shared-types/src/__tests__/`
+- CLI vitest config: `apps/cli/vitest.config.ts` with `globals: true`
+- API vitest config: `packages/api/vitest.config.ts` with `globals: true`
+- CLI tests use real temp directories (mkdtemp + rm cleanup)
+- pnpm filter names: `my-skills` (CLI), `@curiouslycory/shared-types`, `@curiouslycory/api`, `@curiouslycory/web`
 
 ---
 
-## 2026-03-19 - US-001
-- Implemented: Added `skillName` (nullable text) and `type` (text, not null, default 'repo') columns to favorites table. Replaced single-column UNIQUE(repoUrl) with composite unique on (repoUrl, skillName).
-- Files changed: `packages/db/src/schema.ts`
+## 2026-03-25 - US-001
+- Implemented: Added vitest infrastructure to shared-types package (vitest.config.ts, test script, vitest devDep). Created frontmatter.test.ts with 26 tests covering parseSkillFrontmatter (all fields, missing name/description, empty name, optional fields), buildSkillContent (markdown output, round-trip, empty body), and AgentIdSchema (all 10 valid IDs, invalid rejection, count check).
+- Files changed: `packages/shared-types/vitest.config.ts` (new), `packages/shared-types/package.json`, `packages/shared-types/src/__tests__/frontmatter.test.ts` (new), `pnpm-lock.yaml`
 - **Learnings for future iterations:**
-  - drizzle-kit push is interactive and tries to drop FTS virtual tables (skills_fts*) — use `--force` or apply changes via direct SQL to avoid the interactive prompt
-  - `--force` flag on drizzle-kit push can error out trying to drop FTS virtual tables that don't exist as regular tables — manual SQL migration is more reliable
-  - The actual DB file is at repo root `data/my-skills.db`, not inside packages/db/data/
-  - The stash must be popped after checking out the feature branch to restore the correct prd.json
----
-
-## 2026-03-19 - US-002
-- Implemented: Added `FavoriteTypeSchema = z.enum(["repo", "skill"])` and exported `FavoriteType` type to `packages/shared-types/src/index.ts`.
-- Files changed: `packages/shared-types/src/index.ts`
-- **Learnings for future iterations:**
-  - Shared types package exports Zod schemas and inferred types side-by-side — follow the pattern of `XSchema` + `type X = z.infer<typeof XSchema>`
-  - All 17 turbo tasks pass cleanly after this change
----
-
-## 2026-03-19 - US-003
-- Implemented: Created `packages/api/src/router/favorite.ts` with add, remove, toggle, isFavorited, and list procedures. Registered `favoriteRouter` in `root.ts`. Removed `favorites` sub-object from `config.ts`. Updated all web app references from `config.favorites.*` to `favorite.*`.
-- Files changed: `packages/api/src/router/favorite.ts` (new), `packages/api/src/root.ts`, `packages/api/src/router/config.ts`, `packages/db/src/index.ts`, `apps/web/src/app/_components/settings-page.tsx`, `apps/web/src/app/(dashboard)/settings/page.tsx`
-- **Learnings for future iterations:**
-  - `isNull` is in `drizzle-orm/sql/expressions/conditions`, not in `drizzle-orm/sql` — had to add explicit re-export to `@curiouslycory/db`
-  - The settings page (`settings-page.tsx` and `settings/page.tsx`) was the only consumer of `config.favorites.*` — updating both files completes the migration
-  - The router pattern uses `satisfies TRPCRouterRecord` for type checking without losing inference
----
-
-## 2026-03-19 - US-004
-- Implemented: Replaced simple `list` procedure with paginated version accepting page, pageSize, search, sortBy, sortOrder, and type filter. Returns `{ items, totalCount }`. Added `stats` procedure returning total, repoCount, skillCount, mostRecent, and topRepos (skill favorites grouped by repo). Updated settings-page.tsx to use `.items` from the new list response shape.
-- Files changed: `packages/api/src/router/favorite.ts`, `apps/web/src/app/_components/settings-page.tsx`
-- **Learnings for future iterations:**
-  - `like`, `asc`, `desc`, `or`, `sql` are all available from `@curiouslycory/db` (re-exported from `drizzle-orm/sql`)
-  - Use `sql<number>\`count(*)\`` for aggregation queries per codebase pattern
-  - When changing a tRPC procedure's return type, check all existing consumers — settings-page.tsx was consuming list as a flat array
-  - zod/v4 `.default({})` on an object with inner `.default()` fields doesn't work — the outer default must satisfy all required fields after defaults are resolved
----
-
-## 2026-03-19 - US-005
-- Implemented: Updated `syncConfigToFile` in `packages/api/src/lib/config-sync.ts` to filter favorites by `type === "repo"` before mapping to `favoriteRepos`. Skill-type favorites are now stored in DB only and not written to the CLI config file.
-- Files changed: `packages/api/src/lib/config-sync.ts`
-- **Learnings for future iterations:**
-  - The fix was a one-line filter addition — the `favorites` table already has the `type` column from US-001
-  - `syncConfigToFile` is called by the add/remove/toggle procedures in the favorite router, so no additional wiring was needed
----
-
-## 2026-03-19 - US-006
-- Implemented: Added `StarFilledIcon` import and inserted `{ href: '/favorites', label: 'Favorites', icon: StarFilledIcon }` into navItems between Compositions and Git entries.
-- Files changed: `apps/web/src/app/_components/sidebar.tsx`
-- **Learnings for future iterations:**
-  - The sidebar uses a shared `navItems` array for both desktop and mobile — a single change covers both views
-  - The `isActive` function uses `pathname.startsWith(href)` so nested routes like `/favorites/123` will highlight correctly
-  - Manual browser verification needed (no dev-browser skill available)
----
-
-## 2026-03-19 - US-007
-- Implemented: Created favorites page at `apps/web/src/app/(dashboard)/favorites/page.tsx` as server component with prefetch for `trpc.favorite.stats` and `trpc.favorite.list`. Created `apps/web/src/app/_components/favorite-stats.tsx` as client component with `useSuspenseQuery` for stats, displaying 4 stat cards (Total, Repos, Skills, Most Recent with relative time). Exported `FavoriteStatsSkeleton` with pulse animation. Wrapped in `Suspense` on the page.
-- Files changed: `apps/web/src/app/(dashboard)/favorites/page.tsx` (new), `apps/web/src/app/_components/favorite-stats.tsx` (new)
-- **Learnings for future iterations:**
-  - The server component pattern: `prefetch(trpc.X.queryOptions())` + `HydrateClient` wrapper + client component using `useSuspenseQuery(trpc.X.queryOptions())`
-  - Card components available: `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent` from `@curiouslycory/ui/card`
-  - `useTRPC` from `~/trpc/react` gives the trpc proxy for client components; `trpc` from `~/trpc/server` is for server prefetch
-  - Manual browser verification needed (no dev-browser skill available)
----
-
-## 2026-03-19 - US-008
-- Implemented: Created generic `DataTable` component at `apps/web/src/app/_components/data-table.tsx` following the shadcn/ui data table pattern. Uses @tanstack/react-table with sorting, filtering, and pagination row models. Sortable column headers show ChevronUp/ChevronDown/CaretSort icons from @radix-ui/react-icons. Pagination controls with Previous/Next buttons and "Page X of Y" text.
-- Files changed: `apps/web/src/app/_components/data-table.tsx` (new)
-- **Learnings for future iterations:**
-  - ESLint enforces `import type { X }` over `import { type X }` — use top-level type-only imports
-  - The `useReactTable` incompatible-library warning is expected and present in `fragment-selection-table.tsx` too — no action needed
-  - `CaretSortIcon`, `ChevronUpIcon`, `ChevronDownIcon` from `@radix-ui/react-icons` work well for sort indicators
-  - The DataTable component is generic (`<TData, TValue>`) — consumers define columns with `ColumnDef<TData, TValue>[]`
----
-
-## 2026-03-19 - US-009
-- Implemented: Created `apps/web/src/app/_components/favorite-list.tsx` as client component with DataTable, debounced search input (300ms), type filter buttons (All/Repos/Skills), AlertDialog confirmation for remove actions, and empty state card. Added FavoriteList + FavoriteListSkeleton to the favorites page inside Suspense boundaries. Wired up to `trpc.favorite.list` and `trpc.favorite.remove` with cache invalidation on delete (both list and stats queries).
-- Files changed: `apps/web/src/app/_components/favorite-list.tsx` (new), `apps/web/src/app/(dashboard)/favorites/page.tsx`
-- **Learnings for future iterations:**
-  - The `useDebounce` hook pattern (setTimeout/clearTimeout) is reusable — consider extracting to a shared hooks file if used in more places
-  - When deleting items, invalidate both the list AND stats queries to keep the dashboard in sync
-  - `Input` component available from `@curiouslycory/ui/input` for form inputs
-  - Manual browser verification needed (no dev-browser skill available)
----
-
-## 2026-03-19 - US-010
-- Implemented: Updated `favorite-list.tsx` to sync search, sort, order, page, and type filter state bidirectionally with URL search params via `useSearchParams` + `router.replace()`. Switched to server-side pagination at 30 items/page using `totalCount` from tRPC list response. Column header clicks update sort/order URL params. Search and type filter changes reset page to 1. Extended `DataTable` component to accept optional `manualSorting`, `manualPagination`, `pageCount`, and external sorting/pagination state props for server-side control while remaining backwards-compatible.
-- Files changed: `apps/web/src/app/_components/favorite-list.tsx`, `apps/web/src/app/_components/data-table.tsx`
-- **Learnings for future iterations:**
-  - ESLint `react-hooks/exhaustive-deps` warns if a non-memoized derived value is used in `useCallback` deps — wrap derived state like `sorting` in `useMemo`
-  - ESLint `@typescript-eslint/no-unnecessary-condition` flags `??` when the left side is already guaranteed non-null by initialization (e.g., `useState("all")`)
-  - DataTable's `useReactTable` supports `manualSorting` and `manualPagination` flags — when set, skip corresponding row models (`getSortedRowModel`, `getPaginationRowModel`)
-  - URL param convention: omit params at default values (page=1 → no `page` param, type=all → no `type` param) for cleaner URLs
-  - Manual browser verification needed (no dev-browser skill available)
----
-
-## 2026-03-19 - US-011
-- Implemented: Added `-f, --favorite` flag to the `add` command. When used, adds the source repo URL to `config.favoriteRepos` via `loadConfig/saveConfig`. Added visual indicator (★ favorited) in the interactive skill picker when the source repo is already in favorites. The `--favorite` flag must be explicitly present — `--yes` alone does not auto-favorite.
-- Files changed: `apps/cli/src/commands/add.ts`
-- **Learnings for future iterations:**
-  - `config.favoriteRepos` stores full git URLs (e.g., `https://github.com/owner/repo.git`) — match against `githubSource.url`
-  - The `saveConfig` function handles atomic writes with tmp file + rename pattern
-  - The interactive picker's `message` prop can include chalk-formatted text for visual indicators
----
-
-## 2026-03-19 - US-012
-- Implemented: Added favorite status display to CLI `list` command. Loads config via `loadConfig()` to get `favoriteRepos`, marks matching skills with a yellow ★ in a new star column. Added `--favorites` flag to filter output to only skills from favorited repos.
-- Files changed: `apps/cli/src/commands/list.ts`
-- **Learnings for future iterations:**
-  - `chalk.yellow("★")` adds ANSI escape codes that break `String.padEnd()` — use fixed spacing instead of `padEnd` for chalk-colored strings
-  - `favoriteRepos` stores full git URLs (e.g., `https://github.com/owner/repo.git`) matching the `source` field in `SkillEntry`
-  - The `loadConfig()` import is from `../core/config.js` (note the `.js` extension for ESM)
----
-
-## 2026-03-19 - US-013
-- Implemented: Created `apps/cli/src/commands/favorite.ts` with three subcommands: `add <owner/repo>` (adds repo URL to config.favoriteRepos), `remove <owner/repo>` (removes from array), and `list` (prints starred table of favorited repos). Registered `registerFavoriteCommand` in `program.ts`. Added `fav` alias for the command and `ls` alias for list subcommand.
-- Files changed: `apps/cli/src/commands/favorite.ts` (new), `apps/cli/src/program.ts`
-- **Learnings for future iterations:**
-  - GitHub repo URL format in config: `https://github.com/${owner}/${repo}.git` — consistent across all CLI commands
-  - Commander subcommand pattern: create parent with `.command("name")`, then chain `.command("sub <arg>")` on the parent — same pattern as config.ts
-  - The `registerXCommand` functions are registered alphabetically in program.ts
----
-
-## 2026-03-19 - US-014
-- Implemented: Updated CLI README with favorite command documentation. Added `ms favorite add/remove/list` rows to CLI Reference table, `ms add <skill> -f` row, `ms list --favorites` row, install-and-favorite example, and a dedicated Favorites section with workflow examples and `fav`/`ls` alias mention.
-- Files changed: `apps/cli/README.md`
-- **Learnings for future iterations:**
-  - README table alignment requires consistent column widths — use longer separator dashes when adding wider entries
-  - The `fav` alias and `ls` subcommand alias are worth documenting as convenience shortcuts
+  - SkillFrontmatterSchema uses `z.string()` without `min(1)` for `name` — empty string is accepted, not rejected
+  - gray-matter's `matter.stringify(body, data)` produces frontmatter + body; `matter(content)` parses it back
+  - The `AgentIdSchema.options` property contains the enum values array — useful for exhaustive testing
 ---
