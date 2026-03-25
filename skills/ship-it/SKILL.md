@@ -20,6 +20,11 @@ Run these checks before anything else. If any fail, stop and tell the user why.
 1. **Branch check**: Run `git branch --show-current`. If in detached HEAD state, stop — tell the user to check out a named branch.
 2. **Remote check**: Run `git remote -v`. If no remote is configured, stop — tell the user to add a remote.
 3. **GitHub CLI check**: Run `gh auth status`. If not authenticated, stop — tell the user to run `gh auth login`.
+4. **Lint check**: Run `pnpm lint`. If there are any errors or warnings, fix them before proceeding. Fixing means applying best-practice corrections that honor the intent of the rule — **never** suppress a rule, add a disable comment, or weaken a configuration to make a warning disappear. If you are unfamiliar with the rule, look up its documentation to understand why it exists and what the correct fix is. It does not matter whether the issue was introduced by current work or pre-existing — we do not leave lint errors or warnings in the codebase.
+5. **Type check**: Run `pnpm typecheck`. If there are errors, fix them at the root cause. The same principles apply: understand the type system's complaint, fix the root cause, **never** use `@ts-ignore`, `@ts-expect-error`, `any` casts, or other suppressions to silence the error.
+6. **Build check**: Run `pnpm build`. If the build fails, diagnose and fix the root cause.
+
+**Skip condition for quality gates (items 4–6):** These steps may only be skipped if `git status --porcelain` produces no output AND the checks already passed earlier in the same session with no intervening file changes. When in doubt, run them.
 
 Save the current branch name for later use.
 
@@ -94,3 +99,4 @@ This step is called from Step 2.6 when the current branch is `main`. The branch 
 - **Merge conflicts**: Report the error. Do not attempt to resolve automatically.
 - **Branch protection rules block merge**: Report the specific error from `gh`.
 - **User cancels during file selection**: Abort the entire workflow gracefully.
+- **Lint / type / build errors (pre-existing or new)**: Fix every issue using best practices. Never suppress rules, add disable comments, use `@ts-ignore`, cast to `any`, or weaken configuration. Look up unfamiliar rules to understand the intent before fixing.
