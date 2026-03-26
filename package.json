@@ -47,6 +47,7 @@
       "@prisma/client",
       "@prisma/engines",
       "@tailwindcss/oxide",
+      "better-sqlite3",
       "bufferutil",
       "core-js-pure",
       "esbuild",
