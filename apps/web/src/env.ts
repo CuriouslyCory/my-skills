@@ -17,6 +17,7 @@ export const env = createEnv({
    */
   server: {
     REPO_PATH: z.string().optional(),
+    PORT: z.coerce.number().optional(),
   },
 
   /**

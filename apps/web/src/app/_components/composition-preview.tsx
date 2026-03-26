@@ -33,6 +33,8 @@ import {
 import { toast } from "@curiouslycory/ui/toast";
 
 import { useTRPC } from "~/trpc/react";
+import type { EditorPlugins } from "./plate-markdown-utils";
+import { deserializeMarkdown, replaceEditorContent } from "./plate-markdown-utils";
 
 interface CompositionPreviewProps {
   fragmentIds: string[];
@@ -48,6 +50,121 @@ function useDebounce<T>(value: T, delay: number): T {
   }, [value, delay]);
 
   return debouncedValue;
+}
+
+/**
+ * Builds the shared plugin list for the Plate editor.
+ * Platejs .configure() returns loosely-typed values; the `as unknown[]` cast
+ * provides a clean boundary that prevents `any` from propagating further.
+ */
+function buildPlugins(): EditorPlugins {
+  return [
+    H1Plugin.configure({
+      render: {
+        node: ({ attributes, children }) => (
+          <h1 className="mt-6 mb-2 text-3xl font-bold" {...attributes}>
+            {children}
+          </h1>
+        ),
+      },
+    }),
+    H2Plugin.configure({
+      render: {
+        node: ({ attributes, children }) => (
+          <h2 className="mt-5 mb-2 text-2xl font-semibold" {...attributes}>
+            {children}
+          </h2>
+        ),
+      },
+    }),
+    H3Plugin.configure({
+      render: {
+        node: ({ attributes, children }) => (
+          <h3 className="mt-4 mb-2 text-xl font-semibold" {...attributes}>
+            {children}
+          </h3>
+        ),
+      },
+    }),
+    BoldPlugin.configure({
+      render: {
+        node: ({ attributes, children }) => (
+          <strong {...attributes}>{children}</strong>
+        ),
+      },
+    }),
+    ItalicPlugin.configure({
+      render: {
+        node: ({ attributes, children }) => (
+          <em {...attributes}>{children}</em>
+        ),
+      },
+    }),
+    CodePlugin.configure({
+      render: {
+        node: ({ attributes, children }) => (
+          <code
+            className="bg-muted rounded px-1.5 py-0.5 font-mono text-sm"
+            {...attributes}
+          >
+            {children}
+          </code>
+        ),
+      },
+    }),
+    BlockquotePlugin.configure({
+      render: {
+        node: ({ attributes, children }) => (
+          <blockquote
+            className="border-muted-foreground/30 my-2 border-l-4 pl-4 italic"
+            {...attributes}
+          >
+            {children}
+          </blockquote>
+        ),
+      },
+    }),
+    CodeBlockPlugin.configure({
+      render: {
+        node: ({ attributes, children }) => (
+          <pre
+            className="bg-muted my-2 overflow-x-auto rounded-md p-4 font-mono text-sm"
+            {...attributes}
+          >
+            <code>{children}</code>
+          </pre>
+        ),
+      },
+    }),
+    CodeLinePlugin.configure({
+      render: {
+        node: ({ attributes, children }) => (
+          <div {...attributes}>{children}</div>
+        ),
+      },
+    }),
+    CodeSyntaxPlugin,
+    LinkPlugin.configure({
+      render: {
+        node: ({ attributes, children, element }) => {
+          const url = (element as Record<string, unknown>).url as
+            | string
+            | undefined;
+          return (
+            <a
+              className="text-primary underline underline-offset-4"
+              href={url}
+              {...attributes}
+            >
+              {children}
+            </a>
+          );
+        },
+      },
+    }),
+    ListPlugin,
+    MarkdownPlugin,
+  ] as EditorPlugins;
 }
 
 export function CompositionPreview({
@@ -83,123 +200,12 @@ export function CompositionPreview({
 
   const markdown = previewMarkdown ?? "";
 
-  const plugins = useMemo(
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    () => [
-      H1Plugin.configure({
-        render: {
-          node: ({ attributes, children }) => (
-            <h1 className="mt-6 mb-2 text-3xl font-bold" {...attributes}>
-              {children}
-            </h1>
-          ),
-        },
-      }),
-      H2Plugin.configure({
-        render: {
-          node: ({ attributes, children }) => (
-            <h2 className="mt-5 mb-2 text-2xl font-semibold" {...attributes}>
-              {children}
-            </h2>
-          ),
-        },
-      }),
-      H3Plugin.configure({
-        render: {
-          node: ({ attributes, children }) => (
-            <h3 className="mt-4 mb-2 text-xl font-semibold" {...attributes}>
-              {children}
-            </h3>
-          ),
-        },
-      }),
-      BoldPlugin.configure({
-        render: {
-          node: ({ attributes, children }) => (
-            <strong {...attributes}>{children}</strong>
-          ),
-        },
-      }),
-      ItalicPlugin.configure({
-        render: {
-          node: ({ attributes, children }) => (
-            <em {...attributes}>{children}</em>
-          ),
-        },
-      }),
-      CodePlugin.configure({
-        render: {
-          node: ({ attributes, children }) => (
-            <code
-              className="bg-muted rounded px-1.5 py-0.5 font-mono text-sm"
-              {...attributes}
-            >
-              {children}
-            </code>
-          ),
-        },
-      }),
-      BlockquotePlugin.configure({
-        render: {
-          node: ({ attributes, children }) => (
-            <blockquote
-              className="border-muted-foreground/30 my-2 border-l-4 pl-4 italic"
-              {...attributes}
-            >
-              {children}
-            </blockquote>
-          ),
-        },
-      }),
-      CodeBlockPlugin.configure({
-        render: {
-          node: ({ attributes, children }) => (
-            <pre
-              className="bg-muted my-2 overflow-x-auto rounded-md p-4 font-mono text-sm"
-              {...attributes}
-            >
-              <code>{children}</code>
-            </pre>
-          ),
-        },
-      }),
-      CodeLinePlugin.configure({
-        render: {
-          node: ({ attributes, children }) => (
-            <div {...attributes}>{children}</div>
-          ),
-        },
-      }),
-      CodeSyntaxPlugin,
-      LinkPlugin.configure({
-        render: {
-          node: ({ attributes, children, element }) => {
-            const url = (element as Record<string, unknown>).url as
-              | string
-              | undefined;
-            return (
-              <a
-                className="text-primary underline underline-offset-4"
-                href={url}
-                {...attributes}
-              >
-                {children}
-              </a>
-            );
-          },
-        },
-      }),
-      ListPlugin,
-      MarkdownPlugin,
-    ],
-    [],
-  );
+  const plugins = useMemo(() => buildPlugins(), []);
 
   const editor = usePlateEditor({
     plugins,
-    value: (editor: PlateEditorType) =>
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      editor.getApi(MarkdownPlugin).markdown.deserialize(markdown || " "),
+    value: (ed: PlateEditorType) =>
+      deserializeMarkdown(ed, markdown || " "),
   });
 
   // Update editor content when markdown changes
@@ -207,16 +213,7 @@ export function CompositionPreview({
   useEffect(() => {
     if (markdown !== prevMarkdownRef.current) {
       prevMarkdownRef.current = markdown;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-      const nodes = editor
-        .getApi(MarkdownPlugin)
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        .markdown.deserialize(markdown || " ");
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      editor.tf.replaceNodes(nodes, {
-        at: [],
-        children: true,
-      });
+      replaceEditorContent(editor, markdown || " ");
     }
   }, [markdown, editor]);
 

@@ -36,8 +36,9 @@ describe("migration", () => {
   });
 
   it("migrates skills-lock.json to .my-skills.json", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const consoleSpy = vi
+      .spyOn(console, "log")
+      .mockImplementation(() => undefined);
 
     const lockData = {
       version: 1,
@@ -87,5 +88,92 @@ describe("migration", () => {
 
     const result = await migrateFromSkillsLock(testDir);
     expect(result).toBeNull();
+  });
+
+  describe("error paths", () => {
+    it("returns null and logs warning for corrupt skills-lock.json (invalid JSON)", async () => {
+      const warnSpy = vi
+        .spyOn(console, "warn")
+        .mockImplementation(() => undefined);
+
+      await writeFile(join(testDir, "skills-lock.json"), "not-valid-json{{{");
+
+      const result = await migrateFromSkillsLock(testDir);
+      expect(result).toBeNull();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("corrupt skills-lock.json"),
+      );
+
+      warnSpy.mockRestore();
+    });
+
+    it("defaults legacy 'gitlab' sourceType to 'github' during migration", async () => {
+      const logSpy = vi
+        .spyOn(console, "log")
+        .mockImplementation(() => undefined);
+
+      const lockData = {
+        version: 1,
+        skills: {
+          "gitlab-skill": {
+            source: "owner/repo",
+            sourceType: "gitlab",
+            computedHash: "hash123",
+          },
+        },
+      };
+      await writeFile(
+        join(testDir, "skills-lock.json"),
+        JSON.stringify(lockData),
+      );
+
+      const result = await migrateFromSkillsLock(testDir);
+      expect(result).not.toBeNull();
+      expect(result?.skills["gitlab-skill"]?.sourceType).toBe("github");
+
+      logSpy.mockRestore();
+    });
+
+    it("produces correct .my-skills.json shape with version, installedAt, and sourceType", async () => {
+      const logSpy = vi
+        .spyOn(console, "log")
+        .mockImplementation(() => undefined);
+
+      const lockData = {
+        version: 1,
+        skills: {
+          "my-skill": {
+            source: "owner/repo",
+            sourceType: "github",
+            computedHash: "abc123",
+          },
+        },
+      };
+      await writeFile(
+        join(testDir, "skills-lock.json"),
+        JSON.stringify(lockData),
+      );
+
+      const result = await migrateFromSkillsLock(testDir);
+      expect(result).not.toBeNull();
+      expect(result?.version).toBe(1);
+      expect(result?.skills["my-skill"]?.sourceType).toBe("github");
+      expect(result?.skills["my-skill"]?.installedAt).toMatch(
+        /^\d{4}-\d{2}-\d{2}T/,
+      );
+      expect(result?.skills["my-skill"]?.computedHash).toBe("abc123");
+      expect(result?.skills["my-skill"]?.source).toBe("owner/repo");
+
+      // Verify persisted file shape
+      const content = await readFile(
+        join(testDir, ".my-skills.json"),
+        "utf-8",
+      );
+      const parsed = JSON.parse(content) as Record<string, unknown>;
+      expect(parsed.version).toBe(1);
+      expect(Array.isArray(parsed.agents)).toBe(true);
+
+      logSpy.mockRestore();
+    });
   });
 });

@@ -10,7 +10,7 @@ No plan is complete without testing steps. pnpm lint, pnpm typecheck, and pnpm b
 
 ### Turning off a rule doesn't equal "fixing the issue"
 
-**NEVER** use an override or change a rule to get a test to "pass". Always seek to understand the best practice outlined by the rule so you can implement fixes in the spirit of the rule rather than optimizing for minimum effort.
+**NEVER** use an eslint-disable, override, or change a rule to get a test to "pass". Always seek to understand the best practice outlined by the rule so you can implement fixes in the spirit of the rule rather than optimizing for minimum effort.
 
 ### Codebase navigation
 

@@ -31,9 +31,7 @@
       "sourceType": "github",
       "computedHash": "c94699590c44450c3520f7071642411247e685e65ce771ca5596911462001693",
       "installedAt": "2026-03-20T03:02:48.023Z",
-      "agents": [
-        "claude-code"
-      ]
+      "agents": ["claude-code"]
     }
   }
 }

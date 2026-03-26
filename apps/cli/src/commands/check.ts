@@ -4,7 +4,7 @@ import ora from "ora";
 
 import type { SkillEntry } from "@curiouslycory/shared-types";
 
-import type { GitHubSource } from "../services/source-parser.js";
+import { sourceToGitHub } from "../services/source-parser.js";
 import { loadManifest } from "../core/manifest.js";
 import { computeSkillHash } from "../core/skill-hasher.js";
 import { resolveSkill } from "../core/skill-resolver.js";
@@ -20,23 +20,6 @@ interface CheckRow {
 }
 
 /**
- * Parse an "owner/repo" source string from a manifest entry into a GitHubSource.
- */
-function sourceToGitHub(source: string): GitHubSource {
-  const parts = source.split("/");
-  if (parts.length < 2 || !parts[0] || !parts[1]) {
-    throw new Error(`Invalid manifest source format: "${source}"`);
-  }
-  return {
-    type: "github",
-    owner: parts[0],
-    repo: parts[1],
-    skill: undefined,
-    url: `https://github.com/${parts[0]}/${parts[1]}.git`,
-  };
-}
-
-/**
  * Check a single skill for updates by fetching latest and comparing hashes.
  */
 async function checkSingleSkill(
@@ -47,6 +30,11 @@ async function checkSingleSkill(
 
   try {
     if (entry.sourceType !== "github") {
+      console.warn(
+        chalk.yellow(
+          `Skipping ${skillName}: unsupported source type "${entry.sourceType}"`,
+        ),
+      );
       return {
         name: skillName,
         status: "remote unavailable",
@@ -72,7 +60,11 @@ async function checkSingleSkill(
       currentHash,
       latestHash: latestHashShort,
     };
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(
+      chalk.yellow(`Error checking ${skillName}: ${message}`),
+    );
     return {
       name: skillName,
       status: "remote unavailable",
