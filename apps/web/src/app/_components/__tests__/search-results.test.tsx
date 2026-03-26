@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "~/test-utils";
+import type * as TanStackQuery from "@tanstack/react-query";
+import { SearchResults } from "../search-results";
 
 // Stable search params instance to avoid re-render loops
 const stableSearchParams = new URLSearchParams();
@@ -38,20 +40,21 @@ vi.mock("@radix-ui/react-icons", () => ({
 }));
 
 // Mock useQuery from @tanstack/react-query
-const mockUseQuery = vi.fn();
+const mockUseQuery = vi.hoisted(() =>
+  vi.fn<(...args: unknown[]) => { data: unknown; isLoading: boolean }>(),
+);
+
 vi.mock("@tanstack/react-query", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@tanstack/react-query")>();
+  const actual = await importOriginal<typeof TanStackQuery>();
   return {
     ...actual,
-    useQuery: (...args: unknown[]) =>
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      mockUseQuery(...args),
+    useQuery: (...args: unknown[]): { data: unknown; isLoading: boolean } =>
+      mockUseQuery(...args) as { data: unknown; isLoading: boolean },
   };
 });
 
 // Mock useTRPC
-const mockQueryOptions = vi.fn();
+const mockQueryOptions = vi.hoisted(() => vi.fn());
 vi.mock("~/trpc/react", () => ({
   useTRPC: () => ({
     search: {
@@ -61,10 +64,6 @@ vi.mock("~/trpc/react", () => ({
     },
   }),
 }));
-
-// Import after mocks
-// eslint-disable-next-line import/first
-import { SearchResults } from "../search-results";
 
 function makeResult(overrides: Partial<{
   id: string;

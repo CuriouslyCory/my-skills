@@ -43,17 +43,19 @@ export function SearchResults() {
   const router = useRouter();
   const trpc = useTRPC();
 
-  const initialQuery = searchParams.get("q") ?? "";
-  const [query, setQuery] = useState(initialQuery);
+  const urlQuery = searchParams.get("q") ?? "";
+  const [query, setQuery] = useState(urlQuery);
   const [category, setCategory] = useState<string>("");
   const debouncedQuery = useDebounce(query, 300);
 
-  // Sync URL param changes to local state
-  useEffect(() => {
-    const q = searchParams.get("q") ?? "";
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional setState for syncing URL params to state
-    setQuery(q);
-  }, [searchParams]);
+  // Sync URL param changes to local state using React's recommended
+  // "adjusting state during render" pattern (not useEffect).
+  // See: https://react.dev/learn/you-might-not-need-an-effect#adjusting-state-when-a-prop-changes
+  const [prevUrlQuery, setPrevUrlQuery] = useState(urlQuery);
+  if (urlQuery !== prevUrlQuery) {
+    setPrevUrlQuery(urlQuery);
+    setQuery(urlQuery);
+  }
 
   // Update URL when debounced query changes
   useEffect(() => {

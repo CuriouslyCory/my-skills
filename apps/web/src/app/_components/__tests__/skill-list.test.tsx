@@ -1,7 +1,9 @@
 import type { ReactElement, ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render as rtlRender, screen } from "@testing-library/react";
+import type * as TanStackQuery from "@tanstack/react-query";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SkillList, SkillListSkeleton } from "../skill-list";
 
 // Mock next/link
 vi.mock("next/link", () => ({
@@ -14,22 +16,23 @@ vi.mock("next/link", () => ({
   }) => <a href={href}>{children}</a>,
 }));
 
-// Mock useSuspenseQuery
-const mockUseSuspenseQuery = vi.fn();
+// Mock useSuspenseQuery — vi.hoisted ensures the mock is available
+// before vi.mock factories run (which are hoisted above imports)
+const mockUseSuspenseQuery = vi.hoisted(() =>
+  vi.fn<(...args: unknown[]) => { data: unknown }>(),
+);
 
 vi.mock("@tanstack/react-query", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@tanstack/react-query")>();
+  const actual = await importOriginal<typeof TanStackQuery>();
   return {
     ...actual,
-    useSuspenseQuery: (...args: unknown[]) =>
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      mockUseSuspenseQuery(...args),
+    useSuspenseQuery: (...args: unknown[]): { data: unknown } =>
+      mockUseSuspenseQuery(...args) as { data: unknown },
   };
 });
 
 // Mock useTRPC
-const mockListQueryOptions = vi.fn();
+const mockListQueryOptions = vi.hoisted(() => vi.fn());
 
 vi.mock("~/trpc/react", () => ({
   useTRPC: () => ({
@@ -40,10 +43,6 @@ vi.mock("~/trpc/react", () => ({
     },
   }),
 }));
-
-// Import after mocks
-// eslint-disable-next-line import/first
-import { SkillList, SkillListSkeleton } from "../skill-list";
 
 // Local render wrapper (avoids test-utils which has its own next/navigation mock)
 function createTestQueryClient() {
@@ -97,6 +96,25 @@ function setupMocks(skills: SkillItem[] = []) {
     queryFn: vi.fn(),
   });
   mockUseSuspenseQuery.mockReturnValue({ data: skills });
+}
+
+/**
+ * Finds a tag filter button by its text content within the filter bar.
+ * Throws if the button is not found (proper type narrowing vs non-null assertion).
+ */
+function getFilterButton(name: string): HTMLElement {
+  const filterButtons = screen
+    .getAllByRole("button")
+    .filter(
+      (btn) => btn.closest(".flex.flex-wrap.gap-2") != null,
+    );
+  const btn = filterButtons.find((b) => b.textContent === name);
+  if (!btn) {
+    throw new Error(
+      `Expected to find filter button "${name}" but found: [${filterButtons.map((b) => b.textContent).join(", ")}]`,
+    );
+  }
+  return btn;
 }
 
 describe("parseTags (via component rendering)", () => {
@@ -233,17 +251,7 @@ describe("SkillList component", () => {
       expect(screen.getByText("React Skill")).toBeInTheDocument();
       expect(screen.getByText("Go Skill")).toBeInTheDocument();
 
-      // Click the "react" filter tag button
-      const filterButtons = screen
-        .getAllByRole("button")
-        .filter(
-          (btn) => btn.closest(".flex.flex-wrap.gap-2") != null,
-        );
-      const reactBtn = filterButtons.find(
-        (btn) => btn.textContent === "react",
-      );
-      expect(reactBtn).toBeDefined();
-      await user.click(reactBtn!); // eslint-disable-line @typescript-eslint/no-non-null-assertion
+      await user.click(getFilterButton("react"));
 
       // Only React Skill visible
       expect(screen.getByText("React Skill")).toBeInTheDocument();
@@ -262,21 +270,11 @@ describe("SkillList component", () => {
       ]);
       render(<SkillList />);
 
-      const filterButtons = screen
-        .getAllByRole("button")
-        .filter(
-          (btn) => btn.closest(".flex.flex-wrap.gap-2") != null,
-        );
-      const reactBtn = filterButtons.find(
-        (btn) => btn.textContent === "react",
-      );
-      expect(reactBtn).toBeDefined();
-
       // Select then deselect
-      await user.click(reactBtn!); // eslint-disable-line @typescript-eslint/no-non-null-assertion
+      await user.click(getFilterButton("react"));
       expect(screen.queryByText("Go Skill")).not.toBeInTheDocument();
 
-      await user.click(reactBtn!); // eslint-disable-line @typescript-eslint/no-non-null-assertion
+      await user.click(getFilterButton("react"));
       expect(screen.getByText("Go Skill")).toBeInTheDocument();
       expect(screen.getByText("React Skill")).toBeInTheDocument();
     });
@@ -293,24 +291,8 @@ describe("SkillList component", () => {
       ]);
       render(<SkillList />);
 
-      // Select both tags — skills must match ANY selected tag
-      const filterButtons = screen
-        .getAllByRole("button")
-        .filter(
-          (btn) => btn.closest(".flex.flex-wrap.gap-2") != null,
-        );
-
       // With two skills each having one unique tag, selecting both should show both (OR logic)
-      const reactBtn = filterButtons.find(
-        (btn) => btn.textContent === "react",
-      );
-      const goBtn = filterButtons.find(
-        (btn) => btn.textContent === "go",
-      );
-      expect(reactBtn).toBeDefined();
-      expect(goBtn).toBeDefined();
-
-      await user.click(reactBtn!); // eslint-disable-line @typescript-eslint/no-non-null-assertion
+      await user.click(getFilterButton("react"));
       // Only React Skill shown
       expect(screen.getByText("Only React")).toBeInTheDocument();
       expect(screen.queryByText("Only Go")).not.toBeInTheDocument();

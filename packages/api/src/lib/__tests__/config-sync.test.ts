@@ -1,4 +1,6 @@
+import { mkdtempSync } from "node:fs";
 import { readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type Database from "better-sqlite3";
 import {
@@ -13,26 +15,16 @@ import {
 
 import type { Config } from "@curiouslycory/shared-types";
 
-// Create temp dir synchronously so it's available at module load time.
-// CONFIG_DIR = join(homedir(), ".my-skills") is computed at module scope in config-sync.ts,
-// so the mock must return a valid path before any import chain touches that module.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const tempHome = vi.hoisted(() => {
-  // Must use require() — ESM imports aren't available inside vi.hoisted
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const fs = require("node:fs") as typeof import("node:fs");
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const os = require("node:os") as typeof import("node:os");
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const path = require("node:path") as typeof import("node:path");
-  return fs.mkdtempSync(path.join(os.tmpdir(), "config-sync-test-"));
-});
-
-const mockHomeDir = vi.hoisted(() => vi.fn().mockReturnValue(tempHome));
+// Create temp dir at module scope. CONFIG_DIR = join(homedir(), ".my-skills")
+// is computed at module scope in config-sync.ts, so the homedir mock must
+// return a valid path before that module initializes.
+// The vi.mock factory captures `tempHome` by closure reference — by the time
+// homedir() is actually called (when config-sync.ts loads), tempHome is assigned.
+const tempHome = mkdtempSync(join(tmpdir(), "config-sync-test-"));
 
 vi.mock("node:os", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:os")>();
-  return { ...actual, homedir: mockHomeDir };
+  return { ...actual, homedir: () => tempHome };
 });
 
 // Mock the DB client to prevent real SQLite initialization at import time

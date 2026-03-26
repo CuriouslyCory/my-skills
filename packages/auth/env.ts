@@ -7,7 +7,7 @@ export function authEnv() {
       ADMIN_USER: z.string().min(1).optional(),
       ADMIN_PASSWORD: z.string().min(1).optional(),
       AUTH_SECRET: z.string().min(1).optional(),
-      NODE_ENV: z.enum(["development", "production"]).optional(),
+      NODE_ENV: z.enum(["development", "production", "test"]).optional(),
     },
     runtimeEnv: process.env,
     skipValidation:

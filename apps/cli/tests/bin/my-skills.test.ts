@@ -20,8 +20,7 @@ describe("entry point (bin/my-skills)", () => {
     expect(mockParse).toHaveBeenCalledOnce();
   });
 
-  it("sets process.exitCode to 1 when parse throws", async () => {
-    const originalExitCode = process.exitCode;
+  it("propagates errors from parse without swallowing them", async () => {
     mockParse.mockImplementation(() => {
       throw new Error("parse failed");
     });
@@ -34,13 +33,9 @@ describe("entry point (bin/my-skills)", () => {
       createProgram: () => ({ parse: mockParse }),
     }));
 
-    try {
-      await import("../../src/bin/my-skills.js");
-    } catch {
-      // The entry point has no error handler, so the throw propagates
-      // This verifies that errors from parse() are not silently swallowed
-    }
-
-    process.exitCode = originalExitCode;
+    // The entry point has no try/catch, so errors propagate to the caller
+    await expect(
+      import("../../src/bin/my-skills.js"),
+    ).rejects.toThrow("parse failed");
   });
 });

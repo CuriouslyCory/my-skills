@@ -1,5 +1,9 @@
 import { jwtVerify, SignJWT } from "jose";
 
+import { authEnv } from "../env";
+
+const env = authEnv();
+
 export interface Session {
   user: {
     username: string;
@@ -11,8 +15,7 @@ export interface Session {
  * When auth is disabled, all requests are treated as authenticated.
  */
 export function isAuthEnabled(): boolean {
-  // eslint-disable-next-line no-restricted-properties
-  return !!process.env.ADMIN_USER;
+  return !!env.ADMIN_USER;
 }
 
 /**
@@ -20,16 +23,13 @@ export function isAuthEnabled(): boolean {
  */
 export function validate(username: string, password: string): boolean {
   return (
-    // eslint-disable-next-line no-restricted-properties
-    username === process.env.ADMIN_USER &&
-    // eslint-disable-next-line no-restricted-properties
-    password === process.env.ADMIN_PASSWORD
+    username === env.ADMIN_USER &&
+    password === env.ADMIN_PASSWORD
   );
 }
 
 function getSecret(): Uint8Array {
-  // eslint-disable-next-line no-restricted-properties
-  const secret = process.env.AUTH_SECRET ?? "dev-secret-do-not-use-in-prod";
+  const secret = env.AUTH_SECRET ?? "dev-secret-do-not-use-in-prod";
   return new TextEncoder().encode(secret);
 }
 

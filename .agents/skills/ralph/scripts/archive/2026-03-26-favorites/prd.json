@@ -421,7 +421,7 @@
         "pnpm --filter @curiouslycory/web test passes"
       ],
       "priority": 22,
-      "passes": true,
+      "passes": false,
       "notes": "SkillList is at apps/web/src/app/_components/skill-list.tsx. It has parseTags and collectAllTags utility functions that can be tested in isolation. The component renders skill cards with tags parsed from JSON strings stored in the DB."
     }
   ]

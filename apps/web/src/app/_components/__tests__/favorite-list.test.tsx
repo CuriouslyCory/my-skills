@@ -1,7 +1,9 @@
 import type { ReactElement, ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render as rtlRender, screen, waitFor } from "@testing-library/react";
+import type * as TanStackQuery from "@tanstack/react-query";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { FavoriteList } from "../favorite-list";
 
 // Stable references for navigation mocks — must be defined BEFORE vi.mock
 const stableSearchParams = new URLSearchParams();
@@ -45,21 +47,23 @@ vi.mock("../add-favorite-dialog", () => ({
 }));
 
 // Mock useSuspenseQuery and useMutation from react-query
-const mockUseSuspenseQuery = vi.fn();
-const mockUseMutation = vi.fn();
+// vi.hoisted ensures these are available before vi.mock factories run
+const mockUseSuspenseQuery = vi.hoisted(() =>
+  vi.fn<(...args: unknown[]) => { data: unknown }>(),
+);
+const mockUseMutation = vi.hoisted(() =>
+  vi.fn<(...args: unknown[]) => { mutate: unknown; isPending: boolean }>(),
+);
 const mockInvalidateQueries = vi.fn();
 
 vi.mock("@tanstack/react-query", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@tanstack/react-query")>();
+  const actual = await importOriginal<typeof TanStackQuery>();
   return {
     ...actual,
-    useSuspenseQuery: (...args: unknown[]) =>
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      mockUseSuspenseQuery(...args),
-    useMutation: (...args: unknown[]) =>
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      mockUseMutation(...args),
+    useSuspenseQuery: (...args: unknown[]): { data: unknown } =>
+      mockUseSuspenseQuery(...args) as { data: unknown },
+    useMutation: (...args: unknown[]): { mutate: unknown; isPending: boolean } =>
+      mockUseMutation(...args) as { mutate: unknown; isPending: boolean },
     useQueryClient: () => ({
       invalidateQueries: mockInvalidateQueries,
     }),
@@ -67,9 +71,9 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
 });
 
 // Mock useTRPC
-const mockListQueryOptions = vi.fn();
-const mockRemoveMutationOptions = vi.fn();
-const mockStatsQueryOptions = vi.fn();
+const mockListQueryOptions = vi.hoisted(() => vi.fn());
+const mockRemoveMutationOptions = vi.hoisted(() => vi.fn());
+const mockStatsQueryOptions = vi.hoisted(() => vi.fn());
 
 vi.mock("~/trpc/react", () => ({
   useTRPC: () => ({
@@ -86,10 +90,6 @@ vi.mock("~/trpc/react", () => ({
     },
   }),
 }));
-
-// Import component after all mocks
-// eslint-disable-next-line import/first
-import { FavoriteList } from "../favorite-list";
 
 // Local render wrapper (avoids test-utils which has its own next/navigation mock)
 function createTestQueryClient() {

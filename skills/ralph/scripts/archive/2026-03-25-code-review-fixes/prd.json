@@ -17,7 +17,7 @@
         "pnpm --filter @curiouslycory/shared-types test passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "The shared-types package has NO existing test infrastructure. You must add vitest as a devDependency, create vitest.config.ts, and add the test script. Use 'import { describe, it, expect } from \"vitest\"' since globals may not work until config is loaded. The parseSkillFrontmatter function uses gray-matter internally and validates through SkillFrontmatterSchema.parse()."
     },
     {
@@ -36,7 +36,7 @@
         "pnpm --filter my-skills test passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "Create real directory structures in temp dirs with SKILL.md files containing valid frontmatter. The resolveSkill function takes (repoPath, skillName) and walks recursively. It calls parseSkillFrontmatter from @curiouslycory/shared-types. sourceToGitHub was recently extracted to apps/cli/src/services/source-parser.ts — add tests to the EXISTING test file."
     },
     {
@@ -53,7 +53,7 @@
         "pnpm --filter my-skills test passes"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "installSkill is only 18 lines — it calls cp(source, dest, {recursive: true}) then computeSkillHash(dest). The existing skill-hasher.test.ts already tests computeSkillHash in isolation. Focus on testing the end-to-end installSkill flow with real files."
     },
     {
@@ -72,7 +72,7 @@
         "pnpm --filter my-skills test passes"
       ],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": "The cache module (apps/cli/src/services/cache.ts) is the most complex untested CLI module. GitService must be mocked since it performs real git operations. The isCacheStale function reads .my-skills-cache-meta.json — create real files in temp dirs for staleness tests. discoverSkills walks the filesystem — use real temp dirs with SKILL.md files."
     },
     {
@@ -90,7 +90,7 @@
         "pnpm --filter my-skills test passes"
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": "The existing manifest.test.ts already tests happy paths. Add a new describe block for error paths. Use real temp dirs — write bad content to the manifest file, then call loadManifest. The CLI doesn't have zod as a direct dep, so use (err as Error).name === 'ZodError' pattern if needed."
     },
     {
@@ -106,7 +106,7 @@
         "pnpm --filter my-skills test passes"
       ],
       "priority": 6,
-      "passes": true,
+      "passes": false,
       "notes": "The existing migration.test.ts tests basic migration. Add error cases. Create skills-lock.json files with bad content in temp dirs."
     },
     {
@@ -127,7 +127,7 @@
         "pnpm --filter my-skills test passes"
       ],
       "priority": 7,
-      "passes": true,
+      "passes": false,
       "notes": "The existing add.test.ts tests restoreFromManifest basic paths. Add new describe blocks for error scenarios. The command mocking pattern is already established in the file — follow it."
     },
     {
@@ -149,7 +149,7 @@
         "pnpm --filter my-skills test passes"
       ],
       "priority": 8,
-      "passes": true,
+      "passes": false,
       "notes": "This tests the registerAddCommand action handler through Commander's parseAsync. Mock all external deps. The add command is the largest CLI command (500+ lines) — focus on verifying flag-driven branches, not re-testing the internal functions covered by US-007."
     },
     {
@@ -168,7 +168,7 @@
         "pnpm --filter my-skills test passes"
       ],
       "priority": 9,
-      "passes": true,
+      "passes": false,
       "notes": "The existing remove.test.ts covers single skill removal and manifest updates. Add tests for the flag-driven paths and error scenarios."
     },
     {
@@ -188,7 +188,7 @@
         "pnpm --filter my-skills test passes"
       ],
       "priority": 10,
-      "passes": true,
+      "passes": false,
       "notes": "The existing update.test.ts tests the 'all skills' update path. Add tests for the single-skill argument path and error branches."
     },
     {
@@ -205,7 +205,7 @@
         "pnpm --filter my-skills test passes"
       ],
       "priority": 11,
-      "passes": true,
+      "passes": false,
       "notes": "The existing list.test.ts covers basic listing, --agent filter, and --favorites filter. Add the interactive and error handling tests."
     },
     {
@@ -223,7 +223,7 @@
         "pnpm --filter my-skills test passes"
       ],
       "priority": 12,
-      "passes": true,
+      "passes": false,
       "notes": "The existing check.test.ts covers basic up-to-date and update-available scenarios. Add specific error type tests to verify the code review fix that improved error messages."
     },
     {
@@ -242,7 +242,7 @@
         "pnpm --filter my-skills test passes"
       ],
       "priority": 13,
-      "passes": true,
+      "passes": false,
       "notes": "The registry is at apps/cli/src/adapters/registry.ts, index at apps/cli/src/adapters/index.ts, entry point at apps/cli/src/bin/my-skills.ts. For the entry point test, you may need to use vi.mock to mock the program module and verify error handling behavior."
     },
     {
@@ -263,7 +263,7 @@
         "pnpm --filter @curiouslycory/api test passes"
       ],
       "priority": 14,
-      "passes": true,
+      "passes": false,
       "notes": "The safe-json utility is at packages/api/src/lib/safe-json.ts. It was created during the code review fixes. The API package already has vitest configured with globals: true (see packages/api/vitest.config.ts)."
     },
     {
@@ -284,7 +284,7 @@
         "pnpm --filter @curiouslycory/api test passes"
       ],
       "priority": 15,
-      "passes": true,
+      "passes": false,
       "notes": "This is the API test infrastructure story. The test-utils.ts is critical — all subsequent API router tests depend on it. The in-memory SQLite approach avoids filesystem pollution. The createTRPCContext function in packages/api/src/trpc.ts takes { session, headers, repoPath } — provide a mock session with { user: { username: 'test' } }, empty headers, and a temp dir for repoPath. Import appRouter from packages/api/src/root.ts. The favorite router uses protectedProcedure for mutations — the session must have a user. For publicProcedure queries, session can be null."
     },
     {
@@ -302,7 +302,7 @@
         "pnpm --filter @curiouslycory/api test passes"
       ],
       "priority": 16,
-      "passes": true,
+      "passes": false,
       "notes": "This is the largest API test story. The skill and artifact routers share the skills table (differentiated by category column). The composition router stores fragment IDs referencing skills. Seed test skills first, then test compositions that reference them. The skill.create mutation writes SKILL.md files — provide a valid repoPath temp dir."
     },
     {
@@ -320,7 +320,7 @@
         "pnpm --filter @curiouslycory/api test passes"
       ],
       "priority": 17,
-      "passes": true,
+      "passes": false,
       "notes": "disk-sync reads from the filesystem (skills/ and artifacts/ directories with SKILL.md files) and syncs to the database. Create real directory structures in temp dirs. config-sync reads from DB and writes to ~/.my-skills/config.json — redirect to a temp path for testing."
     },
     {
@@ -340,7 +340,7 @@
         "pnpm --filter @curiouslycory/api test passes"
       ],
       "priority": 18,
-      "passes": true,
+      "passes": false,
       "notes": "The createTestCaller from US-015 already calls initFTS which creates the skills_fts virtual table and triggers. When you insert skills into the skills table, the triggers automatically populate skills_fts. Seed data by inserting directly into the skills table via drizzle, then query through the search router. better-sqlite3 includes FTS5 by default."
     },
     {
@@ -359,7 +359,7 @@
         "pnpm build passes"
       ],
       "priority": 19,
-      "passes": true,
+      "passes": false,
       "notes": "The web app has ZERO test infrastructure. This is foundational — all subsequent web test stories depend on it. Key gotchas: (1) Next.js App Router uses next/navigation NOT next/router — mock useRouter/useSearchParams/usePathname from next/navigation, (2) tRPC client needs a mock — create a wrapper that provides QueryClientProvider, (3) CSS modules may need identity-obj-proxy or similar mock. Keep the smoke test trivial to prove infrastructure works."
     },
     {
@@ -380,7 +380,7 @@
         "pnpm --filter @curiouslycory/web test passes"
       ],
       "priority": 20,
-      "passes": true,
+      "passes": false,
       "notes": "The SearchResults component is at apps/web/src/app/_components/search-results.tsx. It is a 'use client' component. It uses useSearchParams from next/navigation for URL state, trpc.search.query.useQuery for data, and sanitize-html for XSS protection. The parseTags and sanitizeSnippet functions can be tested as pure utilities. For the component tests, use the render helper from test-utils.tsx created in US-019."
     },
     {
@@ -400,7 +400,7 @@
         "pnpm --filter @curiouslycory/web test passes"
       ],
       "priority": 21,
-      "passes": true,
+      "passes": false,
       "notes": "FavoriteList is at apps/web/src/app/_components/favorite-list.tsx. It uses URL search params for state persistence (search, sort, order, page, type). The component has complex state management with multiple tRPC queries. Mock the tRPC hooks to return controlled data."
     },
     {
@@ -421,7 +421,7 @@
         "pnpm --filter @curiouslycory/web test passes"
       ],
       "priority": 22,
-      "passes": true,
+      "passes": false,
       "notes": "SkillList is at apps/web/src/app/_components/skill-list.tsx. It has parseTags and collectAllTags utility functions that can be tested in isolation. The component renders skill cards with tags parsed from JSON strings stored in the DB."
     }
   ]

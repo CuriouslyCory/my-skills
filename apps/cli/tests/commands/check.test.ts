@@ -208,12 +208,9 @@ describe("check command", () => {
     });
 
     it("handles non-Error thrown values", async () => {
-      vi.mocked(fetchRepo).mockImplementation(
-        () =>
-          new Promise((_resolve, reject) => {
-            reject("string error"); // eslint-disable-line @typescript-eslint/prefer-promise-reject-errors
-          }),
-      );
+      // Use mockRejectedValue to simulate non-Error rejection without
+      // constructing a Promise manually (which triggers prefer-promise-reject-errors)
+      vi.mocked(fetchRepo).mockRejectedValue("string error");
       mockManifest = makeManifest({
         "str-err": {
           source: "owner/repo",

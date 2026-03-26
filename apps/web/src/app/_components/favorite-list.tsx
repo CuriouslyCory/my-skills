@@ -88,12 +88,14 @@ export function FavoriteList() {
   const [search, setSearch] = useState(urlSearch);
   const debouncedSearch = useDebounce(search, 300);
 
-  // Sync URL search param changes back to local input state
-  useEffect(() => {
-    const s = searchParams.get("search") ?? "";
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional setState for syncing URL params to state
-    setSearch(s);
-  }, [searchParams]);
+  // Sync URL search param changes to local input state using React's
+  // recommended "adjusting state during render" pattern (not useEffect).
+  // See: https://react.dev/learn/you-might-not-need-an-effect#adjusting-state-when-a-prop-changes
+  const [prevUrlSearch, setPrevUrlSearch] = useState(urlSearch);
+  if (urlSearch !== prevUrlSearch) {
+    setPrevUrlSearch(urlSearch);
+    setSearch(urlSearch);
+  }
 
   // Update URL params helper
   const updateParams = useCallback(

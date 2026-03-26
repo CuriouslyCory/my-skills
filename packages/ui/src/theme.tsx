@@ -68,8 +68,8 @@ const getNextTheme = (current: ThemeMode): ThemeMode => {
     getSystemTheme() === "dark"
       ? ["auto", "light", "dark"]
       : ["auto", "dark", "light"];
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  return themes[(themes.indexOf(current) + 1) % themes.length]!;
+  // Modulo ensures valid index; fallback satisfies TypeScript's strict null check
+  return themes[(themes.indexOf(current) + 1) % themes.length] ?? "auto";
 };
 
 export const themeDetectorScript = (function () {
