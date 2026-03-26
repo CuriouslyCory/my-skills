@@ -22,6 +22,16 @@ Started: Tue Mar 25 03:48:00 PM MST 2026
 - API router tests: mock `../../lib/config-sync` to avoid filesystem writes from `syncConfigToFile`
 - API test-utils: `createTestCaller` returns `{ db, caller, rawDb, repoPath }` — use `rawDb.exec("DELETE FROM ...")` to reset between tests
 - SQLite `unixepoch()` defaults have 1-second granularity — don't assert ordering by timestamp when items are inserted in the same second
+- `config-sync.ts` computes `CONFIG_DIR`/`CONFIG_PATH` at module scope from `homedir()` — must mock `node:os` BEFORE any import chain touches it; use `vi.hoisted()` with `require()` (not ESM imports) to create temp dir synchronously
+- When testing `scanAndSync`, cast `db` with `as Parameters<typeof scanAndSync>[1]` — test drizzle instance from `createTestCaller` lacks `$client` property present on the real `@curiouslycory/db/client` export
+- Disk-sync tests share `repoPath` — clean up `skills/` and `artifacts/` dirs in `beforeEach` to prevent cross-test pollution
+- Web vitest config: uses `@vitejs/plugin-react` for JSX transform (Next.js uses `jsx: "preserve"` so vitest needs the plugin), `jsdom` environment, path alias `~` → `./src`, CSS disabled
+- Web test-utils: mocks `next/navigation` (useRouter, useSearchParams, usePathname), wraps with `QueryClientProvider` — import `{ render, screen }` from `~/test-utils`
+- Web packages: `@vitejs/plugin-react` resolved via `catalog:`, `vitest` pinned to `^3.2.3` to match other packages (sherif enforces consistency)
+- Web component tests: mock `~/trpc/react` useTRPC to return nested query options, mock `@tanstack/react-query` useQuery to return controlled data. Use `vi.mock("next/navigation")` with STABLE references (not `new URLSearchParams()` per call) to avoid re-render loops from `useSearchParams` effect deps
+- Web component tests: mock `next/link` as `<a href={href}>{children}</a>` for link assertions
+- Web component tests: test-utils.tsx's `vi.mock("next/navigation")` overrides test file mocks — to control navigation per-test, bypass test-utils by importing `@testing-library/react` directly with a local render wrapper
+- Web component tests: `useRouter()` mock MUST return a STABLE object — new objects per call break `useCallback` deps → cascading re-renders → broken controlled inputs
 
 ---
 
@@ -162,6 +172,17 @@ Started: Tue Mar 25 03:48:00 PM MST 2026
   - `console.warn` spy pattern: `vi.spyOn(console, "warn").mockImplementation(() => undefined)` — same pattern as CLI tests
 ---
 
+## 2026-03-25 - US-016
+- Implemented: Created `packages/api/src/router/__tests__/skill.test.ts` with 28 tests (skill router: list with category/tag filters, byId, create with disk write, update with disk write, delete with disk cleanup; artifact router: list excludes 'skill' category, create with valid categories, rejects 'skill' category, byId, update, delete with disk cleanup). Created `packages/api/src/router/__tests__/composition.test.ts` with 22 tests (create, byId with resolved fragments preserving order, list with outdated detection, update, delete, preview with merge ordering, exportMarkdown).
+- Files changed: `packages/api/src/router/__tests__/skill.test.ts` (new), `packages/api/src/router/__tests__/composition.test.ts` (new)
+- **Learnings for future iterations:**
+  - Use `as unknown as Parameters<typeof caller.artifact.create>[0]` to pass invalid enum values in tests — avoids `@typescript-eslint/no-unsafe-assignment` from `as any`
+  - Insert test data directly via `rawDb.exec` for setup when you don't want router side effects (like disk writes from skill.create)
+  - The artifact router uses `CATEGORY_DIR_MAP` for disk paths: agents → `artifacts/agents/`, prompts → `artifacts/prompts/`, claudemds → `artifacts/claudemds/`
+  - Composition `list` checks `outdated` by comparing fragment `updated_at` vs composition `updated_at` — update skills with `unixepoch() + N` offset to test this
+  - The `mergeFragments` function from `lib/merge.ts` is the engine behind both `preview` and `exportMarkdown` — it does heading-aware markdown merging
+---
+
 ## 2026-03-25 - US-015
 - Implemented: Created `packages/api/src/test-utils.ts` with `createTestCaller` that provisions an in-memory SQLite DB (all 5 tables + FTS5), wraps with drizzle, and returns a tRPC caller. Created `packages/api/src/router/__tests__/favorite.test.ts` with 23 tests covering: add (new, duplicate, skill-level, NULL skillName), remove (by ID, nonexistent), toggle (add/remove/boolean return), isFavorited (true/false/repo-vs-skill distinction), list (pagination, search by name/repoUrl, type filter, sort asc/desc, defaults), stats (counts, zeros, topRepos). Added `better-sqlite3` and `drizzle-orm` as devDeps to API package.
 - Files changed: `packages/api/src/test-utils.ts` (new), `packages/api/src/router/__tests__/favorite.test.ts` (new), `packages/api/package.json` (devDeps), `pnpm-lock.yaml`
@@ -172,4 +193,61 @@ Started: Tue Mar 25 03:48:00 PM MST 2026
   - SQLite `unixepoch()` has 1-second resolution — items inserted in the same second have identical timestamps, so don't assert ordering by addedAt
   - `createTestCaller` needs explicit return type annotation (`Promise<TestContext>`) to avoid TS2742/TS4058 errors about unportable inferred types from `@trpc/server` internals
   - Use `(added as { id: string }).id` pattern instead of `added!.id` to satisfy `@typescript-eslint/no-non-null-assertion`
+---
+
+## 2026-03-25 - US-017
+- Implemented: Created `packages/api/src/lib/__tests__/disk-sync.test.ts` with 8 tests covering scanAndSync: adds new skills to DB, updates existing on content change, removes stale DB entries not on disk, handles invalid frontmatter (skips), empty skills dir (zero counts), nonexistent skills dir (zero counts), artifacts from category subdirectories (agent/prompt), and mixed add/update/remove in one pass. Created `packages/api/src/lib/__tests__/config-sync.test.ts` with 6 tests covering syncConfigToFile: default config on empty DB, config assembly from DB rows, defaultAgents JSON parsing, invalid JSON fallback, favorite repos from favorites table (repo type only), and invalid symlinkBehavior ignored.
+- Files changed: `packages/api/src/lib/__tests__/disk-sync.test.ts` (new), `packages/api/src/lib/__tests__/config-sync.test.ts` (new)
+- **Learnings for future iterations:**
+  - `config-sync.ts` has `CONFIG_DIR = join(homedir(), ".my-skills")` computed at module scope — mock `node:os` homedir BEFORE any import chain triggers that module load. Use `vi.hoisted()` with `require()` calls (not ESM imports) to create a temp dir synchronously.
+  - ESM imports are NOT available inside `vi.hoisted()` callbacks — use `require("node:fs")`, `require("node:os")`, etc. instead
+  - The test drizzle instance from `createTestCaller` has type `BetterSQLite3Database<typeof schema>` but `scanAndSync` expects `typeof dbInstance` which includes `$client: Database`. Cast with `as Parameters<typeof scanAndSync>[1]` to satisfy TypeScript.
+  - Disk-sync tests share a `repoPath` temp dir — must clean up `skills/` and `artifacts/` directories in `beforeEach` to prevent leaked state from prior tests affecting counts
+  - `CATEGORY_DIR_MAP` maps `agent` → `"agents"`, `prompt` → `"prompts"`, `claudemd` → `"claudemds"` — artifact dirs are `artifacts/<map value>/<name>/SKILL.md`
+---
+
+## 2026-03-25 - US-018
+- Implemented: Created `packages/api/src/router/__tests__/search.test.ts` with 16 tests covering: empty query (returns recent items, category filter, non-existent category), FTS match (search term with snippets/mark tags, matches across fields, prefix matching, category filter with FTS), pagination (limit, offset, limit+offset together), result shape (camelCase field mapping, snippet with mark tags, null snippet for empty queries), edge cases (empty DB, whitespace-only query, multi-word search).
+- Files changed: `packages/api/src/router/__tests__/search.test.ts` (new)
+- **Learnings for future iterations:**
+  - FTS5 triggers auto-populate `skills_fts` when inserting into `skills` table — no manual FTS insert needed
+  - The search router uses raw SQL with `ctx.db.all()` for FTS queries (not drizzle query builder) — returns snake_case columns that are manually mapped to camelCase
+  - `snippet(skills_fts, -1, '<mark>', '</mark>', '...', 48)` generates highlighted snippets — the `-1` means match any column
+  - Whitespace-only queries are treated as empty queries (returns all recent items) due to the `!query || query.trim() === ""` check
+  - Seed test data with `rawDb.exec(INSERT ...)` to avoid router side effects (like disk writes from skill.create)
+---
+
+## 2026-03-25 - US-019
+- Implemented: Set up vitest + testing-library infrastructure for the web app. Created `apps/web/vitest.config.ts` (jsdom environment, `@vitejs/plugin-react` for JSX, path alias `~` → `./src`, CSS disabled). Created `apps/web/src/test-setup.ts` (imports `@testing-library/jest-dom/vitest` for extended matchers). Created `apps/web/src/test-utils.tsx` (mocks `next/navigation`, wraps with `QueryClientProvider`, exports custom `render`, `screen`, `userEvent`, etc.). Added `test` script to package.json. Created smoke test at `apps/web/src/app/_components/__tests__/smoke.test.tsx`.
+- Files changed: `apps/web/vitest.config.ts` (new), `apps/web/src/test-setup.ts` (new), `apps/web/src/test-utils.tsx` (new), `apps/web/src/app/_components/__tests__/smoke.test.tsx` (new), `apps/web/package.json` (added devDeps + test script), `pnpm-lock.yaml`
+- **Learnings for future iterations:**
+  - Next.js uses `jsx: "preserve"` in tsconfig — vitest needs `@vitejs/plugin-react` to handle JSX transform (without it, "React is not defined" error)
+  - `@vitejs/plugin-react` resolves via `catalog:` in this monorepo (pnpm workspace catalogs)
+  - `vitest` version must be `^3.2.3` to match other packages — sherif enforces version consistency across workspaces
+  - The `import/consistent-type-specifier-style` ESLint rule requires top-level `import type` instead of inline `type` in import specifiers
+  - `@testing-library/jest-dom/vitest` (not `/extend-expect`) is the correct import for vitest integration
+  - `next/navigation` (not `next/router`) is what Next.js App Router uses — mock `useRouter`, `useSearchParams`, `usePathname`
+---
+
+## 2026-03-25 - US-020
+- Implemented: Created `apps/web/src/app/_components/__tests__/search-results.test.tsx` with 16 tests covering: parseTags (valid JSON array renders tags, invalid JSON renders no tags), component rendering (search input, category filter select with all options), empty state (no results message), loading skeleton (animate-pulse elements), result cards (name/description/category badge), link routing (skill → `/skills/:id`, artifact → `/artifacts/:category/:id`), snippet rendering (dangerouslySetInnerHTML with mark tags), tag badges on cards, search input interactivity (type and controlled value), queryOptions integration (called with query/category), multiple results, null category handling.
+- Files changed: `apps/web/src/app/_components/__tests__/search-results.test.tsx` (new)
+- **Learnings for future iterations:**
+  - `useSearchParams` mock must return a STABLE reference — `new URLSearchParams()` per call creates a new object each render, triggering the `[searchParams]` effect which resets controlled input state to `""`
+  - Mock `next/link` as `<a href={href}>{children}</a>` for testing link `href` attributes
+  - Mock `@tanstack/react-query` useQuery with `importOriginal` spread — need `eslint-disable @typescript-eslint/no-unsafe-return` for the wrapper function
+  - The component uses `useTRPC().search.query.queryOptions(...)` with `useQuery` — mock both: `useTRPC` returns nested object, `useQuery` returns `{ data, isLoading }`
+  - `dangerouslySetInnerHTML` content can be asserted via `screen.getByText` with a custom matcher checking `element?.innerHTML`
+  - The PRD mentions `sanitizeSnippet` and `sanitize-html` but the component doesn't use them — test what actually exists
+---
+
+## 2026-03-25 - US-021
+- Implemented: Created `apps/web/src/app/_components/__tests__/favorite-list.test.tsx` with 21 tests covering: render with data (table items with name/type badge/repo URL, skill name column, null skill name dash, date formatting), search input (placeholder, typing updates value), type filter buttons (All/Repos/Skills rendered, clicking Repos/Skills calls router.replace with correct type param), pagination (page indicator, Previous disabled on first page, multi-page count), empty state (no favorites message, Add Favorite button, "No results." when filter active), remove action (Remove button per row, confirmation dialog opens, Cancel/Remove in dialog, confirming calls mutate with correct id), query options (correct params passed, type filter forwarded).
+- Files changed: `apps/web/src/app/_components/__tests__/favorite-list.test.tsx` (new)
+- **Learnings for future iterations:**
+  - The `vi.mock("next/navigation")` in test-utils.tsx OVERRIDES any `vi.mock("next/navigation")` in test files — test-utils is imported later, so its mock wins. To control navigation mocks per-test, either: (a) use `vi.mocked()` if test-utils uses `vi.fn()` wrappers, or (b) bypass test-utils by importing `@testing-library/react` directly and creating a local render wrapper
+  - FavoriteList uses `useSuspenseQuery` (not `useQuery`) — mock must return `{ data: { items, totalCount } }` synchronously (no loading state needed since Suspense handles it)
+  - The `useRouter()` mock MUST return a stable object reference — returning `{ replace: vi.fn() }` per call creates a new object each render, causing `useCallback` deps to change and cascading re-renders that break controlled input state
+  - AlertDialog from Radix UI works in jsdom — clicking the trigger button opens the dialog content, no special portal mocking needed
+  - Mock `AddFavoriteDialog` as a simple button to isolate FavoriteList tests from its tRPC dependencies
 ---

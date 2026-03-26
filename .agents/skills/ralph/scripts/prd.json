@@ -302,7 +302,7 @@
         "pnpm --filter @curiouslycory/api test passes"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "This is the largest API test story. The skill and artifact routers share the skills table (differentiated by category column). The composition router stores fragment IDs referencing skills. Seed test skills first, then test compositions that reference them. The skill.create mutation writes SKILL.md files — provide a valid repoPath temp dir."
     },
     {
@@ -320,7 +320,7 @@
         "pnpm --filter @curiouslycory/api test passes"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "disk-sync reads from the filesystem (skills/ and artifacts/ directories with SKILL.md files) and syncs to the database. Create real directory structures in temp dirs. config-sync reads from DB and writes to ~/.my-skills/config.json — redirect to a temp path for testing."
     },
     {
@@ -340,7 +340,7 @@
         "pnpm --filter @curiouslycory/api test passes"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "The createTestCaller from US-015 already calls initFTS which creates the skills_fts virtual table and triggers. When you insert skills into the skills table, the triggers automatically populate skills_fts. Seed data by inserting directly into the skills table via drizzle, then query through the search router. better-sqlite3 includes FTS5 by default."
     },
     {
@@ -359,7 +359,7 @@
         "pnpm build passes"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "The web app has ZERO test infrastructure. This is foundational — all subsequent web test stories depend on it. Key gotchas: (1) Next.js App Router uses next/navigation NOT next/router — mock useRouter/useSearchParams/usePathname from next/navigation, (2) tRPC client needs a mock — create a wrapper that provides QueryClientProvider, (3) CSS modules may need identity-obj-proxy or similar mock. Keep the smoke test trivial to prove infrastructure works."
     },
     {
@@ -380,7 +380,7 @@
         "pnpm --filter @curiouslycory/web test passes"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "The SearchResults component is at apps/web/src/app/_components/search-results.tsx. It is a 'use client' component. It uses useSearchParams from next/navigation for URL state, trpc.search.query.useQuery for data, and sanitize-html for XSS protection. The parseTags and sanitizeSnippet functions can be tested as pure utilities. For the component tests, use the render helper from test-utils.tsx created in US-019."
     },
     {
@@ -400,7 +400,7 @@
         "pnpm --filter @curiouslycory/web test passes"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "FavoriteList is at apps/web/src/app/_components/favorite-list.tsx. It uses URL search params for state persistence (search, sort, order, page, type). The component has complex state management with multiple tRPC queries. Mock the tRPC hooks to return controlled data."
     },
     {
