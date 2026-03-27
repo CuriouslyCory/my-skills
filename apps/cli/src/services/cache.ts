@@ -6,6 +6,7 @@ import { parseSkillFrontmatter } from "@curiouslycory/shared-types";
 
 import type { GitHubSource } from "./source-parser.js";
 import { loadConfig } from "../core/config.js";
+import { loadManifest } from "../core/manifest.js";
 
 const META_FILENAME = ".my-skills-cache-meta.json";
 const DEFAULT_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -18,6 +19,8 @@ export interface DiscoveredSkill {
   name: string;
   description: string;
   path: string;
+  /** If set, install this skill from the originating source rather than the browsed repo */
+  overrideSource?: { source: string; sourceType: string };
 }
 
 export async function getCachePath(source: GitHubSource): Promise<string> {
@@ -85,6 +88,11 @@ export async function discoverSkills(
 ): Promise<DiscoveredSkill[]> {
   const skills: DiscoveredSkill[] = [];
   await walkForSkills(repoPath, repoPath, skills);
+
+  // Also surface skills from .my-skills.json that live in .agents/ or .claude/
+  const manifestSkills = await discoverManifestReferencedSkills(repoPath, skills);
+  skills.push(...manifestSkills);
+
   return skills;
 }
 
@@ -104,7 +112,8 @@ async function walkForSkills(
     if (
       entry.name === "node_modules" ||
       entry.name === ".git" ||
-      entry.name === ".agents"
+      entry.name === ".agents" ||
+      entry.name === ".claude"
     )
       continue;
 
@@ -128,4 +137,53 @@ async function walkForSkills(
       await walkForSkills(basePath, fullPath, results);
     }
   }
+}
+
+/**
+ * Discover skills referenced in a repo's .my-skills.json that are physically
+ * present in .agents/skills/ or .claude/skills/ but were excluded from the
+ * normal directory walk. Returns them with overrideSource set so the caller
+ * can install from the originating repo instead of the browsed repo.
+ */
+async function discoverManifestReferencedSkills(
+  repoPath: string,
+  alreadyFound: DiscoveredSkill[],
+): Promise<DiscoveredSkill[]> {
+  const manifest = await loadManifest(repoPath);
+  if (!manifest) return [];
+
+  const alreadyFoundNames = new Set(alreadyFound.map((s) => s.name));
+  const results: DiscoveredSkill[] = [];
+
+  for (const [skillName, entry] of Object.entries(manifest.skills)) {
+    if (alreadyFoundNames.has(skillName)) continue;
+    if (entry.sourceType !== "github") continue; // only github supported for now
+
+    // Look for the physical SKILL.md in .agents/skills/ or .claude/skills/
+    const candidatePaths = [
+      join(repoPath, ".agents", "skills", skillName),
+      join(repoPath, ".claude", "skills", skillName),
+    ];
+
+    for (const candidatePath of candidatePaths) {
+      try {
+        const content = await readFile(
+          join(candidatePath, "SKILL.md"),
+          "utf-8",
+        );
+        const { frontmatter } = parseSkillFrontmatter(content);
+        results.push({
+          name: frontmatter.name,
+          description: frontmatter.description,
+          path: candidatePath,
+          overrideSource: { source: entry.source, sourceType: entry.sourceType },
+        });
+        break; // found it; no need to check the other candidate path
+      } catch {
+        // not present at this path; try next
+      }
+    }
+  }
+
+  return results;
 }
