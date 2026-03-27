@@ -28,6 +28,7 @@ import { migrateFromSkillsLock } from "../core/migration.js";
 import { computeSkillHash } from "../core/skill-hasher.js";
 import { installSkill } from "../core/skill-installer.js";
 import { resolveSkill } from "../core/skill-resolver.js";
+import type { DiscoveredSkill } from "../services/cache.js";
 import { discoverSkills, fetchRepo } from "../services/cache.js";
 import { parseSource } from "../services/source-parser.js";
 
@@ -400,7 +401,12 @@ export function registerAddCommand(program: Command): void {
           ),
         );
         for (const s of discovered) {
-          console.log(`  ${chalk.green(s.name)}  ${chalk.dim(s.description)}`);
+          const sourceLabel = s.overrideSource
+            ? chalk.blue(` [from ${s.overrideSource.source}]`)
+            : "";
+          console.log(
+            `  ${chalk.green(s.name)}  ${chalk.dim(s.description)}${sourceLabel}`,
+          );
         }
         console.log("");
         return;
@@ -412,9 +418,12 @@ export function registerAddCommand(program: Command): void {
 
       // Determine which skills to install
       let skillNames: string[];
+      // Tracks discovered skill metadata by name; used during install to resolve
+      // overrideSource for skills that came from a repo's .my-skills.json.
+      let discoveredMap: Map<string, DiscoveredSkill> | undefined;
 
       if (githubSource.skill) {
-        // Direct skill name in source (owner/repo/skill-name)
+        // Direct skill name in source (owner/repo/skill-name) — no discovery needed
         skillNames = [githubSource.skill];
       } else if (opts.skill) {
         // --skill flag provided
@@ -425,6 +434,7 @@ export function registerAddCommand(program: Command): void {
             console.log(chalk.red("No skills found in this repository."));
             return;
           }
+          discoveredMap = new Map(discovered.map((s) => [s.name, s]));
           skillNames = discovered.map((s) => s.name);
         } else {
           skillNames = parseSkillNames(opts.skill);
@@ -440,6 +450,8 @@ export function registerAddCommand(program: Command): void {
           return;
         }
 
+        discoveredMap = new Map(discovered.map((s) => [s.name, s]));
+
         if (discovered.length === 1) {
           const onlySkill = discovered[0];
           skillNames = onlySkill ? [onlySkill.name] : [];
@@ -453,7 +465,9 @@ export function registerAddCommand(program: Command): void {
           const selectedNames = await checkbox({
             message: `Select skills to install:${repoLabel}`,
             choices: discovered.map((s) => ({
-              name: `${s.name} - ${chalk.dim(s.description)}`,
+              name: s.overrideSource
+                ? `${s.name} - ${chalk.dim(s.description)} ${chalk.blue(`[from ${s.overrideSource.source}]`)}`
+                : `${s.name} - ${chalk.dim(s.description)}`,
               value: s.name,
             })),
           });
@@ -478,10 +492,39 @@ export function registerAddCommand(program: Command): void {
           continue;
         }
 
+        // Resolve effective source — manifest-referenced skills install from their
+        // originating repo rather than the browsed repo.
+        const discoveredSkill = discoveredMap?.get(skillName);
+        let effectiveSource = githubSource;
+        let effectiveCachePath = cachePath;
+
+        if (discoveredSkill?.overrideSource) {
+          effectiveSource = sourceToGitHub(discoveredSkill.overrideSource.source);
+          const fetchSpinner = ora(
+            `Fetching originating repo ${effectiveSource.owner}/${effectiveSource.repo}...`,
+          ).start();
+          try {
+            effectiveCachePath = await fetchRepo(effectiveSource);
+            fetchSpinner.succeed(
+              `Fetched ${effectiveSource.owner}/${effectiveSource.repo}`,
+            );
+          } catch (err) {
+            fetchSpinner.fail(
+              `Failed to fetch ${effectiveSource.owner}/${effectiveSource.repo}`,
+            );
+            console.error(
+              chalk.red(
+                err instanceof Error ? err.message : "Unknown error occurred",
+              ),
+            );
+            continue;
+          }
+        }
+
         manifest = await installSingleSkill(
           skillName,
-          githubSource,
-          cachePath,
+          effectiveSource,
+          effectiveCachePath,
           targetDir,
           projectRoot,
           manifest,
