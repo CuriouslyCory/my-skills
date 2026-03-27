@@ -101,7 +101,12 @@ async function walkForSkills(
   }
 
   for (const entry of entries) {
-    if (entry.name === "node_modules" || entry.name === ".git") continue;
+    if (
+      entry.name === "node_modules" ||
+      entry.name === ".git" ||
+      entry.name === ".agents"
+    )
+      continue;
 
     const fullPath = join(currentPath, entry.name);
 

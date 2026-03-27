@@ -124,7 +124,9 @@ export async function restoreFromManifest(
             content: "",
             files: [],
           });
-          console.log(chalk.dim(`  ${skillName} - already up to date`));
+          console.log(
+            chalk.dim(`  ${skillName} - already up to date (${entry.source})`),
+          );
           upToDate++;
           continue;
         }
@@ -152,7 +154,9 @@ export async function restoreFromManifest(
       // Create symlinks for each enabled agent
       await runAdapterInstalls(projectRoot, entry.agents ?? agents, resolved);
 
-      spinner.succeed(`Installed ${skillName}`);
+      spinner.succeed(
+        `Installed ${chalk.bold(skillName)} ${chalk.dim(`(${entry.source})`)}`,
+      );
       installed++;
     } catch (err) {
       spinner.fail(
