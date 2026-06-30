@@ -17,3 +17,17 @@ No plan is complete without testing steps. pnpm lint, pnpm typecheck, and pnpm b
 Lean on dedicated tools — Read, Glob, Grep unless the Bash command provides necessary benefit.
 
 Ralph lives at .agents/skills/ralph/scripts/ralph.sh
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in this repo's GitHub Issues, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical triage roles, each mapped to a label string of the same name. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Multi-context layout: `CONTEXT-MAP.md` at the root pointing to per-context `CONTEXT.md` files. See `docs/agents/domain.md`.
