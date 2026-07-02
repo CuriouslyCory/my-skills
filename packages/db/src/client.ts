@@ -1,14 +1,15 @@
 import { existsSync, mkdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
+import type BetterSqlite3 from "better-sqlite3";
 import { neon } from "@neondatabase/serverless";
-import Database from "better-sqlite3";
 import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
 
+import type { Database as AppDatabase } from "./types";
 import { initFTS } from "./fts";
 import * as pgSchema from "./schema.pg";
 import * as sqliteSchema from "./schema.sqlite";
-import type { Database as AppDatabase } from "./types";
 import { resolveDialect } from "./types";
 
 /**
@@ -16,6 +17,27 @@ import { resolveDialect } from "./types";
  * Defaults to `sqlite` when unset.
  */
 export const dbDialect = resolveDialect();
+
+// The `better-sqlite3` constructor type, built from a type-only import so no
+// runtime import of the native module is emitted (only the lazy `require` below
+// loads it). We reconstruct the `new (...)` signature because the package's
+// `DatabaseConstructor` type is not reachable through the default type import.
+type SqliteDriver = new (
+  filename?: string | Buffer,
+  options?: BetterSqlite3.Options,
+) => BetterSqlite3.Database;
+
+/**
+ * Loads the `better-sqlite3` native driver lazily, only when the SQLite path is
+ * actually taken. Importing it at module top level would pull in the native
+ * addon in every mode (including `postgres`), which breaks serverless builds
+ * (Vercel) where the addon is neither built nor needed. Using `createRequire`
+ * keeps the load synchronous so the exported `db` stays a synchronous value.
+ */
+function loadSqliteDriver(): SqliteDriver {
+  const require = createRequire(import.meta.url);
+  return require("better-sqlite3") as SqliteDriver;
+}
 
 function createSqliteClient(): AppDatabase {
   const dbPath = resolve(process.env.DB_PATH ?? "./data/my-skills.db");
@@ -25,6 +47,7 @@ function createSqliteClient(): AppDatabase {
     mkdirSync(dir, { recursive: true });
   }
 
+  const Database = loadSqliteDriver();
   const sqlite = new Database(dbPath);
   sqlite.pragma("journal_mode = WAL");
 
