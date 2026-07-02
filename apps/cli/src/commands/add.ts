@@ -17,7 +17,8 @@ import type { AdapterSkillEntry } from "../adapters/index.js";
 import type { GitHubSource } from "../services/source-parser.js";
 import { sourceToGitHub } from "../services/source-parser.js";
 import { getEnabledAdapters, resolveAgents } from "../adapters/index.js";
-import { loadConfig, saveConfig } from "../core/config.js";
+import { loadConfig } from "../core/config.js";
+import { addRepoFavorite } from "../core/favorites.js";
 import {
   addSkill,
   getSkill,
@@ -532,15 +533,11 @@ export function registerAddCommand(program: Command): void {
         );
       }
 
-      // Add repo to favorites if --favorite flag is present
-      if (opts.favorite && !config.favoriteRepos.includes(githubSource.url)) {
-        config.favoriteRepos.push(githubSource.url);
-        await saveConfig(config);
-        console.log(
-          chalk.yellow(
-            `★ Added ${githubSource.owner}/${githubSource.repo} to favorites`,
-          ),
-        );
+      // Add repo to favorites if --favorite flag is present. Resolves the same
+      // source `ms fav` uses: the account when authenticated, local config
+      // otherwise.
+      if (opts.favorite) {
+        await addRepoFavorite(githubSource, config);
       }
     });
 }
