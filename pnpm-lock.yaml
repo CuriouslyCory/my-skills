@@ -125,6 +125,9 @@ importers:
       '@inquirer/search':
         specifier: ^3.0.12
         version: 3.2.2(@types/node@22.18.12)
+      '@trpc/client':
+        specifier: 'catalog:'
+        version: 11.7.1(@trpc/server@11.7.1(typescript@5.9.3))(typescript@5.9.3)
       chalk:
         specifier: ^5.4.1
         version: 5.6.2
@@ -143,7 +146,16 @@ importers:
       smol-toml:
         specifier: ^1.6.0
         version: 1.6.0
+      superjson:
+        specifier: 2.2.3
+        version: 2.2.3
+      zod:
+        specifier: 'catalog:'
+        version: 4.1.12
     devDependencies:
+      '@curiouslycory/api':
+        specifier: workspace:*
+        version: link:../../packages/api
       '@curiouslycory/eslint-config':
         specifier: workspace:*
         version: link:../../tooling/eslint

@@ -33,7 +33,11 @@ export function middleware(request: NextRequest) {
   // The session is fully validated server-side in the tRPC context / RSCs.
   const sessionCookie = getSessionCookie(request);
   if (!sessionCookie) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    // Preserve the intended destination so the user returns here after signing
+    // in (used by the `/cli-auth` device-authorization flow, among others).
+    loginUrl.searchParams.set("redirect", pathname + request.nextUrl.search);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

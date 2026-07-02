@@ -15,6 +15,7 @@ const DEFAULT_CONFIG: Config = {
   skillsDir: ".agents/skills",
   autoDetectAgents: true,
   symlinkBehavior: "copy",
+  serverUrl: "https://my-skills.dev",
 };
 
 export async function loadConfig(): Promise<Config> {
@@ -36,6 +37,9 @@ export async function loadConfig(): Promise<Config> {
   }
   if (process.env.MY_SKILLS_SKILLS_DIR) {
     config.skillsDir = process.env.MY_SKILLS_SKILLS_DIR;
+  }
+  if (process.env.MY_SKILLS_SERVER_URL) {
+    config.serverUrl = process.env.MY_SKILLS_SERVER_URL;
   }
 
   return config;
