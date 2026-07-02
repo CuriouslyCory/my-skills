@@ -24,6 +24,7 @@ export const favorites = active.favorites;
 export const compositions = active.compositions;
 export const config = active.config;
 export const apiTokens = active.apiTokens;
+export const publishTargets = active.publishTargets;
 
 // better-auth core tables, bridged through the same dialect switch.
 export const user = active.user;

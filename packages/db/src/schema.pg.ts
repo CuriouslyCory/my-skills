@@ -149,6 +149,43 @@ export const apiTokens = pgTable(
 );
 
 /**
+ * Publish targets (#29).
+ *
+ * Postgres mirror of `publish_targets` in `schema.sqlite.ts`. One row per user
+ * (`unique(user_id)`); `artifact_state` is JSON `{ [name]: sha256hex }` driving
+ * idempotent re-publish. Scoped per user via `user_id`, per #21.
+ */
+export const publishTargets = pgTable(
+  "publish_targets",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    repoName: text("repo_name").notNull(),
+    repoOwner: text("repo_owner"),
+    visibility: text("visibility").notNull().default("public"),
+    selection: text("selection").notNull().default("[]"),
+    lastCommitSha: text("last_commit_sha"),
+    lastPublishedAt: timestamp("last_published_at", {
+      mode: "date",
+      withTimezone: true,
+    }),
+    artifactState: text("artifact_state").notNull().default("{}"),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  (table) => [unique().on(table.userId)],
+);
+
+/**
  * better-auth core tables (user, session, account, verification).
  *
  * Postgres mirror of the same tables in `schema.sqlite.ts`. Property keys are

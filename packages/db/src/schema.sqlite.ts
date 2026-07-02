@@ -143,6 +143,43 @@ export const apiTokens = sqliteTable(
 );
 
 /**
+ * Publish targets (#29).
+ *
+ * Persists a user's single "publish my library to a public GitHub repo" target:
+ * the destination repo, visibility, which artifacts are selected, and the state
+ * of the last publish (commit SHA, timestamp, and a per-artifact content-hash map
+ * used for idempotency). `artifact_state` is JSON `{ [name]: sha256hex }`; a
+ * re-publish only commits when the desired hashes differ from this map. One row
+ * per user (`unique(user_id)`), scoped per #21.
+ */
+export const publishTargets = sqliteTable(
+  "publish_targets",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    repoName: text("repo_name").notNull(),
+    repoOwner: text("repo_owner"),
+    visibility: text("visibility").notNull().default("public"),
+    selection: text("selection").notNull().default("[]"),
+    lastCommitSha: text("last_commit_sha"),
+    lastPublishedAt: integer("last_published_at", { mode: "timestamp" }),
+    artifactState: text("artifact_state").notNull().default("{}"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`)
+      .$onUpdateFn(() => new Date()),
+  },
+  (table) => [unique().on(table.userId)],
+);
+
+/**
  * better-auth core tables (user, session, account, verification).
  *
  * Property keys are camelCase to match better-auth's model field names (the
