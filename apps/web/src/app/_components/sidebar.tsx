@@ -12,6 +12,7 @@ import {
   StarFilledIcon,
 } from "@radix-ui/react-icons";
 
+import type { DeployMode } from "@curiouslycory/api";
 import { cn } from "@curiouslycory/ui";
 
 const navItems = [
@@ -20,17 +21,30 @@ const navItems = [
   { href: "/artifacts", label: "Artifacts", icon: FileTextIcon },
   { href: "/compositions", label: "Compositions", icon: MixIcon },
   { href: "/favorites", label: "Favorites", icon: StarFilledIcon },
-  { href: "/git", label: "Git", icon: GitHubLogoIcon },
+  { href: "/git", label: "Git", icon: GitHubLogoIcon, localOnly: true },
   { href: "/settings", label: "Settings", icon: GearIcon },
 ] as const;
+
+// Git is filesystem-coupled and only available in local (self-hosted) mode (#26).
+function visibleNavItems(deployMode: DeployMode) {
+  if (deployMode === "local") return navItems;
+  return navItems.filter((item) => !("localOnly" in item));
+}
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   return pathname.startsWith(href);
 }
 
-export function Sidebar({ className }: { className?: string }) {
+export function Sidebar({
+  className,
+  deployMode,
+}: {
+  className?: string;
+  deployMode: DeployMode;
+}) {
   const pathname = usePathname();
+  const items = visibleNavItems(deployMode);
 
   return (
     <aside
@@ -45,7 +59,7 @@ export function Sidebar({ className }: { className?: string }) {
         </Link>
       </div>
       <nav className="flex-1 space-y-1 p-2">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <Link
@@ -71,11 +85,14 @@ export function Sidebar({ className }: { className?: string }) {
 export function MobileSidebar({
   open,
   onClose,
+  deployMode,
 }: {
   open: boolean;
   onClose: () => void;
+  deployMode: DeployMode;
 }) {
   const pathname = usePathname();
+  const items = visibleNavItems(deployMode);
 
   if (!open) return null;
 
@@ -98,7 +115,7 @@ export function MobileSidebar({
           </Link>
         </div>
         <nav className="flex-1 space-y-1 p-2">
-          {navItems.map((item) => {
+          {items.map((item) => {
             const active = isActive(pathname, item.href);
             return (
               <Link

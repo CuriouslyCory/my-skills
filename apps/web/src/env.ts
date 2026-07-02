@@ -18,6 +18,11 @@ export const env = createEnv({
   server: {
     REPO_PATH: z.string().optional(),
     PORT: z.coerce.number().optional(),
+    // Deployment mode (#26). `local` (default) is the filesystem-coupled
+    // self-hosted experience; `hosted` makes the database canonical and disables
+    // disk sync, config-file sync, and the git page. #27 sets this to `hosted`
+    // in the Vercel/Neon production deployment.
+    DEPLOY_MODE: z.enum(["local", "hosted"]).default("local"),
   },
 
   /**

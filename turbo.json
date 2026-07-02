@@ -53,6 +53,7 @@
     "DB_DIALECT",
     "DB_PATH",
     "POSTGRES_URL",
+    "DEPLOY_MODE",
     "AUTH_SECRET",
     "PORT",
     "ADMIN_USER",

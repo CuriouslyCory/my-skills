@@ -13,6 +13,7 @@ import { z, ZodError } from "zod/v4";
 import type { Session } from "@curiouslycory/auth";
 import { db } from "@curiouslycory/db/client";
 
+import { isLocalMode } from "./lib/deploy-mode";
 import { resolveTokenSession } from "./lib/token-auth";
 
 /**
@@ -134,3 +135,35 @@ export const protectedProcedure = t.procedure
       },
     });
   });
+
+/**
+ * Local-only middleware (#26).
+ *
+ * Filesystem-coupled features (the git router) assume a local repo checkout and
+ * are disabled in hosted mode where the app runs on ephemeral/serverless
+ * infrastructure with no working tree. This is a pass-through in local mode, so
+ * local behavior is unchanged; in hosted mode it rejects with
+ * `PRECONDITION_FAILED`.
+ */
+const localOnlyMiddleware = t.middleware(({ next }) => {
+  if (!isLocalMode()) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "This feature is only available in local (self-hosted) mode.",
+    });
+  }
+  return next();
+});
+
+/**
+ * Public procedure restricted to local mode. Used by the git router, which is
+ * filesystem-coupled and turned off in hosted deployments.
+ */
+export const localOnlyPublicProcedure = publicProcedure.use(localOnlyMiddleware);
+
+/**
+ * Protected procedure restricted to local mode. Used by git mutations that both
+ * require a session and are filesystem-coupled.
+ */
+export const localOnlyProtectedProcedure =
+  protectedProcedure.use(localOnlyMiddleware);

@@ -11,6 +11,7 @@ import {
   CATEGORY_DIR_MAP,
 } from "@curiouslycory/shared-types";
 
+import { isLocalMode } from "../lib/deploy-mode";
 import { scanAndSync } from "../lib/disk-sync";
 import { protectedProcedure } from "../trpc";
 
@@ -96,20 +97,27 @@ export const artifactRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const artifactDir = getArtifactDir(ctx.repoPath, input.category);
-      const dirPath = join(artifactDir, input.name);
+      // Hosted mode is database-canonical: no SKILL.md is written and `dirPath`
+      // stays null. Local mode mirrors the artifact to disk under artifacts/.
+      let dirPath: string | null = null;
+      if (isLocalMode()) {
+        const artifactDir = getArtifactDir(ctx.repoPath, input.category);
+        const absDirPath = join(artifactDir, input.name);
 
-      await mkdir(dirPath, { recursive: true });
+        await mkdir(absDirPath, { recursive: true });
 
-      const frontmatter = {
-        name: input.name,
-        description: input.description,
-        ...(input.author ? { author: input.author } : {}),
-        ...(input.version ? { version: input.version } : {}),
-      };
+        const frontmatter = {
+          name: input.name,
+          description: input.description,
+          ...(input.author ? { author: input.author } : {}),
+          ...(input.version ? { version: input.version } : {}),
+        };
 
-      const fileContent = buildSkillContent(frontmatter, input.content);
-      await writeFile(join(dirPath, "SKILL.md"), fileContent, "utf-8");
+        const fileContent = buildSkillContent(frontmatter, input.content);
+        await writeFile(join(absDirPath, "SKILL.md"), fileContent, "utf-8");
+
+        dirPath = relative(ctx.repoPath, absDirPath);
+      }
 
       const [row] = await ctx.db
         .insert(skills)
@@ -121,7 +129,7 @@ export const artifactRouter = {
           author: input.author ?? null,
           version: input.version ?? null,
           content: input.content,
-          dirPath: relative(ctx.repoPath, dirPath),
+          dirPath,
           category: input.category,
         })
         .returning();
@@ -157,7 +165,8 @@ export const artifactRouter = {
       const updatedAuthor = input.author ?? existing.author;
       const updatedVersion = input.version ?? existing.version;
 
-      if (existing.dirPath) {
+      // Write to disk only in local mode and when the row is disk-backed.
+      if (isLocalMode() && existing.dirPath) {
         const dirPath = join(ctx.repoPath, existing.dirPath);
         const frontmatter = {
           name: updatedName,
@@ -202,7 +211,8 @@ export const artifactRouter = {
         throw new Error(`Artifact not found: ${input.id}`);
       }
 
-      if (existing.dirPath) {
+      // Remove from disk only in local mode and when the row is disk-backed.
+      if (isLocalMode() && existing.dirPath) {
         const dirPath = join(ctx.repoPath, existing.dirPath);
         if (existsSync(dirPath)) {
           await rm(dirPath, { recursive: true, force: true });
@@ -217,6 +227,10 @@ export const artifactRouter = {
     }),
 
   syncFromDisk: protectedProcedure.mutation(async ({ ctx }) => {
+    // Disk sync is a local-mode-only concern; hosted mode has nothing to scan.
+    if (!isLocalMode()) {
+      return { added: 0, updated: 0, removed: 0 };
+    }
     return scanAndSync(ctx.repoPath, ctx.db, ctx.session.user.id);
   }),
 } satisfies TRPCRouterRecord;
