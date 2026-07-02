@@ -8,7 +8,12 @@ import type { AgentId, Manifest } from "@curiouslycory/shared-types";
 
 import type { GitHubSource } from "../services/source-parser.js";
 import { resolveAgents } from "../adapters/index.js";
+import { friendlyApiErrorMessage } from "../core/api-client.js";
 import { loadConfig } from "../core/config.js";
+import {
+  resolveFavoriteRepoUrls,
+  resolveFavoritesContext,
+} from "../core/favorites.js";
 import { getSkill, loadManifest } from "../core/manifest.js";
 import { migrateFromSkillsLock } from "../core/migration.js";
 import {
@@ -40,10 +45,13 @@ function favoriteToGitHub(favorite: string): GitHubSource {
 }
 
 /**
- * Build the search index from installed skills + favorite repos.
+ * Build the search index from installed skills + favorite repos. Favorite repo
+ * URLs are resolved by the caller (cloud when authenticated, local otherwise) and
+ * passed in, so this stays source-agnostic.
  */
-async function buildSearchIndex(): Promise<FindResult[]> {
-  const config = await loadConfig();
+async function buildSearchIndex(
+  favoriteRepos: string[],
+): Promise<FindResult[]> {
   const manifest = await loadManifest(process.cwd());
   const installedNames = new Set(manifest ? Object.keys(manifest.skills) : []);
   const results: FindResult[] = [];
@@ -69,10 +77,10 @@ async function buildSearchIndex(): Promise<FindResult[]> {
   }
 
   // Add skills from favorite repos
-  if (config.favoriteRepos.length > 0) {
+  if (favoriteRepos.length > 0) {
     const spinner = ora("Fetching favorite repos...").start();
 
-    for (const favorite of config.favoriteRepos) {
+    for (const favorite of favoriteRepos) {
       try {
         const githubSource = favoriteToGitHub(favorite);
         spinner.text = `Checking ${favorite}...`;
@@ -123,7 +131,21 @@ export function registerFindCommand(program: Command): void {
     .alias("f")
     .description("Search for skills across favorites and installed skills")
     .action(async (query: string | undefined) => {
-      const results = await buildSearchIndex();
+      // Favorites come from the same source `ms fav` uses: the account when
+      // authenticated, local config otherwise.
+      const favoritesCtx = await resolveFavoritesContext();
+      let favoriteRepos: string[];
+      try {
+        favoriteRepos = await resolveFavoriteRepoUrls(favoritesCtx);
+      } catch (err) {
+        console.error(
+          chalk.red(friendlyApiErrorMessage(err, favoritesCtx.serverUrl)),
+        );
+        process.exitCode = 1;
+        return;
+      }
+
+      const results = await buildSearchIndex(favoriteRepos);
 
       if (results.length === 0) {
         console.log(

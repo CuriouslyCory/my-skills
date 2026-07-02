@@ -17,7 +17,8 @@ import type { AdapterSkillEntry } from "../adapters/index.js";
 import type { GitHubSource } from "../services/source-parser.js";
 import { sourceToGitHub } from "../services/source-parser.js";
 import { getEnabledAdapters, resolveAgents } from "../adapters/index.js";
-import { loadConfig, saveConfig } from "../core/config.js";
+import { loadConfig } from "../core/config.js";
+import { addRepoFavorite } from "../core/favorites.js";
 import {
   addSkill,
   getSkill,
@@ -31,6 +32,7 @@ import { resolveSkill } from "../core/skill-resolver.js";
 import type { DiscoveredSkill } from "../services/cache.js";
 import { discoverSkills, fetchRepo } from "../services/cache.js";
 import { parseSource } from "../services/source-parser.js";
+import { addFromCloud } from "./add-cloud.js";
 
 interface AddOptions {
   skill?: string;
@@ -361,6 +363,14 @@ export function registerAddCommand(program: Command): void {
 
       const parsed = parseSource(source);
 
+      // Personal cloud library (`@me` / `@me/<name>`): install from the user's
+      // library over the API. Self-contained; does not touch the github/favorite
+      // paths below.
+      if (parsed.type === "cloud") {
+        await addFromCloud(parsed, opts, projectRoot, manifest, agents);
+        return;
+      }
+
       if (parsed.type === "local") {
         console.log(
           chalk.red(
@@ -532,15 +542,11 @@ export function registerAddCommand(program: Command): void {
         );
       }
 
-      // Add repo to favorites if --favorite flag is present
-      if (opts.favorite && !config.favoriteRepos.includes(githubSource.url)) {
-        config.favoriteRepos.push(githubSource.url);
-        await saveConfig(config);
-        console.log(
-          chalk.yellow(
-            `★ Added ${githubSource.owner}/${githubSource.repo} to favorites`,
-          ),
-        );
+      // Add repo to favorites if --favorite flag is present. Resolves the same
+      // source `ms fav` uses: the account when authenticated, local config
+      // otherwise.
+      if (opts.favorite) {
+        await addRepoFavorite(githubSource, config);
       }
     });
 }

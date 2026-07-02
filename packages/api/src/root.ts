@@ -3,10 +3,14 @@ import { authRouter } from "./router/auth";
 import { compositionRouter } from "./router/composition";
 import { configRouter } from "./router/config";
 import { favoriteRouter } from "./router/favorite";
+import { githubRouter } from "./router/github";
 import { gitRouter } from "./router/git";
+import { libraryRouter } from "./router/library";
 import { postRouter } from "./router/post";
+import { publishRouter } from "./router/publish";
 import { searchRouter } from "./router/search";
 import { skillRouter } from "./router/skill";
+import { tokenRouter } from "./router/token";
 import { createTRPCRouter } from "./trpc";
 
 export const appRouter = createTRPCRouter({
@@ -16,9 +20,13 @@ export const appRouter = createTRPCRouter({
   config: configRouter,
   favorite: favoriteRouter,
   git: gitRouter,
+  github: githubRouter,
+  library: libraryRouter,
   post: postRouter,
+  publish: publishRouter,
   search: searchRouter,
   skill: skillRouter,
+  token: tokenRouter,
 });
 
 // export type definition of API

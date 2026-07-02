@@ -1,11 +1,28 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
 
+import type { SQL } from "@curiouslycory/db";
 import { and, asc, desc, eq, isNull, like, or, sql } from "@curiouslycory/db";
 import { favorites } from "@curiouslycory/db/schema";
 
 import { syncConfigToFile } from "../lib/config-sync";
-import { protectedProcedure, publicProcedure } from "../trpc";
+import { isLocalMode } from "../lib/deploy-mode";
+import { protectedProcedure } from "../trpc";
+
+/**
+ * Config-file sync is filesystem-coupled and therefore local-mode only. In
+ * hosted mode favorites live in the database and are surfaced to the CLI via the
+ * hosted API, so the local ~/.my-skills/config.json write is skipped.
+ */
+function syncConfigIfLocal(
+  db: Parameters<typeof syncConfigToFile>[0],
+  userId: string,
+): void {
+  if (!isLocalMode()) return;
+  syncConfigToFile(db, userId).catch((err) =>
+    console.error("config-sync failed:", err),
+  );
+}
 
 export const favoriteRouter = {
   add: protectedProcedure
@@ -19,14 +36,17 @@ export const favoriteRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       // Explicit existence check due to SQLite NULL handling in composite unique constraints
       const existing = await ctx.db.query.favorites.findFirst({
         where: input.skillName
           ? and(
+              eq(favorites.userId, userId),
               eq(favorites.repoUrl, input.repoUrl),
               eq(favorites.skillName, input.skillName),
             )
           : and(
+              eq(favorites.userId, userId),
               eq(favorites.repoUrl, input.repoUrl),
               isNull(favorites.skillName),
             ),
@@ -39,6 +59,7 @@ export const favoriteRouter = {
       const [row] = await ctx.db
         .insert(favorites)
         .values({
+          userId,
           repoUrl: input.repoUrl,
           name: input.name,
           description: input.description ?? null,
@@ -47,9 +68,7 @@ export const favoriteRouter = {
         })
         .returning();
 
-      syncConfigToFile(ctx.db).catch((err) =>
-        console.error("config-sync failed:", err),
-      );
+      syncConfigIfLocal(ctx.db, userId);
 
       return row;
     }),
@@ -57,10 +76,11 @@ export const favoriteRouter = {
   remove: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.delete(favorites).where(eq(favorites.id, input.id));
-      syncConfigToFile(ctx.db).catch((err) =>
-        console.error("config-sync failed:", err),
-      );
+      const userId = ctx.session.user.id;
+      await ctx.db
+        .delete(favorites)
+        .where(and(eq(favorites.id, input.id), eq(favorites.userId, userId)));
+      syncConfigIfLocal(ctx.db, userId);
       return { success: true };
     }),
 
@@ -75,29 +95,35 @@ export const favoriteRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const existing = await ctx.db.query.favorites.findFirst({
         where: input.skillName
           ? and(
+              eq(favorites.userId, userId),
               eq(favorites.repoUrl, input.repoUrl),
               eq(favorites.skillName, input.skillName),
             )
           : and(
+              eq(favorites.userId, userId),
               eq(favorites.repoUrl, input.repoUrl),
               isNull(favorites.skillName),
             ),
       });
 
       if (existing) {
-        await ctx.db.delete(favorites).where(eq(favorites.id, existing.id));
-        syncConfigToFile(ctx.db).catch((err) =>
-          console.error("config-sync failed:", err),
-        );
+        await ctx.db
+          .delete(favorites)
+          .where(
+            and(eq(favorites.id, existing.id), eq(favorites.userId, userId)),
+          );
+        syncConfigIfLocal(ctx.db, userId);
         return { favorited: false };
       }
 
       await ctx.db
         .insert(favorites)
         .values({
+          userId,
           repoUrl: input.repoUrl,
           name: input.name,
           description: input.description ?? null,
@@ -106,14 +132,12 @@ export const favoriteRouter = {
         })
         .returning();
 
-      syncConfigToFile(ctx.db).catch((err) =>
-        console.error("config-sync failed:", err),
-      );
+      syncConfigIfLocal(ctx.db, userId);
 
       return { favorited: true };
     }),
 
-  isFavorited: publicProcedure
+  isFavorited: protectedProcedure
     .input(
       z.object({
         repoUrl: z.string().min(1),
@@ -121,13 +145,16 @@ export const favoriteRouter = {
       }),
     )
     .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const existing = await ctx.db.query.favorites.findFirst({
         where: input.skillName
           ? and(
+              eq(favorites.userId, userId),
               eq(favorites.repoUrl, input.repoUrl),
               eq(favorites.skillName, input.skillName),
             )
           : and(
+              eq(favorites.userId, userId),
               eq(favorites.repoUrl, input.repoUrl),
               isNull(favorites.skillName),
             ),
@@ -136,7 +163,7 @@ export const favoriteRouter = {
       return !!existing;
     }),
 
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z
         .object({
@@ -153,7 +180,9 @@ export const favoriteRouter = {
     .query(async ({ ctx, input }) => {
       const { page, pageSize, search, sortBy, sortOrder, type } = input;
 
-      const conditions = [];
+      const conditions: (SQL | undefined)[] = [
+        eq(favorites.userId, ctx.session.user.id),
+      ];
 
       if (type) {
         conditions.push(eq(favorites.type, type));
@@ -201,30 +230,33 @@ export const favoriteRouter = {
       return { items, totalCount };
     }),
 
-  stats: publicProcedure.query(async ({ ctx }) => {
+  stats: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
     // Total count
     const [totalResult] = await ctx.db
       .select({ count: sql<number>`count(*)` })
-      .from(favorites);
+      .from(favorites)
+      .where(eq(favorites.userId, userId));
     const total = totalResult?.count ?? 0;
 
     // Count by type
     const [repoResult] = await ctx.db
       .select({ count: sql<number>`count(*)` })
       .from(favorites)
-      .where(eq(favorites.type, "repo"));
+      .where(and(eq(favorites.userId, userId), eq(favorites.type, "repo")));
     const repoCount = repoResult?.count ?? 0;
 
     const [skillResult] = await ctx.db
       .select({ count: sql<number>`count(*)` })
       .from(favorites)
-      .where(eq(favorites.type, "skill"));
+      .where(and(eq(favorites.userId, userId), eq(favorites.type, "skill")));
     const skillCount = skillResult?.count ?? 0;
 
     // Most recent
     const [mostRecent] = await ctx.db
       .select()
       .from(favorites)
+      .where(eq(favorites.userId, userId))
       .orderBy(desc(favorites.addedAt))
       .limit(1);
 
@@ -236,7 +268,7 @@ export const favoriteRouter = {
         count: sql<number>`count(*)`,
       })
       .from(favorites)
-      .where(eq(favorites.type, "skill"))
+      .where(and(eq(favorites.userId, userId), eq(favorites.type, "skill")))
       .groupBy(favorites.repoUrl)
       .orderBy(sql`count(*) desc`)
       .limit(5);

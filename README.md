@@ -22,6 +22,7 @@ Think of it like npm, but for the prompts, workflows, and capabilities you give 
 - [CLI Reference](#cli-reference)
 - [Supported AI Tools](#supported-ai-tools)
 - [Per-Project Install](#per-project-install)
+- [Use as a dev dependency](#use-as-a-dev-dependency)
 - [Creating Your Own Skills](#creating-your-own-skills)
 - [Contributing](#contributing)
   - [Deploy the Web UI to Vercel](#deploy-the-web-ui-to-vercel)
@@ -78,6 +79,7 @@ Both `my-skills` and `ms` work as the CLI command.
 | `ms add <skill>`              | Install a skill from a GitHub repository    |
 | `ms add <skill> --repo <url>` | Install from a specific repository          |
 | `ms add`                      | Restore all skills from the manifest        |
+| `ms apply`                    | Reconcile installed skills to the manifest  |
 | `ms find [query]`             | Search for available skills                 |
 | `ms list`                     | List installed skills                       |
 | `ms update`                   | Update all installed skills to latest       |
@@ -148,6 +150,66 @@ Add convenience scripts to `package.json`:
 
 ---
 
+## Use as a dev dependency
+
+Commit `.my-skills.json` to your repo and let `ms apply` keep every teammate's
+checkout in sync. `ms apply` reconciles the installed skills to the manifest
+non-interactively and idempotently: it installs anything missing, reinstalls
+anything whose content has drifted, and no-ops when everything already matches.
+It works unauthenticated for `github` and `local` sources.
+
+```sh
+# Reconcile installed skills to .my-skills.json (no prompts)
+ms apply
+
+# CI verification: exit 2 if anything is out of sync, changing nothing
+ms apply --frozen
+
+# Machine-readable output for tooling
+ms apply --json
+```
+
+### Run it automatically on install
+
+Wire `ms apply` into a `postinstall` script so skills are provisioned whenever
+someone runs `npm install` / `pnpm install`. Use `--hook` so a postinstall run
+degrades safely and never breaks the host install:
+
+```json
+{
+  "scripts": {
+    "postinstall": "my-skills apply --hook"
+  }
+}
+```
+
+In `--hook` mode `ms apply`:
+
+- Resolves the project root from `INIT_CWD` (set by npm/pnpm lifecycle scripts),
+  so it targets your project even when it runs from inside `node_modules`.
+- Skips quietly (exit 0) when there is no `.my-skills.json`.
+- Never fails the host package manager's install on a network error (it warns
+  and exits 0). Use `ms apply --frozen` in CI when you want strict verification.
+
+### Exit codes
+
+| Code | Meaning                                                           |
+| ---- | ---------------------------------------------------------------- |
+| `0`  | In sync, or successfully installed/updated                       |
+| `1`  | Hard failure (for example a network error outside `--hook` mode) |
+| `2`  | `--frozen` only: something is out of sync (nothing was changed)  |
+
+### Environment flags
+
+| Variable         | Effect                                                                   |
+| ---------------- | ------------------------------------------------------------------------ |
+| `MY_SKILLS_SKIP` | Set to `1` to skip `ms apply --hook` entirely (exit 0).                  |
+| `MY_SKILLS_CI`   | Set to `1` to run `ms apply --hook` even under CI.                       |
+| `CI`             | When set, `ms apply --hook` skips unless `MY_SKILLS_CI=1`.               |
+| `INIT_CWD`       | Project root used by `ms apply` (populated by npm/pnpm lifecycle scripts). |
+
+---
+
 ## Creating Your Own Skills
 
 You can author and share skills with `ms init`:
@@ -206,6 +268,30 @@ pnpm build
 pnpm dev
 ```
 
+### Database dialects
+
+The `@curiouslycory/db` package is dialect-aware and selects its driver at runtime
+from the `DB_DIALECT` environment variable:
+
+- `sqlite` (default when unset) — local better-sqlite3 file at `DB_PATH`. Full-text
+  search uses SQLite FTS5.
+- `postgres` — Neon/Postgres over `drizzle-orm/neon-http`, using `POSTGRES_URL`.
+  Full-text search uses Postgres `tsvector`/`ts_rank`. Recommended for Vercel.
+
+Apply schema changes per dialect:
+
+```sh
+# SQLite (default): push the schema to the local file
+pnpm db:push
+
+# Postgres: generate + apply migrations against POSTGRES_URL
+#   (set DB_DIALECT=postgres and POSTGRES_URL in your .env first)
+pnpm --filter @curiouslycory/db generate:pg   # write SQL migrations to drizzle/pg
+pnpm --filter @curiouslycory/db migrate:pg     # apply committed migrations
+# or, for a quick non-migration sync during development:
+pnpm --filter @curiouslycory/db push:pg
+```
+
 ### Running the CLI locally
 
 ```sh
@@ -228,20 +314,70 @@ The web app runs at `http://localhost:3000`.
 
 ### Deploy the Web UI to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FCuriouslyCory%2Fmy-skills&env=POSTGRES_URL,AUTH_SECRET,AUTH_DISCORD_ID,AUTH_DISCORD_SECRET&envDescription=Database%20connection%20and%20auth%20credentials%20needed%20for%20the%20web%20UI&envLink=https%3A%2F%2Fgithub.com%2FCuriouslyCory%2Fmy-skills%2Fblob%2Fmain%2F.env.example&root-directory=apps/web)
+The hosted web UI runs on Vercel backed by **Neon Postgres** (dialect `postgres`) in
+**hosted** deploy mode, with **GitHub** OAuth for multi-user sign-in. Neon is the
+recommended database; any serverless Postgres reachable over `drizzle-orm/neon-http`
+works.
 
-You'll need a PostgreSQL database. Any of these work well with Vercel:
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FCuriouslyCory%2Fmy-skills&env=DB_DIALECT,POSTGRES_URL,DEPLOY_MODE,AUTH_SECRET,BETTER_AUTH_URL,GITHUB_CLIENT_ID,GITHUB_CLIENT_SECRET&envDescription=Neon%20Postgres%20connection%20plus%20better-auth%20and%20GitHub%20OAuth%20credentials%20for%20the%20hosted%20web%20UI&envLink=https%3A%2F%2Fgithub.com%2FCuriouslyCory%2Fmy-skills%2Fblob%2Fmain%2F.env.example&root-directory=apps%2Fweb)
 
-- [Supabase](https://supabase.com) — generous free tier, built-in auth and realtime
-- [Neon](https://neon.tech) — serverless Postgres with branching, great free tier
-- [Vercel Postgres](https://vercel.com/docs/storage/vercel-postgres) — native Vercel integration, zero-config
+#### Required environment variables
 
-| Variable              | Description                                                            |
-| --------------------- | ---------------------------------------------------------------------- |
-| `POSTGRES_URL`        | PostgreSQL connection string                                           |
-| `AUTH_SECRET`         | Secret for session encryption (generate via `openssl rand -base64 32`) |
-| `AUTH_DISCORD_ID`     | Discord OAuth application ID                                           |
-| `AUTH_DISCORD_SECRET` | Discord OAuth application secret                                       |
+| Variable               | Value / Description                                                                        |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| `DB_DIALECT`           | `postgres` (selects the Neon serverless driver)                                           |
+| `POSTGRES_URL`         | Neon/Postgres connection string                                                           |
+| `DEPLOY_MODE`          | `hosted` (database is canonical; disk sync, config-file sync, and the git page are off)   |
+| `AUTH_SECRET`          | better-auth signing secret (generate via `openssl rand -base64 32`)                      |
+| `BETTER_AUTH_URL`      | Public base URL of the deployment, e.g. `https://your-app.vercel.app`                    |
+| `GITHUB_CLIENT_ID`     | GitHub OAuth app client ID                                                                |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth app client secret                                                            |
+
+> The env names above are the ones the code actually reads. `AUTH_SECRET` maps to
+> better-auth's `secret` option (we keep the `AUTH_SECRET` name rather than
+> better-auth's default `BETTER_AUTH_SECRET`). When `GITHUB_CLIENT_ID` and
+> `GITHUB_CLIENT_SECRET` are both set, multi-user auth is enabled (email/password
+> sign-up plus GitHub sign-in); when either is unset the app falls back to local
+> single-user mode. `apps/web/src/env.ts` validates this full set whenever
+> `DEPLOY_MODE=hosted`.
+
+#### Vercel project settings (turbo-aware monorepo)
+
+Set the project **Root Directory** to `apps/web`. The committed `apps/web/vercel.json`
+makes install and build turbo-aware from the monorepo root:
+
+- Install: `cd ../.. && pnpm install --frozen-lockfile`
+- Build: `cd ../.. && pnpm turbo run build --filter=@curiouslycory/web...` (builds the
+  web app and its workspace dependencies)
+
+The build does not require the `better-sqlite3` native addon: `@curiouslycory/db` loads
+it lazily only on the SQLite path, and `next.config.js` marks it as a server-external
+package, so a `DB_DIALECT=postgres` build never compiles or loads the native module.
+
+#### Apply Neon migrations
+
+Vercel builds do not run migrations. Apply them out-of-band against `POSTGRES_URL`
+before (or right after) the first deploy, and whenever the Postgres schema changes:
+
+```sh
+# From the repo root, with DB_DIALECT=postgres and POSTGRES_URL set in your .env
+pnpm --filter @curiouslycory/db migrate:pg   # apply committed drizzle/pg migrations
+```
+
+Committed migrations live in `packages/db/drizzle/pg`. To author a new one after
+editing `packages/db/src/schema.pg.ts`, run
+`pnpm --filter @curiouslycory/db generate:pg`, commit the generated SQL, then
+`migrate:pg` to apply it.
+
+#### Register the GitHub OAuth callback
+
+In your GitHub OAuth app settings, set the Authorization callback URL to:
+
+```
+<BETTER_AUTH_URL>/api/auth/callback/github
+```
+
+for example `https://your-app.vercel.app/api/auth/callback/github`.
 
 ### Project Structure
 
@@ -253,7 +389,7 @@ my-skills/
 ├── packages/
 │   ├── api/            # tRPC routers
 │   ├── auth/           # Session / JWT auth
-│   ├── db/             # Drizzle + SQLite
+│   ├── db/             # Drizzle (SQLite + Postgres, dialect-aware)
 │   ├── git-service/    # Git abstraction layer
 │   ├── shared-types/   # Zod schemas and shared types
 │   └── ui/             # shadcn/ui component library

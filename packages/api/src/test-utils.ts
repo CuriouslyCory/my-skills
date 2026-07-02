@@ -16,6 +16,15 @@ export interface TestContext {
   caller: ReturnType<typeof appRouter.createCaller>;
   rawDb: BetterSqlite3.Database;
   repoPath: string;
+  /**
+   * Builds an additional caller bound to the SAME db and repoPath but acting as
+   * a different user. Used to prove per-user scoping (no cross-user leakage).
+   */
+  callerFor: (user: {
+    id: string;
+    name?: string;
+    email?: string;
+  }) => ReturnType<typeof appRouter.createCaller>;
 }
 
 /**
@@ -23,25 +32,33 @@ export interface TestContext {
  * a tRPC caller bound to that database for use in tests.
  */
 export async function createTestCaller(opts?: {
-  session?: { user: { username: string } } | null;
+  session?: {
+    user: { id: string; name: string; email: string };
+  } | null;
 }): Promise<TestContext> {
   const rawDb = new Database(":memory:");
   rawDb.pragma("journal_mode = WAL");
 
-  // Create all tables
+  // Create all tables. `user_id` defaults to the default caller's user id
+  // ('test-user') so legacy raw-insert fixtures are owned by the default caller;
+  // the real schema has no such default (routers always set userId explicitly).
+  // Unique constraints are scoped per user, mirroring the production schema.
   rawDb.exec(`
     CREATE TABLE IF NOT EXISTS skills (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL UNIQUE,
+      user_id TEXT NOT NULL DEFAULT 'test-user',
+      name TEXT NOT NULL,
       description TEXT NOT NULL,
       tags TEXT NOT NULL DEFAULT '[]',
       author TEXT,
       version TEXT,
       content TEXT NOT NULL,
-      dir_path TEXT UNIQUE,
+      dir_path TEXT,
       category TEXT,
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(user_id, name),
+      UNIQUE(user_id, dir_path)
     );
   `);
 
@@ -60,19 +77,21 @@ export async function createTestCaller(opts?: {
   rawDb.exec(`
     CREATE TABLE IF NOT EXISTS favorites (
       id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'test-user',
       repo_url TEXT NOT NULL,
       name TEXT NOT NULL,
       description TEXT,
       skill_name TEXT,
       type TEXT NOT NULL DEFAULT 'repo',
       added_at INTEGER NOT NULL DEFAULT (unixepoch()),
-      UNIQUE(repo_url, skill_name)
+      UNIQUE(user_id, repo_url, skill_name)
     );
   `);
 
   rawDb.exec(`
     CREATE TABLE IF NOT EXISTS compositions (
       id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'test-user',
       name TEXT NOT NULL,
       description TEXT,
       fragments TEXT NOT NULL DEFAULT '[]',
@@ -85,8 +104,80 @@ export async function createTestCaller(opts?: {
   rawDb.exec(`
     CREATE TABLE IF NOT EXISTS config (
       id TEXT PRIMARY KEY,
-      key TEXT NOT NULL UNIQUE,
-      value TEXT NOT NULL
+      user_id TEXT NOT NULL DEFAULT 'test-user',
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
+      UNIQUE(user_id, key)
+    );
+  `);
+
+  // better-auth core tables used by the GitHub connector (#28). The connector
+  // reuses the `account` row (accessToken + scope) as its per-user state.
+  rawDb.exec(`
+    CREATE TABLE IF NOT EXISTS user (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      email_verified INTEGER NOT NULL DEFAULT 0,
+      image TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+  `);
+
+  rawDb.exec(`
+    CREATE TABLE IF NOT EXISTS account (
+      id TEXT PRIMARY KEY,
+      account_id TEXT NOT NULL,
+      provider_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      access_token TEXT,
+      refresh_token TEXT,
+      id_token TEXT,
+      access_token_expires_at INTEGER,
+      refresh_token_expires_at INTEGER,
+      scope TEXT,
+      password TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+  `);
+
+  // Personal access tokens (#22). Only the SHA-256 hash + 8-char prefix persist;
+  // Bearer resolution narrows candidates by the indexed prefix.
+  rawDb.exec(`
+    CREATE TABLE IF NOT EXISTS api_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'test-user',
+      name TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      token_prefix TEXT NOT NULL,
+      scopes TEXT NOT NULL DEFAULT '[]',
+      last_used_at INTEGER,
+      expires_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+  `);
+  rawDb.exec(
+    `CREATE INDEX IF NOT EXISTS api_tokens_token_prefix_idx ON api_tokens (token_prefix);`,
+  );
+
+  // Publish targets (#29). One row per user; artifact_state is the per-artifact
+  // content-hash map driving idempotent re-publish.
+  rawDb.exec(`
+    CREATE TABLE IF NOT EXISTS publish_targets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'test-user',
+      repo_name TEXT NOT NULL,
+      repo_owner TEXT,
+      visibility TEXT NOT NULL DEFAULT 'public',
+      selection TEXT NOT NULL DEFAULT '[]',
+      last_commit_sha TEXT,
+      last_published_at INTEGER,
+      artifact_state TEXT NOT NULL DEFAULT '{}',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(user_id)
     );
   `);
 
@@ -97,10 +188,25 @@ export async function createTestCaller(opts?: {
   const repoPath = await mkdtemp(join(tmpdir(), "api-test-"));
 
   const caller = appRouter.createCaller({
-    session: opts?.session ?? { user: { username: "test" } },
+    session: opts?.session ?? {
+      user: { id: "test-user", name: "Test", email: "test@example.com" },
+    },
     db,
     repoPath,
   });
 
-  return { db, caller, rawDb, repoPath };
+  const callerFor: TestContext["callerFor"] = (user) =>
+    appRouter.createCaller({
+      session: {
+        user: {
+          id: user.id,
+          name: user.name ?? user.id,
+          email: user.email ?? `${user.id}@example.com`,
+        },
+      },
+      db,
+      repoPath,
+    });
+
+  return { db, caller, rawDb, repoPath, callerFor };
 }

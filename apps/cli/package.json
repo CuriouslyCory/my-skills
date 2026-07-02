@@ -35,14 +35,18 @@
     "@inquirer/confirm": "^6.0.10",
     "@inquirer/input": "^5.0.10",
     "@inquirer/search": "^3.0.12",
+    "@trpc/client": "catalog:",
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "gray-matter": "^4.0.3",
     "ora": "^8.2.0",
     "simple-git": "^3.27.0",
-    "smol-toml": "^1.6.0"
+    "smol-toml": "^1.6.0",
+    "superjson": "2.2.3",
+    "zod": "catalog:"
   },
   "devDependencies": {
+    "@curiouslycory/api": "workspace:*",
     "@curiouslycory/eslint-config": "workspace:*",
     "@curiouslycory/git-service": "workspace:*",
     "@curiouslycory/prettier-config": "workspace:*",

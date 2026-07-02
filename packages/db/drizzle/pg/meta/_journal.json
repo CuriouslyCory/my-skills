@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1783013661450,
+      "tag": "0000_same_steel_serpent",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783018881491,
+      "tag": "0001_overjoyed_squadron_sinister",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783020805957,
+      "tag": "0002_rapid_maelstrom",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783022828550,
+      "tag": "0003_opposite_sabra",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783031842033,
+      "tag": "0004_nappy_whirlwind",
+      "breakpoints": true
+    }
+  ]
+}

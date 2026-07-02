@@ -2,10 +2,12 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type {
+  CloudSource,
   GitHubSource,
   LocalSource,
 } from "../../src/services/source-parser.js";
 import {
+  cloudSourceName,
   parseSource,
   sourceToGitHub,
 } from "../../src/services/source-parser.js";
@@ -89,6 +91,33 @@ describe("source-parser", () => {
       expect(result.owner).toBe("owner");
       expect(result.repo).toBe("repo");
       expect(result.skill).toBe("my-skill");
+    });
+  });
+
+  describe("cloud (@me) sources", () => {
+    it("parses @me as a browse-all cloud source", () => {
+      const result = parseSource("@me") as CloudSource;
+      expect(result.type).toBe("cloud");
+      expect(result.name).toBeUndefined();
+    });
+
+    it("parses @me/<name> as a single-artifact cloud source", () => {
+      const result = parseSource("@me/my-agent") as CloudSource;
+      expect(result.type).toBe("cloud");
+      expect(result.name).toBe("my-agent");
+    });
+
+    it("does not misparse @me/<name> as owner/repo shorthand", () => {
+      const result = parseSource("@me/foo");
+      expect(result.type).toBe("cloud");
+    });
+
+    it("cloudSourceName recovers the artifact name", () => {
+      expect(cloudSourceName("@me/tdd")).toBe("tdd");
+    });
+
+    it("cloudSourceName throws for a bare @me (no name)", () => {
+      expect(() => cloudSourceName("@me")).toThrow(/Invalid cloud source/);
     });
   });
 

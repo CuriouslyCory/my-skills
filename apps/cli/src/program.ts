@@ -2,14 +2,19 @@ import { Command } from "commander";
 
 import packageJson from "../package.json" with { type: "json" };
 import { registerAddCommand } from "./commands/add.js";
+import { registerApplyCommand } from "./commands/apply.js";
 import { registerCheckCommand } from "./commands/check.js";
 import { registerConfigCommand } from "./commands/config.js";
 import { registerFavoriteCommand } from "./commands/favorite.js";
 import { registerFindCommand } from "./commands/find.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerListCommand } from "./commands/list.js";
+import { registerLoginCommand } from "./commands/login.js";
+import { registerLogoutCommand } from "./commands/logout.js";
+import { registerPublishCommand } from "./commands/publish.js";
 import { registerRemoveCommand } from "./commands/remove.js";
 import { registerUpdateCommand } from "./commands/update.js";
+import { registerWhoamiCommand } from "./commands/whoami.js";
 
 export function createProgram(): Command {
   const program = new Command();
@@ -22,14 +27,19 @@ export function createProgram(): Command {
     .version(packageJson.version);
 
   registerAddCommand(program);
+  registerApplyCommand(program);
   registerCheckCommand(program);
   registerConfigCommand(program);
   registerFavoriteCommand(program);
   registerFindCommand(program);
   registerInitCommand(program);
   registerListCommand(program);
+  registerLoginCommand(program);
+  registerLogoutCommand(program);
+  registerPublishCommand(program);
   registerRemoveCommand(program);
   registerUpdateCommand(program);
+  registerWhoamiCommand(program);
 
   program.action(() => program.help());
 
