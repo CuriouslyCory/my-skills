@@ -19,6 +19,23 @@ vi.mock("../../src/core/config.js", () => ({
   loadConfig: vi.fn(() => Promise.resolve(mockConfig)),
 }));
 
+// Favorites resolve unauthenticated in tests: no credentials file, so the source
+// is local config.favoriteRepos.
+vi.mock("../../src/core/favorites.js", () => ({
+  resolveFavoritesContext: vi.fn(() =>
+    Promise.resolve({
+      authed: false,
+      config: mockConfig,
+      credentials: null,
+      serverUrl: "https://my-skills.dev",
+      client: null,
+    }),
+  ),
+  resolveFavoriteRepoUrls: vi.fn(() =>
+    Promise.resolve(mockConfig.favoriteRepos),
+  ),
+}));
+
 vi.mock("../../src/services/cache.js", () => ({
   fetchRepo: vi.fn(() => Promise.resolve("/tmp/fake-cache")),
   getCachedRepoPath: vi.fn(() => Promise.resolve("/tmp/fake-cache")),
