@@ -6,7 +6,23 @@ import { and, asc, desc, eq, isNull, like, or, sql } from "@curiouslycory/db";
 import { favorites } from "@curiouslycory/db/schema";
 
 import { syncConfigToFile } from "../lib/config-sync";
+import { isLocalMode } from "../lib/deploy-mode";
 import { protectedProcedure } from "../trpc";
+
+/**
+ * Config-file sync is filesystem-coupled and therefore local-mode only. In
+ * hosted mode favorites live in the database and are surfaced to the CLI via the
+ * hosted API, so the local ~/.my-skills/config.json write is skipped.
+ */
+function syncConfigIfLocal(
+  db: Parameters<typeof syncConfigToFile>[0],
+  userId: string,
+): void {
+  if (!isLocalMode()) return;
+  syncConfigToFile(db, userId).catch((err) =>
+    console.error("config-sync failed:", err),
+  );
+}
 
 export const favoriteRouter = {
   add: protectedProcedure
@@ -52,9 +68,7 @@ export const favoriteRouter = {
         })
         .returning();
 
-      syncConfigToFile(ctx.db, userId).catch((err) =>
-        console.error("config-sync failed:", err),
-      );
+      syncConfigIfLocal(ctx.db, userId);
 
       return row;
     }),
@@ -66,9 +80,7 @@ export const favoriteRouter = {
       await ctx.db
         .delete(favorites)
         .where(and(eq(favorites.id, input.id), eq(favorites.userId, userId)));
-      syncConfigToFile(ctx.db, userId).catch((err) =>
-        console.error("config-sync failed:", err),
-      );
+      syncConfigIfLocal(ctx.db, userId);
       return { success: true };
     }),
 
@@ -104,9 +116,7 @@ export const favoriteRouter = {
           .where(
             and(eq(favorites.id, existing.id), eq(favorites.userId, userId)),
           );
-        syncConfigToFile(ctx.db, userId).catch((err) =>
-          console.error("config-sync failed:", err),
-        );
+        syncConfigIfLocal(ctx.db, userId);
         return { favorited: false };
       }
 
@@ -122,9 +132,7 @@ export const favoriteRouter = {
         })
         .returning();
 
-      syncConfigToFile(ctx.db, userId).catch((err) =>
-        console.error("config-sync failed:", err),
-      );
+      syncConfigIfLocal(ctx.db, userId);
 
       return { favorited: true };
     }),

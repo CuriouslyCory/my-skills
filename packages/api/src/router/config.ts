@@ -5,6 +5,7 @@ import { and, eq } from "@curiouslycory/db";
 import { config } from "@curiouslycory/db/schema";
 
 import { syncConfigToFile } from "../lib/config-sync";
+import { isLocalMode } from "../lib/deploy-mode";
 import { protectedProcedure } from "../trpc";
 
 export const configRouter = {
@@ -49,9 +50,13 @@ export const configRouter = {
       }
 
       const result = { key: input.key, value: input.value };
-      syncConfigToFile(ctx.db, userId).catch((err) =>
-        console.error("config-sync failed:", err),
-      );
+      // Config-file sync is filesystem-coupled: local mode only. Hosted mode
+      // keeps preferences in the DB (the CLI reads them via the hosted API).
+      if (isLocalMode()) {
+        syncConfigToFile(ctx.db, userId).catch((err) =>
+          console.error("config-sync failed:", err),
+        );
+      }
       return result;
     }),
 } satisfies TRPCRouterRecord;
