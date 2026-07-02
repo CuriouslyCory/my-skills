@@ -1,14 +1,25 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
 
-import { isAuthEnabled, verifySession } from "@curiouslycory/auth";
+import { authEnv } from "@curiouslycory/auth/env";
 
-const SESSION_COOKIE = "my-skills-session";
+const PUBLIC_PATHS = ["/login", "/signup", "/api/auth", "/api/trpc"];
 
-const PUBLIC_PATHS = ["/login", "/api/trpc"];
+// Multi-user detection is computed here from the edge-safe env module (no DB
+// import) so the middleware stays within the Edge runtime. It mirrors
+// `isMultiUserAuthEnabled()` from `@curiouslycory/auth`, which cannot be
+// imported here because it transitively loads the Node-only DB client.
+const env = authEnv();
+const multiUserAuthEnabled =
+  typeof env.GITHUB_CLIENT_ID === "string" &&
+  env.GITHUB_CLIENT_ID.length > 0 &&
+  typeof env.GITHUB_CLIENT_SECRET === "string" &&
+  env.GITHUB_CLIENT_SECRET.length > 0;
 
-export async function middleware(request: NextRequest) {
-  if (!isAuthEnabled()) {
+export function middleware(request: NextRequest) {
+  // Local single-user mode: no sign-in required, auto-provisioned local user.
+  if (!multiUserAuthEnabled) {
     return NextResponse.next();
   }
 
@@ -18,16 +29,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
-  if (!token) {
+  // Presence check of the better-auth session cookie (no DB hit at the edge).
+  // The session is fully validated server-side in the tRPC context / RSCs.
+  const sessionCookie = getSessionCookie(request);
+  if (!sessionCookie) {
     return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  const session = await verifySession(token);
-  if (!session) {
-    const response = NextResponse.redirect(new URL("/login", request.url));
-    response.cookies.delete(SESSION_COOKIE);
-    return response;
   }
 
   return NextResponse.next();

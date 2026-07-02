@@ -8,9 +8,9 @@ import { Button } from "@curiouslycory/ui/button";
 import { Input } from "@curiouslycory/ui/input";
 import { Label } from "@curiouslycory/ui/label";
 
-import { signIn } from "~/auth/client";
+import { signIn, signUp } from "~/auth/client";
 
-export function LoginForm() {
+export function SignupForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -20,13 +20,18 @@ export function LoginForm() {
     setError(null);
     setPending(true);
     const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const { error: signInError } = await signIn.email({ email, password });
+    const { error: signUpError } = await signUp.email({
+      name,
+      email,
+      password,
+    });
     setPending(false);
-    if (signInError) {
-      setError(signInError.message ?? "Failed to sign in");
+    if (signUpError) {
+      setError(signUpError.message ?? "Failed to create account");
       return;
     }
     router.push("/");
@@ -50,6 +55,17 @@ export function LoginForm() {
     <div className="flex flex-col gap-4">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            name="name"
+            type="text"
+            required
+            autoComplete="name"
+            autoFocus
+          />
+        </div>
+        <div className="flex flex-col gap-2">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
@@ -57,7 +73,6 @@ export function LoginForm() {
             type="email"
             required
             autoComplete="email"
-            autoFocus
           />
         </div>
         <div className="flex flex-col gap-2">
@@ -67,12 +82,13 @@ export function LoginForm() {
             name="password"
             type="password"
             required
-            autoComplete="current-password"
+            minLength={8}
+            autoComplete="new-password"
           />
         </div>
         {error && <p className="text-destructive text-sm">{error}</p>}
         <Button type="submit" disabled={pending}>
-          {pending ? "Signing in..." : "Sign in"}
+          {pending ? "Creating account..." : "Sign up"}
         </Button>
       </form>
       <Button
@@ -84,9 +100,9 @@ export function LoginForm() {
         Continue with GitHub
       </Button>
       <p className="text-muted-foreground text-center text-sm">
-        Don&apos;t have an account?{" "}
-        <Link href="/signup" className="underline">
-          Sign up
+        Already have an account?{" "}
+        <Link href="/login" className="underline">
+          Sign in
         </Link>
       </p>
     </div>
