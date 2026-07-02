@@ -3,6 +3,7 @@ import { authRouter } from "./router/auth";
 import { compositionRouter } from "./router/composition";
 import { configRouter } from "./router/config";
 import { favoriteRouter } from "./router/favorite";
+import { githubRouter } from "./router/github";
 import { gitRouter } from "./router/git";
 import { postRouter } from "./router/post";
 import { searchRouter } from "./router/search";
@@ -16,6 +17,7 @@ export const appRouter = createTRPCRouter({
   config: configRouter,
   favorite: favoriteRouter,
   git: gitRouter,
+  github: githubRouter,
   post: postRouter,
   search: searchRouter,
   skill: skillRouter,

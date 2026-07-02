@@ -32,6 +32,7 @@ import { Input } from "@curiouslycory/ui/input";
 import { Label } from "@curiouslycory/ui/label";
 import { toast } from "@curiouslycory/ui/toast";
 
+import { authClient } from "~/auth/client";
 import { useTRPC } from "~/trpc/react";
 
 const AGENT_OPTIONS = [
@@ -51,9 +52,152 @@ export function SettingsContent() {
   return (
     <div className="space-y-6">
       <GeneralSection />
+      <ConnectorsSection />
       <FavoritesSection />
       <AgentDefaultsSection />
     </div>
+  );
+}
+
+function ConnectorsSection() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const { data: status } = useSuspenseQuery(
+    trpc.github.status.queryOptions(),
+  );
+
+  const [connecting, setConnecting] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+
+  const invalidateStatus = () =>
+    queryClient.invalidateQueries({
+      queryKey: trpc.github.status.queryOptions().queryKey,
+    });
+
+  const verifyMutation = useMutation(
+    trpc.github.verifyConnection.mutationOptions({
+      onSuccess: (data) => {
+        toast.success(`GitHub connection is healthy (@${data.login})`);
+      },
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    }),
+  );
+
+  const disconnectMutation = useMutation(
+    trpc.github.disconnect.mutationOptions({
+      onSuccess: () => {
+        toast.success("GitHub disconnected");
+        setConfirmDisconnect(false);
+        void invalidateStatus();
+      },
+      onError: (error) => {
+        toast.error(`Failed to disconnect: ${error.message}`);
+      },
+    }),
+  );
+
+  // Requests the `repo` scope via incremental authorization WITHOUT altering the
+  // base sign-in scopes. better-auth's link-social flow adds the scope to the
+  // existing GitHub account and returns to the settings page on completion.
+  const handleConnect = async () => {
+    setConnecting(true);
+    const { error } = await authClient.linkSocial({
+      provider: "github",
+      scopes: ["repo"],
+      callbackURL: "/settings",
+    });
+    if (error) {
+      setConnecting(false);
+      toast.error(error.message ?? "Failed to start GitHub authorization");
+    }
+    // On success the browser is redirected to GitHub, so no further work here.
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Connectors</CardTitle>
+        <CardDescription>
+          Connect external services so my-skills can act on your behalf.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-col gap-3 rounded-md border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <p className="font-medium">GitHub</p>
+            {status.connected ? (
+              <p className="text-muted-foreground text-sm">
+                Connected with repo access. Granted scopes:{" "}
+                {status.scopes.join(", ")}
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Grant repository access so you can publish your library to
+                GitHub. Sign-in never requests this permission.
+              </p>
+            )}
+          </div>
+
+          {status.connected ? (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => verifyMutation.mutate()}
+                disabled={verifyMutation.isPending}
+              >
+                {verifyMutation.isPending ? "Verifying..." : "Verify"}
+              </Button>
+              <AlertDialog
+                open={confirmDisconnect}
+                onOpenChange={setConfirmDisconnect}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    Disconnect
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Disconnect GitHub</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This removes the stored access token so my-skills can no
+                      longer publish on your behalf. You can reconnect at any
+                      time. To fully revoke access, also remove the app in your
+                      GitHub settings.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => disconnectMutation.mutate()}
+                      className={cn(
+                        "bg-destructive hover:bg-destructive/90 text-white",
+                      )}
+                    >
+                      {disconnectMutation.isPending
+                        ? "Disconnecting..."
+                        : "Disconnect"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              onClick={() => void handleConnect()}
+              disabled={connecting}
+            >
+              {connecting ? "Redirecting..." : "Connect GitHub"}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -364,7 +508,7 @@ function AgentDefaultsSection() {
 export function SettingsContentSkeleton() {
   return (
     <div className="space-y-6">
-      {Array.from({ length: 3 }).map((_, i) => (
+      {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="rounded-lg border p-6">
           <div className="bg-muted mb-4 h-6 w-32 animate-pulse rounded" />
           <div className="bg-muted mb-2 h-4 w-48 animate-pulse rounded" />
