@@ -143,6 +143,25 @@ export async function createTestCaller(opts?: {
     );
   `);
 
+  // Personal access tokens (#22). Only the SHA-256 hash + 8-char prefix persist;
+  // Bearer resolution narrows candidates by the indexed prefix.
+  rawDb.exec(`
+    CREATE TABLE IF NOT EXISTS api_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'test-user',
+      name TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      token_prefix TEXT NOT NULL,
+      scopes TEXT NOT NULL DEFAULT '[]',
+      last_used_at INTEGER,
+      expires_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+  `);
+  rawDb.exec(
+    `CREATE INDEX IF NOT EXISTS api_tokens_token_prefix_idx ON api_tokens (token_prefix);`,
+  );
+
   initFTS(rawDb);
 
   const db = drizzle({ client: rawDb, schema });

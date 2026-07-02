@@ -13,6 +13,8 @@ import { z, ZodError } from "zod/v4";
 import type { Session } from "@curiouslycory/auth";
 import { db } from "@curiouslycory/db/client";
 
+import { resolveTokenSession } from "./lib/token-auth";
+
 /**
  * 1. CONTEXT
  *
@@ -26,13 +28,22 @@ import { db } from "@curiouslycory/db/client";
  * @see https://trpc.io/docs/server/context
  */
 
-export const createTRPCContext = (opts: {
+export const createTRPCContext = async (opts: {
   headers: Headers;
   session: Session | null;
   repoPath?: string;
 }) => {
+  // A cookie/local session (resolved by the web app) always wins. When absent,
+  // fall back to a personal access token in the `Authorization` header. Bearer
+  // resolution reads the DB directly (no better-auth runtime, per #20) and yields
+  // the SAME `Session` shape, so `protectedProcedure` and all #21 per-user scoping
+  // behave identically for cookie and Bearer requests.
+  const session =
+    opts.session ??
+    (await resolveTokenSession(db, opts.headers.get("authorization")));
+
   return {
-    session: opts.session,
+    session,
     db,
     repoPath: opts.repoPath ?? process.cwd(),
   };

@@ -53,6 +53,7 @@ export function SettingsContent() {
     <div className="space-y-6">
       <GeneralSection />
       <ConnectorsSection />
+      <TokensSection />
       <FavoritesSection />
       <AgentDefaultsSection />
     </div>
@@ -196,6 +197,193 @@ function ConnectorsSection() {
             </Button>
           )}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function formatDate(value: Date | null | undefined): string {
+  if (!value) return "Never";
+  return new Date(value).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function TokensSection() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const { data: tokens } = useSuspenseQuery(trpc.token.list.queryOptions());
+
+  const [newName, setNewName] = useState("");
+  const [createdToken, setCreatedToken] = useState<string | null>(null);
+  const [revokeId, setRevokeId] = useState<string | null>(null);
+
+  const invalidateList = () =>
+    queryClient.invalidateQueries({
+      queryKey: trpc.token.list.queryOptions().queryKey,
+    });
+
+  const createMutation = useMutation(
+    trpc.token.create.mutationOptions({
+      onSuccess: (data) => {
+        // Shown exactly once: the plaintext is never returned again.
+        setCreatedToken(data.token);
+        setNewName("");
+        toast.success("Token created");
+        void invalidateList();
+      },
+      onError: (error) => {
+        toast.error(`Failed to create token: ${error.message}`);
+      },
+    }),
+  );
+
+  const revokeMutation = useMutation(
+    trpc.token.revoke.mutationOptions({
+      onSuccess: () => {
+        toast.success("Token revoked");
+        setRevokeId(null);
+        void invalidateList();
+      },
+      onError: (error) => {
+        toast.error(`Failed to revoke token: ${error.message}`);
+      },
+    }),
+  );
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    createMutation.mutate({ name: newName.trim() });
+  };
+
+  const handleCopy = async () => {
+    if (!createdToken) return;
+    try {
+      await navigator.clipboard.writeText(createdToken);
+      toast.success("Token copied to clipboard");
+    } catch {
+      toast.error("Could not copy to clipboard");
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>API Tokens</CardTitle>
+        <CardDescription>
+          Personal access tokens let the CLI and CI act on your behalf. A token is
+          shown in full only once, right after you create it.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <form
+          onSubmit={handleCreate}
+          className="flex flex-col gap-3 sm:flex-row sm:items-end"
+        >
+          <div className="flex-1 space-y-1">
+            <Label htmlFor="tokenName">Name</Label>
+            <Input
+              id="tokenName"
+              placeholder="My laptop CLI"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+          </div>
+          <Button
+            type="submit"
+            disabled={createMutation.isPending || !newName.trim()}
+          >
+            {createMutation.isPending ? "Creating..." : "Create token"}
+          </Button>
+        </form>
+
+        {createdToken && (
+          <div className="border-primary/50 bg-muted space-y-2 rounded-md border p-4">
+            <p className="text-sm font-medium">
+              Copy your new token now. You won&apos;t be able to see it again.
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="bg-background flex-1 overflow-x-auto rounded px-3 py-2 font-mono text-sm">
+                {createdToken}
+              </code>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void handleCopy()}
+              >
+                Copy
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setCreatedToken(null)}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {tokens.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No API tokens yet.</p>
+        ) : (
+          <div className="divide-y rounded-md border">
+            {tokens.map((token) => (
+              <div
+                key={token.id}
+                className="flex items-center justify-between px-4 py-3"
+              >
+                <div className="space-y-1">
+                  <p className="font-medium">{token.name}</p>
+                  <p className="text-muted-foreground font-mono text-xs">
+                    {token.tokenPrefix}
+                    {"…"}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    Last used: {formatDate(token.lastUsedAt)} &middot; Created:{" "}
+                    {formatDate(token.createdAt)}
+                  </p>
+                </div>
+                <AlertDialog
+                  open={revokeId === token.id}
+                  onOpenChange={(open) => setRevokeId(open ? token.id : null)}
+                >
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      Revoke
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Revoke token</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Revoking &quot;{token.name}&quot; immediately stops it from
+                        authenticating. Any CLI or CI using it will need a new
+                        token.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => revokeMutation.mutate({ id: token.id })}
+                        className={cn(
+                          "bg-destructive hover:bg-destructive/90 text-white",
+                        )}
+                      >
+                        {revokeMutation.isPending ? "Revoking..." : "Revoke"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -508,7 +696,7 @@ function AgentDefaultsSection() {
 export function SettingsContentSkeleton() {
   return (
     <div className="space-y-6">
-      {Array.from({ length: 4 }).map((_, i) => (
+      {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="rounded-lg border p-6">
           <div className="bg-muted mb-4 h-6 w-32 animate-pulse rounded" />
           <div className="bg-muted mb-2 h-4 w-48 animate-pulse rounded" />

@@ -1,5 +1,11 @@
 import { sql } from "drizzle-orm";
-import { integer, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  sqliteTable,
+  text,
+  unique,
+} from "drizzle-orm/sqlite-core";
 
 export const skills = sqliteTable(
   "skills",
@@ -103,6 +109,37 @@ export const config = sqliteTable(
   },
   // Config is per-user preferences: keys are unique within a user, not globally.
   (table) => [unique().on(table.userId, table.key)],
+);
+
+/**
+ * Personal access tokens (#22).
+ *
+ * Lets the CLI and CI act on a user's behalf via `Authorization: Bearer mysk_...`.
+ * The plaintext token is shown only once at creation; only the SHA-256 hash
+ * (`token_hash`, hex) and an 8-char `token_prefix` are persisted. Bearer
+ * resolution looks up candidates by `token_prefix` (indexed) then compares hashes
+ * in constant time. Scoped per user via `user_id`, per #21.
+ */
+export const apiTokens = sqliteTable(
+  "api_tokens",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    tokenPrefix: text("token_prefix").notNull(),
+    scopes: text("scopes").notNull().default("[]"),
+    lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
+    expiresAt: integer("expires_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [index("api_tokens_token_prefix_idx").on(table.tokenPrefix)],
 );
 
 /**

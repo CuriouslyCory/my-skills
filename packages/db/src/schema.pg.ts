@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   pgTable,
   text,
   timestamp,
@@ -116,6 +117,35 @@ export const config = pgTable(
   },
   // Config is per-user preferences: keys are unique within a user, not globally.
   (table) => [unique().on(table.userId, table.key)],
+);
+
+/**
+ * Personal access tokens (#22).
+ *
+ * Postgres mirror of `api_tokens` in `schema.sqlite.ts`. Only the SHA-256
+ * `token_hash` (hex) and an 8-char `token_prefix` are persisted; the plaintext is
+ * shown once at creation. Scoped per user via `user_id`, per #21.
+ */
+export const apiTokens = pgTable(
+  "api_tokens",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    tokenPrefix: text("token_prefix").notNull(),
+    scopes: text("scopes").notNull().default("[]"),
+    lastUsedAt: timestamp("last_used_at", { mode: "date", withTimezone: true }),
+    expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("api_tokens_token_prefix_idx").on(table.tokenPrefix)],
 );
 
 /**
