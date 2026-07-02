@@ -23,7 +23,9 @@ export interface TestContext {
  * a tRPC caller bound to that database for use in tests.
  */
 export async function createTestCaller(opts?: {
-  session?: { user: { username: string } } | null;
+  session?: {
+    user: { id: string; name: string; email: string };
+  } | null;
 }): Promise<TestContext> {
   const rawDb = new Database(":memory:");
   rawDb.pragma("journal_mode = WAL");
@@ -97,7 +99,9 @@ export async function createTestCaller(opts?: {
   const repoPath = await mkdtemp(join(tmpdir(), "api-test-"));
 
   const caller = appRouter.createCaller({
-    session: opts?.session ?? { user: { username: "test" } },
+    session: opts?.session ?? {
+      user: { id: "test-user", name: "Test", email: "test@example.com" },
+    },
     db,
     repoPath,
   });

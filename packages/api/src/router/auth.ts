@@ -1,41 +1,16 @@
 import type { TRPCRouterRecord } from "@trpc/server";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod/v4";
-
-import { createSession, isAuthEnabled, validate } from "@curiouslycory/auth";
 
 import { publicProcedure } from "../trpc";
 
+/**
+ * Auth router. Sign-in/sign-up/sign-out are handled by the better-auth client
+ * against the `/api/auth/*` route handler, so this router only exposes a read
+ * helper for the current session. (Multi-user mode detection is read directly
+ * server-side via `isMultiUserAuthEnabled()` in the web app; it is intentionally
+ * not surfaced here to keep the better-auth runtime out of the API graph.)
+ */
 export const authRouter = {
   getSession: publicProcedure.query(({ ctx }) => {
     return ctx.session;
-  }),
-  isAuthEnabled: publicProcedure.query(() => {
-    return isAuthEnabled();
-  }),
-  login: publicProcedure
-    .input(
-      z.object({
-        username: z.string().min(1),
-        password: z.string().min(1),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      if (!isAuthEnabled()) {
-        return { token: null, username: "local" };
-      }
-
-      if (!validate(input.username, input.password)) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Invalid username or password",
-        });
-      }
-
-      const token = await createSession(input.username);
-      return { token, username: input.username };
-    }),
-  logout: publicProcedure.mutation(() => {
-    return { success: true };
   }),
 } satisfies TRPCRouterRecord;

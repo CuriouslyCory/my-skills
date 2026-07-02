@@ -23,3 +23,9 @@ export const variations = active.variations;
 export const favorites = active.favorites;
 export const compositions = active.compositions;
 export const config = active.config;
+
+// better-auth core tables, bridged through the same dialect switch.
+export const user = active.user;
+export const session = active.session;
+export const account = active.account;
+export const verification = active.verification;

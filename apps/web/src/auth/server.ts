@@ -1,21 +1,41 @@
 import "server-only";
 
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 
 import type { Session } from "@curiouslycory/auth";
-import { isAuthEnabled, verifySession } from "@curiouslycory/auth";
+import {
+  auth,
+  getLocalSession,
+  isMultiUserAuthEnabled,
+} from "@curiouslycory/auth";
 
-const SESSION_COOKIE = "my-skills-session";
-
+/**
+ * Resolves the current session.
+ *
+ * - Local single-user mode (no OAuth env): returns the auto-provisioned local
+ *   user without any sign-in, preserving the existing self-hosted workflow.
+ * - Multi-user mode: resolves the better-auth session from the request cookies.
+ */
 export const getSession = cache(async (): Promise<Session | null> => {
-  if (!isAuthEnabled()) {
-    return { user: { username: "local" } };
+  if (!isMultiUserAuthEnabled()) {
+    return getLocalSession();
   }
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
+  const result = await auth.api.getSession({ headers: await headers() });
+  if (!result) return null;
 
-  return verifySession(token);
+  return {
+    user: {
+      id: result.user.id,
+      name: result.user.name,
+      email: result.user.email,
+      image: result.user.image,
+    },
+    session: {
+      id: result.session.id,
+      userId: result.session.userId,
+      expiresAt: result.session.expiresAt,
+    },
+  };
 });
