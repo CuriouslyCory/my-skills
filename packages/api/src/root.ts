@@ -8,6 +8,7 @@ import { gitRouter } from "./router/git";
 import { postRouter } from "./router/post";
 import { searchRouter } from "./router/search";
 import { skillRouter } from "./router/skill";
+import { tokenRouter } from "./router/token";
 import { createTRPCRouter } from "./trpc";
 
 export const appRouter = createTRPCRouter({
@@ -21,6 +22,7 @@ export const appRouter = createTRPCRouter({
   post: postRouter,
   search: searchRouter,
   skill: skillRouter,
+  token: tokenRouter,
 });
 
 // export type definition of API
