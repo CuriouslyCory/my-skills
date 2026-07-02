@@ -3,13 +3,43 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Manifest } from "@curiouslycory/shared-types";
 
+import { AuthRequiredError } from "../../src/core/api-client.js";
 import { registerCheckCommand } from "../../src/commands/check.js";
 import { fetchRepo } from "../../src/services/cache.js";
+import { createCloudClient } from "../../src/services/cloud-source.js";
 
 let mockManifest: Manifest | null = null;
 
 vi.mock("../../src/core/manifest.js", () => ({
   loadManifest: vi.fn(() => Promise.resolve(mockManifest)),
+}));
+
+const cloudCleanup = vi.fn(() => Promise.resolve());
+
+vi.mock("../../src/services/cloud-source.js", () => ({
+  createCloudClient: vi.fn(() =>
+    Promise.resolve({ client: {}, serverUrl: "https://srv.example" }),
+  ),
+  fetchCloudArtifact: vi.fn(() =>
+    Promise.resolve({
+      id: "id-1",
+      name: "cloud-skill",
+      description: "d",
+      category: "skill",
+      content: "body",
+      author: null,
+      version: null,
+      tags: [],
+      updatedAt: new Date(),
+    }),
+  ),
+  materializeCloudArtifact: vi.fn(() =>
+    Promise.resolve({
+      resolved: { name: "cloud-skill", sourcePath: "/tmp/cloud-skill" },
+      category: "skill",
+      cleanup: cloudCleanup,
+    }),
+  ),
 }));
 
 vi.mock("../../src/services/cache.js", () => ({
@@ -141,6 +171,52 @@ describe("check command", () => {
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining("remote unavailable"),
     );
+  });
+
+  describe("cloud (@me) entries", () => {
+    it("reports 'update available' when a cloud artifact's hash changed", async () => {
+      mockRemoteHash = "cloudnewhash11111";
+      mockManifest = makeManifest({
+        "cloud-skill": {
+          source: "@me/cloud-skill",
+          sourceType: "cloud",
+          category: "skill",
+          computedHash: "cloudoldhash00000",
+          installedAt: new Date().toISOString(),
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "check"]);
+
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining("update available"),
+      );
+      expect(cloudCleanup).toHaveBeenCalled();
+    });
+
+    it("reports 'remote unavailable' when not logged in", async () => {
+      vi.mocked(createCloudClient).mockRejectedValueOnce(
+        new AuthRequiredError("Not logged in. Run `ms login`."),
+      );
+      mockManifest = makeManifest({
+        "cloud-skill": {
+          source: "@me/cloud-skill",
+          sourceType: "cloud",
+          category: "skill",
+          computedHash: "cloudoldhash00000",
+          installedAt: new Date().toISOString(),
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "check"]);
+
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining("ms login"),
+      );
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining("remote unavailable"),
+      );
+    });
   });
 
   describe("checkSingleSkill error type distinction", () => {
