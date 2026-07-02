@@ -162,6 +162,25 @@ export async function createTestCaller(opts?: {
     `CREATE INDEX IF NOT EXISTS api_tokens_token_prefix_idx ON api_tokens (token_prefix);`,
   );
 
+  // Publish targets (#29). One row per user; artifact_state is the per-artifact
+  // content-hash map driving idempotent re-publish.
+  rawDb.exec(`
+    CREATE TABLE IF NOT EXISTS publish_targets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'test-user',
+      repo_name TEXT NOT NULL,
+      repo_owner TEXT,
+      visibility TEXT NOT NULL DEFAULT 'public',
+      selection TEXT NOT NULL DEFAULT '[]',
+      last_commit_sha TEXT,
+      last_published_at INTEGER,
+      artifact_state TEXT NOT NULL DEFAULT '{}',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(user_id)
+    );
+  `);
+
   initFTS(rawDb);
 
   const db = drizzle({ client: rawDb, schema });

@@ -7,6 +7,7 @@ import { githubRouter } from "./router/github";
 import { gitRouter } from "./router/git";
 import { libraryRouter } from "./router/library";
 import { postRouter } from "./router/post";
+import { publishRouter } from "./router/publish";
 import { searchRouter } from "./router/search";
 import { skillRouter } from "./router/skill";
 import { tokenRouter } from "./router/token";
@@ -22,6 +23,7 @@ export const appRouter = createTRPCRouter({
   github: githubRouter,
   library: libraryRouter,
   post: postRouter,
+  publish: publishRouter,
   search: searchRouter,
   skill: skillRouter,
   token: tokenRouter,

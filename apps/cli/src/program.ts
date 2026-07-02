@@ -11,6 +11,7 @@ import { registerInitCommand } from "./commands/init.js";
 import { registerListCommand } from "./commands/list.js";
 import { registerLoginCommand } from "./commands/login.js";
 import { registerLogoutCommand } from "./commands/logout.js";
+import { registerPublishCommand } from "./commands/publish.js";
 import { registerRemoveCommand } from "./commands/remove.js";
 import { registerUpdateCommand } from "./commands/update.js";
 import { registerWhoamiCommand } from "./commands/whoami.js";
@@ -35,6 +36,7 @@ export function createProgram(): Command {
   registerListCommand(program);
   registerLoginCommand(program);
   registerLogoutCommand(program);
+  registerPublishCommand(program);
   registerRemoveCommand(program);
   registerUpdateCommand(program);
   registerWhoamiCommand(program);
