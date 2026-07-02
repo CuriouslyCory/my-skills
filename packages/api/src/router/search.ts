@@ -3,10 +3,10 @@ import { z } from "zod/v4";
 
 import { searchSkills } from "@curiouslycory/db";
 
-import { publicProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 
 export const searchRouter = {
-  query: publicProcedure
+  query: protectedProcedure
     .input(
       z.object({
         query: z.string().optional(),
@@ -15,5 +15,7 @@ export const searchRouter = {
         offset: z.number().int().min(0).optional().default(0),
       }),
     )
-    .query(async ({ ctx, input }) => searchSkills(ctx.db, input)),
+    .query(async ({ ctx, input }) =>
+      searchSkills(ctx.db, { ...input, userId: ctx.session.user.id }),
+    ),
 } satisfies TRPCRouterRecord;

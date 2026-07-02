@@ -14,26 +14,38 @@ import {
  * correct SQL on either dialect. Timestamps use `timestamp` (with `defaultNow`)
  * instead of the SQLite `integer`/`unixepoch()` representation.
  */
-export const skills = pgTable("skills", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  name: text("name").notNull().unique(),
-  description: text("description").notNull(),
-  tags: text("tags").notNull().default("[]"),
-  author: text("author"),
-  version: text("version"),
-  content: text("content").notNull(),
-  dirPath: text("dir_path").unique(),
-  category: text("category"),
-  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdateFn(() => new Date()),
-});
+export const skills = pgTable(
+  "skills",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    tags: text("tags").notNull().default("[]"),
+    author: text("author"),
+    version: text("version"),
+    content: text("content").notNull(),
+    dirPath: text("dir_path"),
+    category: text("category"),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  // Names and directory paths are unique per owning user, not globally, so
+  // separate accounts can each have a skill of the same name.
+  (table) => [
+    unique().on(table.userId, table.name),
+    unique().on(table.userId, table.dirPath),
+  ],
+);
 
 export const variations = pgTable("variations", {
   id: text("id")
@@ -55,6 +67,9 @@ export const favorites = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     repoUrl: text("repo_url").notNull(),
     name: text("name").notNull(),
     description: text("description"),
@@ -64,13 +79,16 @@ export const favorites = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [unique().on(table.repoUrl, table.skillName)],
+  (table) => [unique().on(table.userId, table.repoUrl, table.skillName)],
 );
 
 export const compositions = pgTable("compositions", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   fragments: text("fragments").notNull().default("[]"),
@@ -84,13 +102,21 @@ export const compositions = pgTable("compositions", {
     .$onUpdateFn(() => new Date()),
 });
 
-export const config = pgTable("config", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  key: text("key").notNull().unique(),
-  value: text("value").notNull(),
-});
+export const config = pgTable(
+  "config",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    value: text("value").notNull(),
+  },
+  // Config is per-user preferences: keys are unique within a user, not globally.
+  (table) => [unique().on(table.userId, table.key)],
+);
 
 /**
  * better-auth core tables (user, session, account, verification).

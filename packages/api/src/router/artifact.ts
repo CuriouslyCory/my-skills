@@ -4,7 +4,7 @@ import { join, relative } from "node:path";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
 
-import { desc, eq } from "@curiouslycory/db";
+import { and, desc, eq } from "@curiouslycory/db";
 import { skills } from "@curiouslycory/db/schema";
 import {
   buildSkillContent,
@@ -12,7 +12,7 @@ import {
 } from "@curiouslycory/shared-types";
 
 import { scanAndSync } from "../lib/disk-sync";
-import { protectedProcedure, publicProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 
 // Artifact categories (excluding "skill" which has its own router)
 const artifactCategorySchema = z.enum(["agent", "prompt", "claudemd"]);
@@ -23,7 +23,7 @@ function getArtifactDir(repoPath: string, category: ArtifactCategory): string {
 }
 
 export const artifactRouter = {
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z
         .object({
@@ -32,17 +32,21 @@ export const artifactRouter = {
         .optional(),
     )
     .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       if (input?.category) {
         return ctx.db
           .select()
           .from(skills)
-          .where(eq(skills.category, input.category))
+          .where(
+            and(eq(skills.userId, userId), eq(skills.category, input.category)),
+          )
           .orderBy(desc(skills.updatedAt));
       }
       // Return all non-skill artifacts
       const allRows = await ctx.db
         .select()
         .from(skills)
+        .where(eq(skills.userId, userId))
         .orderBy(desc(skills.updatedAt));
       return allRows.filter(
         (row) =>
@@ -52,21 +56,29 @@ export const artifactRouter = {
       );
     }),
 
-  listByCategory: publicProcedure
+  listByCategory: protectedProcedure
     .input(z.object({ category: artifactCategorySchema }))
     .query(async ({ ctx, input }) => {
       return ctx.db
         .select()
         .from(skills)
-        .where(eq(skills.category, input.category))
+        .where(
+          and(
+            eq(skills.userId, ctx.session.user.id),
+            eq(skills.category, input.category),
+          ),
+        )
         .orderBy(desc(skills.updatedAt));
     }),
 
-  byId: publicProcedure
+  byId: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const row = await ctx.db.query.skills.findFirst({
-        where: eq(skills.id, input.id),
+        where: and(
+          eq(skills.id, input.id),
+          eq(skills.userId, ctx.session.user.id),
+        ),
       });
       return row ?? null;
     }),
@@ -102,6 +114,7 @@ export const artifactRouter = {
       const [row] = await ctx.db
         .insert(skills)
         .values({
+          userId: ctx.session.user.id,
           name: input.name,
           description: input.description,
           tags: JSON.stringify(input.tags ?? []),
@@ -130,8 +143,9 @@ export const artifactRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const existing = await ctx.db.query.skills.findFirst({
-        where: eq(skills.id, input.id),
+        where: and(eq(skills.id, input.id), eq(skills.userId, userId)),
       });
       if (!existing) {
         throw new Error(`Artifact not found: ${input.id}`);
@@ -171,7 +185,7 @@ export const artifactRouter = {
           ...(input.category !== undefined ? { category: input.category } : {}),
           updatedAt: new Date(),
         })
-        .where(eq(skills.id, input.id))
+        .where(and(eq(skills.id, input.id), eq(skills.userId, userId)))
         .returning();
 
       return row;
@@ -180,8 +194,9 @@ export const artifactRouter = {
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const existing = await ctx.db.query.skills.findFirst({
-        where: eq(skills.id, input.id),
+        where: and(eq(skills.id, input.id), eq(skills.userId, userId)),
       });
       if (!existing) {
         throw new Error(`Artifact not found: ${input.id}`);
@@ -194,12 +209,14 @@ export const artifactRouter = {
         }
       }
 
-      await ctx.db.delete(skills).where(eq(skills.id, input.id));
+      await ctx.db
+        .delete(skills)
+        .where(and(eq(skills.id, input.id), eq(skills.userId, userId)));
 
       return { success: true };
     }),
 
   syncFromDisk: protectedProcedure.mutation(async ({ ctx }) => {
-    return scanAndSync(ctx.repoPath, ctx.db);
+    return scanAndSync(ctx.repoPath, ctx.db, ctx.session.user.id);
   }),
 } satisfies TRPCRouterRecord;

@@ -5,12 +5,19 @@ import { scanAndSync } from "@curiouslycory/api";
 import { db } from "@curiouslycory/db/client";
 
 import { SkillList, SkillListSkeleton } from "~/app/_components/skill-list";
+import { getSession } from "~/auth/server";
 import { env } from "~/env";
 import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 
 export default async function SkillsPage() {
   const repoPath = env.REPO_PATH ?? resolve(process.cwd(), "../..");
-  await scanAndSync(repoPath, db);
+  // Disk sync is filesystem-coupled and per-user: only sync into the signed-in
+  // user's library. When there is no session (multi-user mode, signed out) we
+  // skip the sync; the scoped skill.list below simply returns no rows.
+  const session = await getSession();
+  if (session) {
+    await scanAndSync(repoPath, db, session.user.id);
+  }
   prefetch(trpc.skill.list.queryOptions());
 
   return (
