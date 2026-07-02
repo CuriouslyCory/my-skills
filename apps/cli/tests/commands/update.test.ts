@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Manifest, SkillEntry } from "@curiouslycory/shared-types";
+import type { Manifest } from "@curiouslycory/shared-types";
 
 import { registerUpdateCommand } from "../../src/commands/update.js";
 import { saveManifest } from "../../src/core/manifest.js";
@@ -348,7 +348,7 @@ describe("update command", () => {
       const saved = vi.mocked(saveManifest).mock.calls[0][1] as unknown as Manifest;
       expect(saved.skills["test-skill"]).toHaveProperty("computedHash", "brandnewhash1234");
       expect(saved.skills["test-skill"]).toHaveProperty("installedAt");
-      const installedAt = (saved.skills["test-skill"] as SkillEntry).installedAt;
+      const installedAt = saved.skills["test-skill"]?.installedAt;
       expect(installedAt).not.toBe(oldDate);
     });
   });

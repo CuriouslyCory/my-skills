@@ -57,7 +57,9 @@
     "ADMIN_USER",
     "ADMIN_PASSWORD",
     "MY_SKILLS_CACHE_DIR",
-    "MY_SKILLS_SKILLS_DIR"
+    "MY_SKILLS_SKILLS_DIR",
+    "MY_SKILLS_SKIP",
+    "MY_SKILLS_CI"
   ],
   "globalPassThroughEnv": [
     "NODE_ENV",
@@ -65,6 +67,7 @@
     "VERCEL",
     "VERCEL_ENV",
     "VERCEL_URL",
-    "npm_lifecycle_event"
+    "npm_lifecycle_event",
+    "INIT_CWD"
   ]
 }
