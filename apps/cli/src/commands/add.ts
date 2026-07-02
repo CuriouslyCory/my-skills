@@ -32,6 +32,7 @@ import { resolveSkill } from "../core/skill-resolver.js";
 import type { DiscoveredSkill } from "../services/cache.js";
 import { discoverSkills, fetchRepo } from "../services/cache.js";
 import { parseSource } from "../services/source-parser.js";
+import { addFromCloud } from "./add-cloud.js";
 
 interface AddOptions {
   skill?: string;
@@ -361,6 +362,14 @@ export function registerAddCommand(program: Command): void {
       };
 
       const parsed = parseSource(source);
+
+      // Personal cloud library (`@me` / `@me/<name>`): install from the user's
+      // library over the API. Self-contained; does not touch the github/favorite
+      // paths below.
+      if (parsed.type === "cloud") {
+        await addFromCloud(parsed, opts, projectRoot, manifest, agents);
+        return;
+      }
 
       if (parsed.type === "local") {
         console.log(

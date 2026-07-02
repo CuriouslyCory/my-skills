@@ -3,11 +3,45 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Manifest } from "@curiouslycory/shared-types";
 
+import { AuthRequiredError } from "../../src/core/api-client.js";
 import { registerUpdateCommand } from "../../src/commands/update.js";
 import { saveManifest } from "../../src/core/manifest.js";
 import { fetchRepo } from "../../src/services/cache.js";
+import { createCloudClient } from "../../src/services/cloud-source.js";
 
 let mockManifest: Manifest | null = null;
+
+const cloudCleanup = vi.fn(() => Promise.resolve());
+
+vi.mock("../../src/services/cloud-source.js", () => ({
+  createCloudClient: vi.fn(() =>
+    Promise.resolve({ client: {}, serverUrl: "https://srv.example" }),
+  ),
+  fetchCloudArtifact: vi.fn(() =>
+    Promise.resolve({
+      id: "id-1",
+      name: "cloud-skill",
+      description: "d",
+      category: "skill",
+      content: "body",
+      author: null,
+      version: null,
+      tags: [],
+      updatedAt: new Date(),
+    }),
+  ),
+  materializeCloudArtifact: vi.fn(() =>
+    Promise.resolve({
+      resolved: { name: "cloud-skill", sourcePath: "/tmp/cloud-skill", files: [] },
+      category: "skill",
+      cleanup: cloudCleanup,
+    }),
+  ),
+  cloudDeployDir: vi.fn(
+    (root: string, category: string) => `${root}/.agents/${category}s`,
+  ),
+  normalizeCategory: vi.fn((c: string | null | undefined) => c ?? "skill"),
+}));
 
 vi.mock("../../src/core/manifest.js", () => ({
   loadManifest: vi.fn(() => Promise.resolve(mockManifest)),
@@ -176,6 +210,56 @@ describe("update command", () => {
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining("1 failed"),
     );
+  });
+
+  describe("cloud (@me) entries", () => {
+    it("updates a cloud entry when its content hash changed", async () => {
+      mockInstallHash = "cloudnewhash11111";
+      mockManifest = makeManifest({
+        "cloud-skill": {
+          source: "@me/cloud-skill",
+          sourceType: "cloud",
+          category: "skill",
+          computedHash: "cloudoldhash00000",
+          installedAt: "2026-01-01T00:00:00.000Z",
+          agents: [],
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "update"]);
+
+      expect(saveManifest).toHaveBeenCalled();
+      const saved = vi.mocked(saveManifest).mock
+        .calls[0][1] as unknown as Manifest;
+      expect(saved.skills["cloud-skill"]).toHaveProperty(
+        "computedHash",
+        "cloudnewhash11111",
+      );
+      expect(cloudCleanup).toHaveBeenCalled();
+    });
+
+    it("fails a cloud entry clearly when not logged in", async () => {
+      vi.mocked(createCloudClient).mockRejectedValueOnce(
+        new AuthRequiredError("Not logged in. Run `ms login`."),
+      );
+      mockManifest = makeManifest({
+        "cloud-skill": {
+          source: "@me/cloud-skill",
+          sourceType: "cloud",
+          category: "skill",
+          computedHash: "cloudoldhash00000",
+          installedAt: new Date().toISOString(),
+          agents: [],
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "update"]);
+
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining("1 failed"),
+      );
+      expect(process.exitCode).toBe(1);
+    });
   });
 
   describe("single skill argument", () => {

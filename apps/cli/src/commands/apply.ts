@@ -13,13 +13,20 @@ import { AgentIdSchema } from "@curiouslycory/shared-types";
 import type { AdapterSkillEntry } from "../adapters/index.js";
 import type { ResolvedSkill } from "../core/skill-resolver.js";
 import { detectAgents, getEnabledAdapters } from "../adapters/index.js";
+import {
+  cloudDeployDir,
+  createCloudClient,
+  fetchCloudArtifact,
+  materializeCloudArtifact,
+  normalizeCategory,
+} from "../services/cloud-source.js";
 import { loadConfig } from "../core/config.js";
 import { addSkill, loadManifest, saveManifest } from "../core/manifest.js";
 import { computeSkillHash } from "../core/skill-hasher.js";
 import { installSkill } from "../core/skill-installer.js";
 import { resolveSkill } from "../core/skill-resolver.js";
 import { fetchRepo } from "../services/cache.js";
-import { sourceToGitHub } from "../services/source-parser.js";
+import { cloudSourceName, sourceToGitHub } from "../services/source-parser.js";
 
 interface ApplyOptions {
   frozen?: boolean;
@@ -81,27 +88,62 @@ export async function planSkillAction(
   }
 }
 
+/** A resolved entry plus an optional cleanup for any temp materialization. */
+interface ResolvedEntry {
+  resolved: ResolvedSkill;
+  cleanup?: () => Promise<void>;
+}
+
 /**
  * Resolve a manifest entry to an installable skill. Supports unauthenticated
- * `github` (shallow clone via cache) and `local` (filesystem path) sources.
+ * `github` (shallow clone via cache) and `local` (filesystem path) sources, plus
+ * `cloud` (`@me`) sources fetched from the personal library over the API. Cloud
+ * resolution needs a token; `createCloudClient` throws `AuthRequiredError` with a
+ * clear message when none is available, which the caller records as a failure.
  */
 async function resolveEntrySkill(
   skillName: string,
   entry: SkillEntry,
   projectRoot: string,
-): Promise<ResolvedSkill> {
+): Promise<ResolvedEntry> {
   if (entry.sourceType === "github") {
     const githubSource = sourceToGitHub(entry.source);
     const cachePath = await fetchRepo(githubSource);
-    return resolveSkill(skillName, cachePath);
+    return { resolved: await resolveSkill(skillName, cachePath) };
   }
 
   if (entry.sourceType === "local") {
     const localPath = resolve(projectRoot, entry.source);
-    return resolveSkill(skillName, localPath);
+    return { resolved: await resolveSkill(skillName, localPath) };
+  }
+
+  if (entry.sourceType === "cloud") {
+    const { client } = await createCloudClient();
+    const artifact = await fetchCloudArtifact(
+      client,
+      cloudSourceName(entry.source),
+    );
+    const { resolved, cleanup } = await materializeCloudArtifact(artifact);
+    return { resolved, cleanup };
   }
 
   throw new Error(`unsupported source type "${entry.sourceType}"`);
+}
+
+/**
+ * The reconcile target directory for an entry. Cloud entries deploy to their
+ * category's DEPLOY_PATH_MAP target; github/local skills use the default
+ * skills directory.
+ */
+function entryTargetDir(
+  entry: SkillEntry,
+  projectRoot: string,
+  defaultTargetDir: string,
+): string {
+  if (entry.sourceType === "cloud") {
+    return cloudDeployDir(projectRoot, normalizeCategory(entry.category));
+  }
+  return defaultTargetDir;
 }
 
 /**
@@ -192,7 +234,8 @@ export async function reconcile(
   let currentManifest = manifest;
 
   for (const [name, entry] of Object.entries(manifest.skills)) {
-    const destPath = join(targetDir, name);
+    const entryTarget = entryTargetDir(entry, projectRoot, targetDir);
+    const destPath = join(entryTarget, name);
     const agents = entry.agents ?? fallbackAgents;
 
     let action: SkillAction;
@@ -233,26 +276,34 @@ export async function reconcile(
     }
 
     try {
-      const resolved = await resolveEntrySkill(name, entry, projectRoot);
-      if (action === "update") {
-        await rm(destPath, { recursive: true, force: true });
-      }
-      const newHash = await installSkill(resolved, targetDir);
+      const { resolved, cleanup } = await resolveEntrySkill(
+        name,
+        entry,
+        projectRoot,
+      );
+      try {
+        if (action === "update") {
+          await rm(destPath, { recursive: true, force: true });
+        }
+        const newHash = await installSkill(resolved, entryTarget);
 
-      // No commit pinning exists yet, so an upstream change can leave the freshly
-      // installed hash different from the manifest. Record it so the next run
-      // sees an in-sync tree (idempotency).
-      if (newHash !== entry.computedHash) {
-        const updatedEntry: SkillEntry = {
-          ...entry,
-          computedHash: newHash,
-          installedAt: new Date().toISOString(),
-        };
-        currentManifest = addSkill(currentManifest, name, updatedEntry);
-      }
+        // No commit pinning exists yet, so an upstream change can leave the
+        // freshly installed hash different from the manifest. Record it so the
+        // next run sees an in-sync tree (idempotency).
+        if (newHash !== entry.computedHash) {
+          const updatedEntry: SkillEntry = {
+            ...entry,
+            computedHash: newHash,
+            installedAt: new Date().toISOString(),
+          };
+          currentManifest = addSkill(currentManifest, name, updatedEntry);
+        }
 
-      await runAdapterInstalls(projectRoot, agents, resolved, opts.quiet);
-      results.push({ name, source: entry.source, action });
+        await runAdapterInstalls(projectRoot, agents, resolved, opts.quiet);
+        results.push({ name, source: entry.source, action });
+      } finally {
+        await cleanup?.();
+      }
     } catch (err) {
       results.push({
         name,

@@ -27,7 +27,13 @@ export type ArtifactCategory = z.infer<typeof ArtifactCategorySchema>;
 
 // ── Skill Entry (manifest entry for an installed skill) ─────────────
 
-export const SourceTypeSchema = z.enum(["github", "gitlab", "url", "local"]);
+export const SourceTypeSchema = z.enum([
+  "github",
+  "gitlab",
+  "url",
+  "local",
+  "cloud",
+]);
 export type SourceType = z.infer<typeof SourceTypeSchema>;
 
 export const SkillEntrySchema = z.object({
@@ -38,6 +44,9 @@ export const SkillEntrySchema = z.object({
   installedAt: z.string(),
   agents: z.array(AgentIdSchema).optional(),
   variations: z.record(z.string(), z.unknown()).optional(),
+  // Deploy category for cloud (`@me`) entries; selects the DEPLOY_PATH_MAP
+  // target. Absent for github/local skill entries (which deploy to skillsDir).
+  category: ArtifactCategorySchema.optional(),
 });
 export type SkillEntry = z.infer<typeof SkillEntrySchema>;
 

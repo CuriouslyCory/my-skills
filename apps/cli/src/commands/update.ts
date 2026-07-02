@@ -12,8 +12,16 @@ import type {
 } from "@curiouslycory/shared-types";
 
 import type { AdapterSkillEntry } from "../adapters/index.js";
-import { sourceToGitHub } from "../services/source-parser.js";
+import type { ResolvedSkill } from "../core/skill-resolver.js";
+import { cloudSourceName, sourceToGitHub } from "../services/source-parser.js";
 import { getEnabledAdapters } from "../adapters/index.js";
+import {
+  cloudDeployDir,
+  createCloudClient,
+  fetchCloudArtifact,
+  materializeCloudArtifact,
+  normalizeCategory,
+} from "../services/cloud-source.js";
 import { loadConfig } from "../core/config.js";
 import {
   addSkill,
@@ -74,52 +82,71 @@ async function updateSingleSkill(
   const spinner = ora(`Updating ${skillName}...`).start();
 
   try {
-    if (entry.sourceType !== "github") {
+    // Resolve the latest version + its install target per source type. Cloud
+    // (`@me`) entries fetch from the personal library over the API and deploy to
+    // their category's DEPLOY_PATH_MAP target; github deploys to the skills dir.
+    let resolved: ResolvedSkill;
+    let installTarget = targetDir;
+    let cleanup: (() => Promise<void>) | undefined;
+
+    if (entry.sourceType === "github") {
+      const githubSource = sourceToGitHub(entry.source);
+      // Force-fetch from remote (ignore cache staleness)
+      const cachePath = await fetchRepo(githubSource);
+      resolved = await resolveSkill(skillName, cachePath);
+    } else if (entry.sourceType === "cloud") {
+      const { client } = await createCloudClient();
+      const artifact = await fetchCloudArtifact(
+        client,
+        cloudSourceName(entry.source),
+      );
+      const materialized = await materializeCloudArtifact(artifact);
+      resolved = materialized.resolved;
+      cleanup = materialized.cleanup;
+      installTarget = cloudDeployDir(
+        projectRoot,
+        normalizeCategory(entry.category),
+      );
+    } else {
       spinner.fail(
         `${skillName} - unsupported source type "${entry.sourceType}"`,
       );
       return { manifest, status: "failed" };
     }
 
-    const githubSource = sourceToGitHub(entry.source);
+    try {
+      // Remove old files and install the new version to compute its hash.
+      const destPath = join(installTarget, skillName);
+      await rm(destPath, { recursive: true, force: true });
+      const newHash = await installSkill(resolved, installTarget);
 
-    // Force-fetch from remote (ignore cache staleness)
-    const cachePath = await fetchRepo(githubSource);
+      if (newHash === entry.computedHash) {
+        spinner.succeed(`${chalk.bold(skillName)}: already up to date`);
+        return { manifest, status: "up-to-date" };
+      }
 
-    // Resolve the skill from the fresh cache
-    const resolved = await resolveSkill(skillName, cachePath);
+      // Update manifest entry
+      const updatedEntry: SkillEntry = {
+        ...entry,
+        computedHash: newHash,
+        installedAt: new Date().toISOString(),
+      };
 
-    // Install to a temp location to compute the new hash
-    const destPath = join(targetDir, skillName);
+      manifest = addSkill(manifest, skillName, updatedEntry);
+      await saveManifest(projectRoot, manifest);
 
-    // Remove old files and install new version
-    await rm(destPath, { recursive: true, force: true });
-    const newHash = await installSkill(resolved, targetDir);
+      spinner.succeed(`${chalk.bold(skillName)}: updated`);
 
-    if (newHash === entry.computedHash) {
-      spinner.succeed(`${chalk.bold(skillName)}: already up to date`);
-      return { manifest, status: "up-to-date" };
+      // Re-run adapter installs
+      const agents = entry.agents ?? [];
+      if (agents.length > 0) {
+        await runAdapterInstalls(projectRoot, agents, resolved);
+      }
+
+      return { manifest, status: "updated" };
+    } finally {
+      await cleanup?.();
     }
-
-    // Update manifest entry
-    const updatedEntry: SkillEntry = {
-      ...entry,
-      computedHash: newHash,
-      installedAt: new Date().toISOString(),
-    };
-
-    manifest = addSkill(manifest, skillName, updatedEntry);
-    await saveManifest(projectRoot, manifest);
-
-    spinner.succeed(`${chalk.bold(skillName)}: updated`);
-
-    // Re-run adapter installs
-    const agents = entry.agents ?? [];
-    if (agents.length > 0) {
-      await runAdapterInstalls(projectRoot, agents, resolved);
-    }
-
-    return { manifest, status: "updated" };
   } catch (err) {
     spinner.fail(
       `${skillName} - ${err instanceof Error ? err.message : "Unknown error"}`,

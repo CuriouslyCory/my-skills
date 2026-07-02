@@ -4,11 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Manifest } from "@curiouslycory/shared-types";
 
+import { AuthRequiredError } from "../../src/core/api-client.js";
 import { registerApplyCommand, runApply } from "../../src/commands/apply.js";
 import { saveManifest } from "../../src/core/manifest.js";
 import { installSkill } from "../../src/core/skill-installer.js";
 import { resolveSkill } from "../../src/core/skill-resolver.js";
 import { fetchRepo } from "../../src/services/cache.js";
+import { createCloudClient } from "../../src/services/cloud-source.js";
 
 let mockManifest: Manifest | null = null;
 
@@ -73,6 +75,44 @@ vi.mock("../../src/core/skill-installer.js", () => ({
 vi.mock("../../src/adapters/index.js", () => ({
   getEnabledAdapters: vi.fn(() => []),
   detectAgents: vi.fn(() => Promise.resolve([])),
+}));
+
+const cloudCleanup = vi.fn(() => Promise.resolve());
+
+vi.mock("../../src/services/cloud-source.js", () => ({
+  createCloudClient: vi.fn(() =>
+    Promise.resolve({ client: {}, serverUrl: "https://srv.example" }),
+  ),
+  fetchCloudArtifact: vi.fn(() =>
+    Promise.resolve({
+      id: "id-1",
+      name: "cloud-skill",
+      description: "d",
+      category: "skill",
+      content: "body",
+      author: null,
+      version: null,
+      tags: [],
+      updatedAt: new Date(),
+    }),
+  ),
+  materializeCloudArtifact: vi.fn(() =>
+    Promise.resolve({
+      resolved: {
+        name: "cloud-skill",
+        sourcePath: "/tmp/cloud-skill",
+        frontmatter: { name: "cloud-skill", description: "" },
+        content: "",
+        files: ["SKILL.md"],
+      },
+      category: "skill",
+      cleanup: cloudCleanup,
+    }),
+  ),
+  cloudDeployDir: vi.fn(
+    (root: string, category: string) => `${root}/.agents/${category}s`,
+  ),
+  normalizeCategory: vi.fn((c: string | null | undefined) => c ?? "skill"),
 }));
 
 function makeManifest(skills: Manifest["skills"] = {}): Manifest {
@@ -194,6 +234,89 @@ describe("apply command", () => {
         "test-skill",
         expect.stringContaining("local/skills"),
       );
+    });
+  });
+
+  describe("cloud (@me) entries", () => {
+    it("applies a cloud entry when a token is available", async () => {
+      mockInstallHash = "cloudhash00000000";
+      mockManifest = makeManifest({
+        "cloud-skill": {
+          source: "@me/cloud-skill",
+          sourceType: "cloud",
+          category: "skill",
+          computedHash: "cloudhash00000000",
+          installedAt: new Date().toISOString(),
+        },
+      });
+      setInstalled(false);
+
+      const outcome = await runApply({});
+
+      expect(outcome.exitCode).toBe(0);
+      expect(outcome.results[0]?.action).toBe("install");
+      expect(installSkill).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "cloud-skill" }),
+        expect.stringContaining(".agents/skills"),
+      );
+      expect(cloudCleanup).toHaveBeenCalled();
+    });
+
+    it("fails a cloud entry clearly without a token but still applies others", async () => {
+      vi.mocked(createCloudClient).mockRejectedValueOnce(
+        new AuthRequiredError(
+          "Not logged in. Set MY_SKILLS_TOKEN or run `ms login`.",
+        ),
+      );
+      mockInstallHash = "githubhash00000000";
+      mockManifest = makeManifest({
+        "cloud-skill": {
+          source: "@me/cloud-skill",
+          sourceType: "cloud",
+          category: "skill",
+          computedHash: "cloudhash00000000",
+          installedAt: new Date().toISOString(),
+        },
+        "gh-skill": {
+          source: "owner/repo",
+          sourceType: "github",
+          computedHash: "githubhash00000000",
+          installedAt: new Date().toISOString(),
+        },
+      });
+      setInstalled(false);
+
+      const outcome = await runApply({});
+
+      // Partial failure: cloud entry failed, github entry installed, exit 1.
+      expect(outcome.exitCode).toBe(1);
+      const cloud = outcome.results.find((r) => r.name === "cloud-skill");
+      const gh = outcome.results.find((r) => r.name === "gh-skill");
+      expect(cloud?.action).toBe("failed");
+      expect(cloud?.error).toContain("ms login");
+      expect(gh?.action).toBe("install");
+    });
+
+    it("never fails the host install on a token-less cloud entry in hook mode", async () => {
+      vi.mocked(createCloudClient).mockRejectedValueOnce(
+        new AuthRequiredError("Not logged in."),
+      );
+      mockManifest = makeManifest({
+        "cloud-skill": {
+          source: "@me/cloud-skill",
+          sourceType: "cloud",
+          category: "skill",
+          computedHash: "cloudhash00000000",
+          installedAt: new Date().toISOString(),
+        },
+      });
+      setInstalled(false);
+
+      const outcome = await runApply({ hook: true });
+
+      expect(outcome.exitCode).toBe(0);
+      expect(outcome.status).toBe("error");
+      expect(outcome.results[0]?.action).toBe("failed");
     });
   });
 
