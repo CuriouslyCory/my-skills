@@ -59,6 +59,10 @@ export const ConfigSchema = z.object({
   skillsDir: z.string(),
   autoDetectAgents: z.boolean(),
   symlinkBehavior: z.enum(["copy", "symlink"]),
+  // Base URL of the hosted my-skills server the CLI talks to. Overridable via the
+  // MY_SKILLS_SERVER_URL env var. Credentials record the server a token was minted
+  // against, so an authenticated client prefers that over this default.
+  serverUrl: z.string().url().default("https://my-skills.dev"),
 });
 export type Config = z.infer<typeof ConfigSchema>;
 

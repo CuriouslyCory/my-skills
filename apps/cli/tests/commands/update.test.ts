@@ -30,6 +30,7 @@ vi.mock("../../src/core/config.js", () => ({
       skillsDir: ".agents/skills",
       autoDetectAgents: true,
       symlinkBehavior: "copy",
+      serverUrl: "https://my-skills.dev",
     }),
   ),
 }));

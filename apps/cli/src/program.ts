@@ -9,8 +9,11 @@ import { registerFavoriteCommand } from "./commands/favorite.js";
 import { registerFindCommand } from "./commands/find.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerListCommand } from "./commands/list.js";
+import { registerLoginCommand } from "./commands/login.js";
+import { registerLogoutCommand } from "./commands/logout.js";
 import { registerRemoveCommand } from "./commands/remove.js";
 import { registerUpdateCommand } from "./commands/update.js";
+import { registerWhoamiCommand } from "./commands/whoami.js";
 
 export function createProgram(): Command {
   const program = new Command();
@@ -30,8 +33,11 @@ export function createProgram(): Command {
   registerFindCommand(program);
   registerInitCommand(program);
   registerListCommand(program);
+  registerLoginCommand(program);
+  registerLogoutCommand(program);
   registerRemoveCommand(program);
   registerUpdateCommand(program);
+  registerWhoamiCommand(program);
 
   program.action(() => program.help());
 

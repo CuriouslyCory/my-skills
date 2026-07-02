@@ -39,6 +39,7 @@ const {
       skillsDir: ".agents/skills",
       autoDetectAgents: true,
       symlinkBehavior: "copy",
+      serverUrl: "https://my-skills.dev",
     }),
     mockLoadManifest: vi.fn().mockResolvedValue(null),
     mockSaveManifest: vi.fn<[], Promise<void>>().mockResolvedValue(undefined),
@@ -189,6 +190,7 @@ describe("list command — extended tests", () => {
       skillsDir: ".agents/skills",
       autoDetectAgents: true,
       symlinkBehavior: "copy",
+      serverUrl: "https://my-skills.dev",
     });
     mockResolveAgents.mockResolvedValue(["claude-code"]);
     mockCheckbox.mockResolvedValue([]);

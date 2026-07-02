@@ -10,7 +10,7 @@ import { Label } from "@curiouslycory/ui/label";
 
 import { signIn } from "~/auth/client";
 
-export function LoginForm() {
+export function LoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -29,7 +29,7 @@ export function LoginForm() {
       setError(signInError.message ?? "Failed to sign in");
       return;
     }
-    router.push("/");
+    router.push(redirectTo);
     router.refresh();
   };
 
@@ -38,7 +38,7 @@ export function LoginForm() {
     setPending(true);
     const { error: githubError } = await signIn.social({
       provider: "github",
-      callbackURL: "/",
+      callbackURL: redirectTo,
     });
     if (githubError) {
       setPending(false);

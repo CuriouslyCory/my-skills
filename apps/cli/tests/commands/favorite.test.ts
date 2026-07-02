@@ -28,6 +28,7 @@ describe("favorite command", () => {
       skillsDir: ".agents/skills",
       autoDetectAgents: true,
       symlinkBehavior: "copy",
+      serverUrl: "https://my-skills.dev",
     };
 
     vi.spyOn(console, "log").mockImplementation(vi.fn());

@@ -19,6 +19,7 @@ const DEFAULT_CONFIG: Config = {
   skillsDir: ".agents/skills",
   autoDetectAgents: true,
   symlinkBehavior: "copy",
+  serverUrl: "https://my-skills.dev",
 };
 
 /**
