@@ -1,5 +1,5 @@
 import type { SQL } from "drizzle-orm";
-import { desc, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 
 import { skills } from "./schema";
 import type { Database, DbDialect } from "./types";
@@ -14,6 +14,13 @@ export interface SearchSkillsParams {
   category?: string;
   limit: number;
   offset: number;
+  /**
+   * When provided, results are scoped to skills owned by this user. The tRPC
+   * search router always supplies `ctx.session.user.id`; the parameter stays
+   * optional so the low-level util (and its dialect unit tests) remain usable
+   * without a user context.
+   */
+  userId?: string;
 }
 
 /**
@@ -96,33 +103,32 @@ export async function searchSkills(
   params: SearchSkillsParams,
   dialect: DbDialect = resolveDialect(),
 ): Promise<SkillSearchResult[]> {
-  const { query, category, limit, offset } = params;
+  const { query, category, limit, offset, userId } = params;
 
   // Empty query: return recent items (portable across dialects).
   if (!query || query.trim() === "") {
-    const rows = category
-      ? await db
-          .select()
-          .from(skills)
-          .where(sql`${skills.category} = ${category}`)
-          .orderBy(desc(skills.updatedAt))
-          .limit(limit)
-          .offset(offset)
-      : await db
-          .select()
-          .from(skills)
-          .orderBy(desc(skills.updatedAt))
-          .limit(limit)
-          .offset(offset);
+    const conditions = [
+      category ? eq(skills.category, category) : undefined,
+      userId ? eq(skills.userId, userId) : undefined,
+    ].filter((c): c is SQL => c !== undefined);
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const rows = await db
+      .select()
+      .from(skills)
+      .where(where)
+      .orderBy(desc(skills.updatedAt))
+      .limit(limit)
+      .offset(offset);
 
     return rows.map((row) => ({ ...row, snippet: null }));
   }
 
   if (dialect === "postgres") {
-    return searchSkillsPostgres(db, query, category, limit, offset);
+    return searchSkillsPostgres(db, query, category, limit, offset, userId);
   }
 
-  return searchSkillsSqlite(db, query, category, limit, offset);
+  return searchSkillsSqlite(db, query, category, limit, offset, userId);
 }
 
 function searchSkillsSqlite(
@@ -131,6 +137,7 @@ function searchSkillsSqlite(
   category: string | undefined,
   limit: number,
   offset: number,
+  userId: string | undefined,
 ): SkillSearchResult[] {
   // Build FTS5 MATCH query with prefix matching.
   const terms = query
@@ -140,6 +147,9 @@ function searchSkillsSqlite(
     .join(" ");
 
   const categoryFilter = category ? sql`AND s.category = ${category}` : sql``;
+  // The FTS join can match multiple skill rows with identical name/description
+  // across users; scoping by user_id both filters results and prevents leakage.
+  const userFilter = userId ? sql`AND s.user_id = ${userId}` : sql``;
 
   const results = db.all<SqliteFtsRow>(sql`
     SELECT
@@ -152,6 +162,7 @@ function searchSkillsSqlite(
       AND s.description = skills_fts.description
     WHERE skills_fts MATCH ${terms}
     ${categoryFilter}
+    ${userFilter}
     ORDER BY rank
     LIMIT ${limit}
     OFFSET ${offset}
@@ -179,6 +190,7 @@ async function searchSkillsPostgres(
   category: string | undefined,
   limit: number,
   offset: number,
+  userId: string | undefined,
 ): Promise<SkillSearchResult[]> {
   // Normalize into a prefix tsquery: strip tsquery operators from each term and
   // append `:*` for prefix matching (parity with the SQLite FTS `*` behavior).
@@ -205,6 +217,7 @@ async function searchSkillsPostgres(
   const categoryFilter = category
     ? sql`AND ${skills.category} = ${category}`
     : sql``;
+  const userFilter = userId ? sql`AND ${skills.userId} = ${userId}` : sql``;
 
   const executor = db as unknown as PgExecutor;
   const { rows } = await executor.execute<PgSearchRow>(sql`
@@ -224,6 +237,7 @@ async function searchSkillsPostgres(
     FROM ${skills}
     WHERE ${document} @@ ${tsQuery}
     ${categoryFilter}
+    ${userFilter}
     ORDER BY ts_rank(${document}, ${tsQuery}) DESC
     LIMIT ${limit}
     OFFSET ${offset}

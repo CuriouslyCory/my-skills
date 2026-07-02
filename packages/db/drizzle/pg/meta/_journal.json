@@ -15,6 +15,13 @@
       "when": 1783018881491,
       "tag": "0001_overjoyed_squadron_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783020805957,
+      "tag": "0002_rapid_maelstrom",
+      "breakpoints": true
     }
   ]
 }

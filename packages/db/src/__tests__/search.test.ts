@@ -15,16 +15,19 @@ function makeSqliteDb() {
   raw.exec(`
     CREATE TABLE skills (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL UNIQUE,
+      user_id TEXT NOT NULL DEFAULT 'test-user',
+      name TEXT NOT NULL,
       description TEXT NOT NULL,
       tags TEXT NOT NULL DEFAULT '[]',
       author TEXT,
       version TEXT,
       content TEXT NOT NULL,
-      dir_path TEXT UNIQUE,
+      dir_path TEXT,
       category TEXT,
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(user_id, name),
+      UNIQUE(user_id, dir_path)
     );
   `);
   initFTS(raw);
@@ -78,6 +81,51 @@ describe("searchSkills - sqlite", () => {
       );
       expect(results).toHaveLength(1);
       expect(results[0]?.name).toBe("react-testing");
+    } finally {
+      raw.close();
+    }
+  });
+
+  it("scopes results to a user on both the FTS and empty-query paths", async () => {
+    const raw = new Database(":memory:");
+    raw.exec(`
+      CREATE TABLE skills (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL,
+        tags TEXT NOT NULL DEFAULT '[]',
+        author TEXT,
+        version TEXT,
+        content TEXT NOT NULL,
+        dir_path TEXT,
+        category TEXT,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+      );
+    `);
+    initFTS(raw);
+    raw.exec(`
+      INSERT INTO skills (id, user_id, name, description, tags, content, category)
+      VALUES
+        ('a1', 'user-a', 'alpha-widget', 'widget for alpha', '[]', 'alpha content', 'skill'),
+        ('b1', 'user-b', 'beta-widget', 'widget for beta', '[]', 'beta content', 'skill');
+    `);
+    const db = drizzle({ client: raw, schema: sqliteSchema }) as unknown as AppDatabase;
+    try {
+      const ftsHits = await searchSkills(
+        db,
+        { query: "widget", userId: "user-a", limit: 20, offset: 0 },
+        "sqlite",
+      );
+      expect(ftsHits.map((r) => r.name)).toEqual(["alpha-widget"]);
+
+      const recentHits = await searchSkills(
+        db,
+        { userId: "user-b", limit: 20, offset: 0 },
+        "sqlite",
+      );
+      expect(recentHits.map((r) => r.name)).toEqual(["beta-widget"]);
     } finally {
       raw.close();
     }
@@ -139,6 +187,21 @@ describe("searchSkills - postgres", () => {
     expect(row?.updatedAt).toBeInstanceOf(Date);
     expect(row?.snippet).toContain("<mark>");
     expect(row).not.toHaveProperty("dir_path");
+  });
+
+  it("adds a user_id filter to the compiled SQL when userId is supplied", async () => {
+    const execute = vi.fn().mockResolvedValue({ rows: [] });
+    const fakeDb = { execute } as unknown as AppDatabase;
+
+    await searchSkills(
+      fakeDb,
+      { query: "widget", userId: "user-a", limit: 10, offset: 0 },
+      "postgres",
+    );
+
+    const compiled = pgDialect.sqlToQuery(execute.mock.calls[0]?.[0] as SQL);
+    expect(compiled.sql).toContain('"user_id"');
+    expect(compiled.params).toContain("user-a");
   });
 
   it("returns no results (without querying) when the query has no usable terms", async () => {

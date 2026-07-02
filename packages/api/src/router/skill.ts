@@ -4,15 +4,15 @@ import { join, relative } from "node:path";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
 
-import { desc, eq } from "@curiouslycory/db";
+import { and, desc, eq } from "@curiouslycory/db";
 import { skills } from "@curiouslycory/db/schema";
 import { buildSkillContent } from "@curiouslycory/shared-types";
 
 import { scanAndSync } from "../lib/disk-sync";
-import { protectedProcedure, publicProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 
 export const skillRouter = {
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z
         .object({
@@ -22,13 +22,20 @@ export const skillRouter = {
         .optional(),
     )
     .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const rows = input?.category
         ? await ctx.db
             .select()
             .from(skills)
-            .where(eq(skills.category, input.category))
+            .where(
+              and(eq(skills.userId, userId), eq(skills.category, input.category)),
+            )
             .orderBy(desc(skills.updatedAt))
-        : await ctx.db.select().from(skills).orderBy(desc(skills.updatedAt));
+        : await ctx.db
+            .select()
+            .from(skills)
+            .where(eq(skills.userId, userId))
+            .orderBy(desc(skills.updatedAt));
 
       if (input?.tags && input.tags.length > 0) {
         const tags = input.tags;
@@ -41,11 +48,14 @@ export const skillRouter = {
       return rows;
     }),
 
-  byId: publicProcedure
+  byId: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const row = await ctx.db.query.skills.findFirst({
-        where: eq(skills.id, input.id),
+        where: and(
+          eq(skills.id, input.id),
+          eq(skills.userId, ctx.session.user.id),
+        ),
       });
       return row ?? null;
     }),
@@ -81,6 +91,7 @@ export const skillRouter = {
       const [row] = await ctx.db
         .insert(skills)
         .values({
+          userId: ctx.session.user.id,
           name: input.name,
           description: input.description,
           tags: JSON.stringify(input.tags ?? []),
@@ -109,8 +120,9 @@ export const skillRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const existing = await ctx.db.query.skills.findFirst({
-        where: eq(skills.id, input.id),
+        where: and(eq(skills.id, input.id), eq(skills.userId, userId)),
       });
       if (!existing) {
         throw new Error(`Skill not found: ${input.id}`);
@@ -151,7 +163,7 @@ export const skillRouter = {
           ...(input.category !== undefined ? { category: input.category } : {}),
           updatedAt: new Date(),
         })
-        .where(eq(skills.id, input.id))
+        .where(and(eq(skills.id, input.id), eq(skills.userId, userId)))
         .returning();
 
       return row;
@@ -160,8 +172,9 @@ export const skillRouter = {
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const existing = await ctx.db.query.skills.findFirst({
-        where: eq(skills.id, input.id),
+        where: and(eq(skills.id, input.id), eq(skills.userId, userId)),
       });
       if (!existing) {
         throw new Error(`Skill not found: ${input.id}`);
@@ -175,12 +188,14 @@ export const skillRouter = {
         }
       }
 
-      await ctx.db.delete(skills).where(eq(skills.id, input.id));
+      await ctx.db
+        .delete(skills)
+        .where(and(eq(skills.id, input.id), eq(skills.userId, userId)));
 
       return { success: true };
     }),
 
   syncFromDisk: protectedProcedure.mutation(async ({ ctx }) => {
-    return scanAndSync(ctx.repoPath, ctx.db);
+    return scanAndSync(ctx.repoPath, ctx.db, ctx.session.user.id);
   }),
 } satisfies TRPCRouterRecord;

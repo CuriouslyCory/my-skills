@@ -16,6 +16,15 @@ export interface TestContext {
   caller: ReturnType<typeof appRouter.createCaller>;
   rawDb: BetterSqlite3.Database;
   repoPath: string;
+  /**
+   * Builds an additional caller bound to the SAME db and repoPath but acting as
+   * a different user. Used to prove per-user scoping (no cross-user leakage).
+   */
+  callerFor: (user: {
+    id: string;
+    name?: string;
+    email?: string;
+  }) => ReturnType<typeof appRouter.createCaller>;
 }
 
 /**
@@ -30,20 +39,26 @@ export async function createTestCaller(opts?: {
   const rawDb = new Database(":memory:");
   rawDb.pragma("journal_mode = WAL");
 
-  // Create all tables
+  // Create all tables. `user_id` defaults to the default caller's user id
+  // ('test-user') so legacy raw-insert fixtures are owned by the default caller;
+  // the real schema has no such default (routers always set userId explicitly).
+  // Unique constraints are scoped per user, mirroring the production schema.
   rawDb.exec(`
     CREATE TABLE IF NOT EXISTS skills (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL UNIQUE,
+      user_id TEXT NOT NULL DEFAULT 'test-user',
+      name TEXT NOT NULL,
       description TEXT NOT NULL,
       tags TEXT NOT NULL DEFAULT '[]',
       author TEXT,
       version TEXT,
       content TEXT NOT NULL,
-      dir_path TEXT UNIQUE,
+      dir_path TEXT,
       category TEXT,
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(user_id, name),
+      UNIQUE(user_id, dir_path)
     );
   `);
 
@@ -62,19 +77,21 @@ export async function createTestCaller(opts?: {
   rawDb.exec(`
     CREATE TABLE IF NOT EXISTS favorites (
       id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'test-user',
       repo_url TEXT NOT NULL,
       name TEXT NOT NULL,
       description TEXT,
       skill_name TEXT,
       type TEXT NOT NULL DEFAULT 'repo',
       added_at INTEGER NOT NULL DEFAULT (unixepoch()),
-      UNIQUE(repo_url, skill_name)
+      UNIQUE(user_id, repo_url, skill_name)
     );
   `);
 
   rawDb.exec(`
     CREATE TABLE IF NOT EXISTS compositions (
       id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'test-user',
       name TEXT NOT NULL,
       description TEXT,
       fragments TEXT NOT NULL DEFAULT '[]',
@@ -87,8 +104,10 @@ export async function createTestCaller(opts?: {
   rawDb.exec(`
     CREATE TABLE IF NOT EXISTS config (
       id TEXT PRIMARY KEY,
-      key TEXT NOT NULL UNIQUE,
-      value TEXT NOT NULL
+      user_id TEXT NOT NULL DEFAULT 'test-user',
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
+      UNIQUE(user_id, key)
     );
   `);
 
@@ -106,5 +125,18 @@ export async function createTestCaller(opts?: {
     repoPath,
   });
 
-  return { db, caller, rawDb, repoPath };
+  const callerFor: TestContext["callerFor"] = (user) =>
+    appRouter.createCaller({
+      session: {
+        user: {
+          id: user.id,
+          name: user.name ?? user.id,
+          email: user.email ?? `${user.id}@example.com`,
+        },
+      },
+      db,
+      repoPath,
+    });
+
+  return { db, caller, rawDb, repoPath, callerFor };
 }

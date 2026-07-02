@@ -1,26 +1,38 @@
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 
-export const skills = sqliteTable("skills", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  name: text("name").notNull().unique(),
-  description: text("description").notNull(),
-  tags: text("tags").notNull().default("[]"),
-  author: text("author"),
-  version: text("version"),
-  content: text("content").notNull(),
-  dirPath: text("dir_path").unique(),
-  category: text("category"),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`)
-    .$onUpdateFn(() => new Date()),
-});
+export const skills = sqliteTable(
+  "skills",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    tags: text("tags").notNull().default("[]"),
+    author: text("author"),
+    version: text("version"),
+    content: text("content").notNull(),
+    dirPath: text("dir_path"),
+    category: text("category"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`)
+      .$onUpdateFn(() => new Date()),
+  },
+  // Names and directory paths are unique per owning user, not globally, so
+  // separate accounts can each have a skill of the same name.
+  (table) => [
+    unique().on(table.userId, table.name),
+    unique().on(table.userId, table.dirPath),
+  ],
+);
 
 export const variations = sqliteTable("variations", {
   id: text("id")
@@ -42,6 +54,9 @@ export const favorites = sqliteTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     repoUrl: text("repo_url").notNull(),
     name: text("name").notNull(),
     description: text("description"),
@@ -51,13 +66,16 @@ export const favorites = sqliteTable(
       .notNull()
       .default(sql`(unixepoch())`),
   },
-  (table) => [unique().on(table.repoUrl, table.skillName)],
+  (table) => [unique().on(table.userId, table.repoUrl, table.skillName)],
 );
 
 export const compositions = sqliteTable("compositions", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   fragments: text("fragments").notNull().default("[]"),
@@ -71,13 +89,21 @@ export const compositions = sqliteTable("compositions", {
     .$onUpdateFn(() => new Date()),
 });
 
-export const config = sqliteTable("config", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  key: text("key").notNull().unique(),
-  value: text("value").notNull(),
-});
+export const config = sqliteTable(
+  "config",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    value: text("value").notNull(),
+  },
+  // Config is per-user preferences: keys are unique within a user, not globally.
+  (table) => [unique().on(table.userId, table.key)],
+);
 
 /**
  * better-auth core tables (user, session, account, verification).
