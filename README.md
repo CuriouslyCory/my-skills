@@ -268,6 +268,30 @@ pnpm build
 pnpm dev
 ```
 
+### Database dialects
+
+The `@curiouslycory/db` package is dialect-aware and selects its driver at runtime
+from the `DB_DIALECT` environment variable:
+
+- `sqlite` (default when unset) — local better-sqlite3 file at `DB_PATH`. Full-text
+  search uses SQLite FTS5.
+- `postgres` — Neon/Postgres over `drizzle-orm/neon-http`, using `POSTGRES_URL`.
+  Full-text search uses Postgres `tsvector`/`ts_rank`. Recommended for Vercel.
+
+Apply schema changes per dialect:
+
+```sh
+# SQLite (default): push the schema to the local file
+pnpm db:push
+
+# Postgres: generate + apply migrations against POSTGRES_URL
+#   (set DB_DIALECT=postgres and POSTGRES_URL in your .env first)
+pnpm --filter @curiouslycory/db generate:pg   # write SQL migrations to drizzle/pg
+pnpm --filter @curiouslycory/db migrate:pg     # apply committed migrations
+# or, for a quick non-migration sync during development:
+pnpm --filter @curiouslycory/db push:pg
+```
+
 ### Running the CLI locally
 
 ```sh
@@ -315,7 +339,7 @@ my-skills/
 ├── packages/
 │   ├── api/            # tRPC routers
 │   ├── auth/           # Session / JWT auth
-│   ├── db/             # Drizzle + SQLite
+│   ├── db/             # Drizzle (SQLite + Postgres, dialect-aware)
 │   ├── git-service/    # Git abstraction layer
 │   ├── shared-types/   # Zod schemas and shared types
 │   └── ui/             # shadcn/ui component library
