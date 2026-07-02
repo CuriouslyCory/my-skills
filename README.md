@@ -22,6 +22,7 @@ Think of it like npm, but for the prompts, workflows, and capabilities you give 
 - [CLI Reference](#cli-reference)
 - [Supported AI Tools](#supported-ai-tools)
 - [Per-Project Install](#per-project-install)
+- [Use as a dev dependency](#use-as-a-dev-dependency)
 - [Creating Your Own Skills](#creating-your-own-skills)
 - [Contributing](#contributing)
   - [Deploy the Web UI to Vercel](#deploy-the-web-ui-to-vercel)
@@ -78,6 +79,7 @@ Both `my-skills` and `ms` work as the CLI command.
 | `ms add <skill>`              | Install a skill from a GitHub repository    |
 | `ms add <skill> --repo <url>` | Install from a specific repository          |
 | `ms add`                      | Restore all skills from the manifest        |
+| `ms apply`                    | Reconcile installed skills to the manifest  |
 | `ms find [query]`             | Search for available skills                 |
 | `ms list`                     | List installed skills                       |
 | `ms update`                   | Update all installed skills to latest       |
@@ -145,6 +147,66 @@ Add convenience scripts to `package.json`:
   }
 }
 ```
+
+---
+
+## Use as a dev dependency
+
+Commit `.my-skills.json` to your repo and let `ms apply` keep every teammate's
+checkout in sync. `ms apply` reconciles the installed skills to the manifest
+non-interactively and idempotently: it installs anything missing, reinstalls
+anything whose content has drifted, and no-ops when everything already matches.
+It works unauthenticated for `github` and `local` sources.
+
+```sh
+# Reconcile installed skills to .my-skills.json (no prompts)
+ms apply
+
+# CI verification: exit 2 if anything is out of sync, changing nothing
+ms apply --frozen
+
+# Machine-readable output for tooling
+ms apply --json
+```
+
+### Run it automatically on install
+
+Wire `ms apply` into a `postinstall` script so skills are provisioned whenever
+someone runs `npm install` / `pnpm install`. Use `--hook` so a postinstall run
+degrades safely and never breaks the host install:
+
+```json
+{
+  "scripts": {
+    "postinstall": "my-skills apply --hook"
+  }
+}
+```
+
+In `--hook` mode `ms apply`:
+
+- Resolves the project root from `INIT_CWD` (set by npm/pnpm lifecycle scripts),
+  so it targets your project even when it runs from inside `node_modules`.
+- Skips quietly (exit 0) when there is no `.my-skills.json`.
+- Never fails the host package manager's install on a network error (it warns
+  and exits 0). Use `ms apply --frozen` in CI when you want strict verification.
+
+### Exit codes
+
+| Code | Meaning                                                           |
+| ---- | ---------------------------------------------------------------- |
+| `0`  | In sync, or successfully installed/updated                       |
+| `1`  | Hard failure (for example a network error outside `--hook` mode) |
+| `2`  | `--frozen` only: something is out of sync (nothing was changed)  |
+
+### Environment flags
+
+| Variable         | Effect                                                                   |
+| ---------------- | ------------------------------------------------------------------------ |
+| `MY_SKILLS_SKIP` | Set to `1` to skip `ms apply --hook` entirely (exit 0).                  |
+| `MY_SKILLS_CI`   | Set to `1` to run `ms apply --hook` even under CI.                       |
+| `CI`             | When set, `ms apply --hook` skips unless `MY_SKILLS_CI=1`.               |
+| `INIT_CWD`       | Project root used by `ms apply` (populated by npm/pnpm lifecycle scripts). |
 
 ---
 
