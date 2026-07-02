@@ -52,6 +52,7 @@
   "globalEnv": [
     "DB_DIALECT",
     "DB_PATH",
+    "POSTGRES_URL",
     "AUTH_SECRET",
     "PORT",
     "ADMIN_USER",
