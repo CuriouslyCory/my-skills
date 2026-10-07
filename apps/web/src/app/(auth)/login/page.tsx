@@ -3,16 +3,11 @@ import { redirect } from "next/navigation";
 import { isMultiUserAuthEnabled } from "@curiouslycory/auth";
 
 import { getSession } from "~/auth/server";
+import { safeRedirect } from "~/lib/safe-redirect";
 import { LoginForm } from "./login-form";
 
 interface LoginPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
-}
-
-/** Only relative in-app paths are honored, to prevent open-redirects. */
-function safeRedirect(value: string | string[] | undefined): string {
-  const raw = Array.isArray(value) ? value[0] : value;
-  return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {

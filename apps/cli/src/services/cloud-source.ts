@@ -2,7 +2,11 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { ArtifactCategory, SkillFrontmatter } from "@curiouslycory/shared-types";
+import type {
+  ArtifactCategory,
+  SkillEntry,
+  SkillFrontmatter,
+} from "@curiouslycory/shared-types";
 import {
   ArtifactCategorySchema,
   buildSkillContent,
@@ -99,6 +103,41 @@ export function cloudDeployDir(
   return join(projectRoot, DEPLOY_PATH_MAP[category]);
 }
 
+/**
+ * The reconcile/remove target directory for a manifest entry. Cloud entries
+ * deploy to their recorded category's DEPLOY_PATH_MAP target; github/local
+ * skills use the default skills directory.
+ */
+export function entryDeployDir(
+  entry: Pick<SkillEntry, "sourceType" | "category">,
+  projectRoot: string,
+  defaultTargetDir: string,
+): string {
+  if (entry.sourceType === "cloud") {
+    return cloudDeployDir(projectRoot, normalizeCategory(entry.category));
+  }
+  return defaultTargetDir;
+}
+
+/**
+ * Rejects artifact names that are not a single, plain path segment. The name
+ * becomes both the temp materialization dir and the install destination
+ * (`<deployDir>/<name>`), so `..`, path separators, or NUL bytes in a
+ * server-supplied name would let it escape either directory.
+ */
+export function assertSafeArtifactName(name: string): void {
+  if (
+    !name ||
+    name === "." ||
+    name === ".." ||
+    ["/", "\\", "\0"].some((ch) => name.includes(ch))
+  ) {
+    throw new Error(
+      `Refusing to install artifact "${name}": names must be a single path segment without separators or "..".`,
+    );
+  }
+}
+
 /** The manifest `source` string for a personal-library entry. */
 export function cloudManifestSource(name: string): string {
   return `${CLOUD_SOURCE_PREFIX}/${name}`;
@@ -114,34 +153,39 @@ export function cloudManifestSource(name: string): string {
 export async function materializeCloudArtifact(
   artifact: NonNullable<CloudArtifact>,
 ): Promise<MaterializedCloudArtifact> {
+  assertSafeArtifactName(artifact.name);
   const category = normalizeCategory(artifact.category);
 
   const tmpRoot = await mkdtemp(join(tmpdir(), "my-skills-cloud-"));
-  const skillDir = join(tmpRoot, artifact.name);
-  await mkdir(skillDir, { recursive: true });
+  const cleanup = () => rm(tmpRoot, { recursive: true, force: true });
 
-  // Reconstruct SKILL.md from the DB fields. Assigning to a const first avoids
-  // excess-property checks on author/version (mirrors the API's write path).
-  const frontmatter: SkillFrontmatter = {
-    name: artifact.name,
-    description: artifact.description,
-    ...(artifact.author ? { author: artifact.author } : {}),
-    ...(artifact.version ? { version: artifact.version } : {}),
-  };
-  const fileContent = buildSkillContent(frontmatter, artifact.content);
-  await writeFile(join(skillDir, "SKILL.md"), fileContent, "utf-8");
+  try {
+    const skillDir = join(tmpRoot, artifact.name);
+    await mkdir(skillDir, { recursive: true });
 
-  const resolved: ResolvedSkill = {
-    name: artifact.name,
-    sourcePath: skillDir,
-    frontmatter: { name: artifact.name, description: artifact.description },
-    content: fileContent,
-    files: ["SKILL.md"],
-  };
+    // Reconstruct SKILL.md from the DB fields. Assigning to a const first avoids
+    // excess-property checks on author/version (mirrors the API's write path).
+    const frontmatter: SkillFrontmatter = {
+      name: artifact.name,
+      description: artifact.description,
+      ...(artifact.author ? { author: artifact.author } : {}),
+      ...(artifact.version ? { version: artifact.version } : {}),
+    };
+    const fileContent = buildSkillContent(frontmatter, artifact.content);
+    await writeFile(join(skillDir, "SKILL.md"), fileContent, "utf-8");
 
-  return {
-    resolved,
-    category,
-    cleanup: () => rm(tmpRoot, { recursive: true, force: true }),
-  };
+    const resolved: ResolvedSkill = {
+      name: artifact.name,
+      sourcePath: skillDir,
+      frontmatter: { name: artifact.name, description: artifact.description },
+      content: fileContent,
+      files: ["SKILL.md"],
+    };
+
+    return { resolved, category, cleanup };
+  } catch (err) {
+    // The caller never receives `cleanup` on failure, so remove the temp dir here.
+    await cleanup();
+    throw err;
+  }
 }

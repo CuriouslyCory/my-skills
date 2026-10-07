@@ -24,10 +24,11 @@ function toRepoUrl(ownerRepo: string): string {
 
 /**
  * On the first authenticated `fav` invocation for a server, offer to merge local
- * `config.favoriteRepos` into the account. `--yes` skips the offer; declining or an
- * empty local list still records the offer as handled so it never re-prompts.
- * A network failure during the merge propagates to the caller and is NOT recorded,
- * so it can be retried.
+ * `config.favoriteRepos` into the account. `--yes` accepts the offer without
+ * prompting (it confirms, never skips, so the one-time import isn't lost);
+ * declining or an empty local list still records the offer as handled so it
+ * never re-prompts. A network failure during the merge propagates to the caller
+ * and is NOT recorded, so it can be retried.
  */
 async function maybeMergeLocalFavorites(
   context: FavoritesContext,
@@ -43,17 +44,14 @@ async function maybeMergeLocalFavorites(
     return;
   }
 
-  if (skipPrompt) {
-    // --yes skips the offer rather than silently importing local favorites.
-    await markFavoritesMerged(context.serverUrl);
-    return;
+  let doMerge = true;
+  if (!skipPrompt) {
+    const { default: confirm } = await import("@inquirer/confirm");
+    doMerge = await confirm({
+      message: `Merge ${localUrls.length} local favorite(s) into your account?`,
+      default: true,
+    });
   }
-
-  const { default: confirm } = await import("@inquirer/confirm");
-  const doMerge = await confirm({
-    message: `Merge ${localUrls.length} local favorite(s) into your account?`,
-    default: true,
-  });
 
   if (doMerge) {
     for (const url of localUrls) {
@@ -142,7 +140,10 @@ export function registerFavoriteCommand(program: Command): void {
   favCmd
     .command("add <owner/repo>")
     .description("Add a repo to favorites")
-    .option("-y, --yes", "Skip the one-time local-favorites merge prompt")
+    .option(
+      "-y, --yes",
+      "Accept the one-time local-favorites merge without prompting",
+    )
     .action(async (ownerRepo: string, opts: FavOptions) => {
       const context = await resolveFavoritesContext();
 
@@ -178,7 +179,10 @@ export function registerFavoriteCommand(program: Command): void {
   favCmd
     .command("remove <owner/repo>")
     .description("Remove a repo from favorites")
-    .option("-y, --yes", "Skip the one-time local-favorites merge prompt")
+    .option(
+      "-y, --yes",
+      "Accept the one-time local-favorites merge without prompting",
+    )
     .action(async (ownerRepo: string, opts: FavOptions) => {
       const context = await resolveFavoritesContext();
 
@@ -216,7 +220,10 @@ export function registerFavoriteCommand(program: Command): void {
     .command("list")
     .alias("ls")
     .description("List all favorite repos")
-    .option("-y, --yes", "Skip the one-time local-favorites merge prompt")
+    .option(
+      "-y, --yes",
+      "Accept the one-time local-favorites merge without prompting",
+    )
     .action(async (opts: FavOptions) => {
       const context = await resolveFavoritesContext();
 

@@ -8,10 +8,10 @@ import type {
   SkillEntry,
 } from "@curiouslycory/shared-types";
 
-import type { AdapterSkillEntry } from "../adapters/index.js";
 import type { ApiClient } from "../core/api-client.js";
 import type { CloudSource } from "../services/source-parser.js";
-import { getEnabledAdapters, resolveAgents } from "../adapters/index.js";
+import { resolveAgents } from "../adapters/index.js";
+import { runAdapterInstalls } from "../core/adapter-runner.js";
 import {
   AuthRequiredError,
   friendlyApiErrorMessage,
@@ -32,37 +32,6 @@ export interface CloudAddOptions {
   skill?: string;
   yes?: boolean;
   list?: boolean;
-}
-
-/**
- * Run adapter.install() for each enabled agent. Adapter failures are warnings and
- * never fail the overall install (best-effort symlink/copy), matching the
- * github/local paths.
- */
-async function runAdapterInstalls(
-  projectRoot: string,
-  agents: AgentId[],
-  skill: AdapterSkillEntry,
-): Promise<void> {
-  const adapters = getEnabledAdapters(agents);
-  const deployed: string[] = [];
-
-  for (const adapter of adapters) {
-    try {
-      await adapter.install(projectRoot, skill);
-      deployed.push(adapter.displayName);
-    } catch (err) {
-      console.warn(
-        chalk.yellow(
-          `  Warning: ${adapter.displayName} adapter failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-        ),
-      );
-    }
-  }
-
-  if (deployed.length > 0) {
-    console.log(chalk.cyan(`  Deployed to: ${deployed.join(", ")}`));
-  }
 }
 
 /**

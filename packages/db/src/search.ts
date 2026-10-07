@@ -147,8 +147,9 @@ function searchSkillsSqlite(
     .join(" ");
 
   const categoryFilter = category ? sql`AND s.category = ${category}` : sql``;
-  // The FTS join can match multiple skill rows with identical name/description
-  // across users; scoping by user_id both filters results and prevents leakage.
+  // FTS documents are joined by skill id (see `initFTS`), so each hit (and its
+  // snippet) belongs to exactly one row; scoping that row by user_id therefore
+  // scopes the snippet too.
   const userFilter = userId ? sql`AND s.user_id = ${userId}` : sql``;
 
   const results = db.all<SqliteFtsRow>(sql`
@@ -158,8 +159,7 @@ function searchSkillsSqlite(
       snippet(skills_fts, -1, '<mark>', '</mark>', '...', 48) as snippet,
       rank
     FROM skills_fts
-    JOIN skills s ON s.name = skills_fts.name
-      AND s.description = skills_fts.description
+    JOIN skills s ON s.id = skills_fts.skill_id
     WHERE skills_fts MATCH ${terms}
     ${categoryFilter}
     ${userFilter}

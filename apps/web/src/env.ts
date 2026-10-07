@@ -30,7 +30,7 @@ export const env = createEnv({
     // Neon/Postgres connection string. Required when DB_DIALECT=postgres. Left
     // optional at the field level so local SQLite runs without it; the hosted
     // check below enforces presence for the Vercel deployment.
-    POSTGRES_URL: z.string().url().optional(),
+    POSTGRES_URL: z.url().optional(),
   },
 
   /**

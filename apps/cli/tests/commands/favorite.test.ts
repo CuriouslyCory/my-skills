@@ -351,7 +351,7 @@ describe("favorite command", () => {
       expect(mockMarkMerged).toHaveBeenCalledWith(SERVER_URL);
     });
 
-    it("--yes skips the merge prompt", async () => {
+    it("--yes accepts the merge without prompting (never skips the import)", async () => {
       mockResolveContext.mockResolvedValue(
         authedContext(["https://github.com/a/b.git"]),
       );
@@ -361,8 +361,32 @@ describe("favorite command", () => {
       await run(["favorite", "list", "--yes"]);
 
       expect(mockConfirm).not.toHaveBeenCalled();
-      expect(mockAdd).not.toHaveBeenCalled();
+      expect(mockAdd).toHaveBeenCalledWith({
+        repoUrl: "https://github.com/a/b.git",
+        name: "a/b",
+        type: "repo",
+      });
       expect(mockMarkMerged).toHaveBeenCalledWith(SERVER_URL);
+    });
+
+    it("--yes does not record the merge when the import fails (so it retries)", async () => {
+      mockResolveContext.mockResolvedValue(
+        authedContext(["https://github.com/a/b.git"]),
+      );
+      mockHasMerged.mockResolvedValue(false);
+      mockAdd.mockRejectedValueOnce(
+        Object.assign(new Error("connect ECONNREFUSED"), {
+          code: "ECONNREFUSED",
+        }),
+      );
+
+      await run(["favorite", "list", "--yes"]);
+
+      expect(mockMarkMerged).not.toHaveBeenCalled();
+      expect(process.exitCode).toBe(1);
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining("Could not reach the server"),
+      );
     });
 
     it("does not prompt again once merge has been handled", async () => {

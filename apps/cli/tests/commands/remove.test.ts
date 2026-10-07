@@ -78,6 +78,45 @@ describe("removeSingleSkill", () => {
     expect(result.skills["test-skill"]).toBeUndefined();
   });
 
+  it.each([
+    ["agent", ".agents/agents"],
+    ["prompt", ".agents/prompts"],
+  ] as const)(
+    "removes a cloud %s from its category deploy dir, not the skills dir",
+    async (category, deployDir) => {
+      const skillsDir = join(projectRoot, ".agents", "skills");
+      const deployedPath = join(projectRoot, deployDir, "my-artifact");
+      await mkdir(deployedPath, { recursive: true });
+      await writeFile(join(deployedPath, "SKILL.md"), "# artifact");
+
+      const manifest = makeManifest({
+        "my-artifact": {
+          source: "@me/my-artifact",
+          sourceType: "cloud",
+          category,
+          computedHash: "abc12345",
+          installedAt: new Date().toISOString(),
+          agents: [],
+        },
+      });
+
+      const result = await removeSingleSkill(
+        "my-artifact",
+        skillsDir,
+        projectRoot,
+        manifest,
+        true,
+        [],
+      );
+
+      const exists = await stat(deployedPath)
+        .then(() => true)
+        .catch(() => false);
+      expect(exists).toBe(false);
+      expect(result.skills["my-artifact"]).toBeUndefined();
+    },
+  );
+
   it("returns unchanged manifest for non-existent skill", async () => {
     const manifest = makeManifest({});
 

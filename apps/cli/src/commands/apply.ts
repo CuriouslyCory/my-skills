@@ -1,30 +1,31 @@
-import { rm, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { Command } from "commander";
 import chalk from "chalk";
 
 import type {
   AgentId,
+  ArtifactCategory,
   Manifest,
   SkillEntry,
 } from "@curiouslycory/shared-types";
 import { AgentIdSchema } from "@curiouslycory/shared-types";
 
-import type { AdapterSkillEntry } from "../adapters/index.js";
 import type { ResolvedSkill } from "../core/skill-resolver.js";
-import { detectAgents, getEnabledAdapters } from "../adapters/index.js";
+import { detectAgents } from "../adapters/index.js";
 import {
   cloudDeployDir,
   createCloudClient,
+  entryDeployDir,
   fetchCloudArtifact,
   materializeCloudArtifact,
-  normalizeCategory,
 } from "../services/cloud-source.js";
+import { runAdapterInstalls } from "../core/adapter-runner.js";
 import { loadConfig } from "../core/config.js";
 import { addSkill, loadManifest, saveManifest } from "../core/manifest.js";
 import { computeSkillHash } from "../core/skill-hasher.js";
-import { installSkill } from "../core/skill-installer.js";
-import { resolveSkill } from "../core/skill-resolver.js";
+import { replaceSkill } from "../core/skill-installer.js";
+import { loadSkillDir, resolveSkill } from "../core/skill-resolver.js";
 import { fetchRepo } from "../services/cache.js";
 import { cloudSourceName, sourceToGitHub } from "../services/source-parser.js";
 
@@ -88,9 +89,14 @@ export async function planSkillAction(
   }
 }
 
-/** A resolved entry plus an optional cleanup for any temp materialization. */
+/**
+ * A resolved entry plus an optional cleanup for any temp materialization. Cloud
+ * entries also carry the artifact's current category, which may have changed
+ * upstream since the manifest entry was recorded.
+ */
 interface ResolvedEntry {
   resolved: ResolvedSkill;
+  category?: ArtifactCategory;
   cleanup?: () => Promise<void>;
 }
 
@@ -123,27 +129,10 @@ async function resolveEntrySkill(
       client,
       cloudSourceName(entry.source),
     );
-    const { resolved, cleanup } = await materializeCloudArtifact(artifact);
-    return { resolved, cleanup };
+    return materializeCloudArtifact(artifact);
   }
 
   throw new Error(`unsupported source type "${entry.sourceType}"`);
-}
-
-/**
- * The reconcile target directory for an entry. Cloud entries deploy to their
- * category's DEPLOY_PATH_MAP target; github/local skills use the default
- * skills directory.
- */
-function entryTargetDir(
-  entry: SkillEntry,
-  projectRoot: string,
-  defaultTargetDir: string,
-): string {
-  if (entry.sourceType === "cloud") {
-    return cloudDeployDir(projectRoot, normalizeCategory(entry.category));
-  }
-  return defaultTargetDir;
 }
 
 /**
@@ -161,56 +150,6 @@ async function resolveAgentsNonInteractive(
   if (manifestAgents.length > 0) return manifestAgents;
   if (defaultAgents.length > 0) return defaultAgents;
   return detectAgents(projectRoot);
-}
-
-/**
- * Run each enabled agent adapter for a skill. Adapter failures are warnings and
- * never fail reconciliation (symlink/copy is best-effort).
- */
-async function runAdapterInstalls(
-  projectRoot: string,
-  agents: AgentId[],
-  skill: AdapterSkillEntry,
-  quiet: boolean,
-): Promise<void> {
-  const adapters = getEnabledAdapters(agents);
-  const deployed: string[] = [];
-
-  for (const adapter of adapters) {
-    try {
-      await adapter.install(projectRoot, skill);
-      deployed.push(adapter.displayName);
-    } catch (err) {
-      if (!quiet) {
-        console.warn(
-          chalk.yellow(
-            `  Warning: ${adapter.displayName} adapter failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-          ),
-        );
-      }
-    }
-  }
-
-  if (deployed.length > 0 && !quiet) {
-    console.log(chalk.dim(`  Deployed to: ${deployed.join(", ")}`));
-  }
-}
-
-/**
- * Build a lightweight adapter entry for an already-installed skill so its
- * symlinks can be (re)created without touching the skill's source.
- */
-function adapterEntryForInstalled(
-  skillName: string,
-  destPath: string,
-): AdapterSkillEntry {
-  return {
-    name: skillName,
-    sourcePath: destPath,
-    frontmatter: { name: skillName, description: "" },
-    content: "",
-    files: [],
-  };
 }
 
 /**
@@ -234,7 +173,7 @@ export async function reconcile(
   let currentManifest = manifest;
 
   for (const [name, entry] of Object.entries(manifest.skills)) {
-    const entryTarget = entryTargetDir(entry, projectRoot, targetDir);
+    const entryTarget = entryDeployDir(entry, projectRoot, targetDir);
     const destPath = join(entryTarget, name);
     const agents = entry.agents ?? fallbackAgents;
 
@@ -253,12 +192,26 @@ export async function reconcile(
 
     if (action === "noop") {
       if (!opts.frozen) {
-        await runAdapterInstalls(
-          projectRoot,
-          agents,
-          adapterEntryForInstalled(name, destPath),
-          opts.quiet,
-        );
+        // Re-read the installed skill so content-writing adapters (Codex,
+        // Copilot, Gemini) rewrite its real instructions rather than blanking
+        // them. In sync means the on-disk files are exactly what was installed.
+        try {
+          const installed = await loadSkillDir(destPath);
+          await runAdapterInstalls(
+            projectRoot,
+            agents,
+            { ...installed, name },
+            { quiet: opts.quiet },
+          );
+        } catch (err) {
+          results.push({
+            name,
+            source: entry.source,
+            action: "failed",
+            error: `could not read installed skill: ${err instanceof Error ? err.message : "Unknown error"}`,
+          });
+          continue;
+        }
       }
       results.push({ name, source: entry.source, action: "noop" });
       continue;
@@ -276,30 +229,43 @@ export async function reconcile(
     }
 
     try {
-      const { resolved, cleanup } = await resolveEntrySkill(
+      const { resolved, category, cleanup } = await resolveEntrySkill(
         name,
         entry,
         projectRoot,
       );
       try {
-        if (action === "update") {
-          await rm(destPath, { recursive: true, force: true });
-        }
-        const newHash = await installSkill(resolved, entryTarget);
+        // A cloud artifact whose category changed upstream moves to its new
+        // deploy dir; the old install is displaced and discarded on commit.
+        const installTarget = category
+          ? cloudDeployDir(projectRoot, category)
+          : entryTarget;
+        const replacement = await replaceSkill(
+          resolved,
+          installTarget,
+          destPath,
+        );
+        const newHash = replacement.hash;
+        const categoryChanged =
+          category !== undefined && category !== entry.category;
 
         // No commit pinning exists yet, so an upstream change can leave the
         // freshly installed hash different from the manifest. Record it so the
         // next run sees an in-sync tree (idempotency).
-        if (newHash !== entry.computedHash) {
+        if (newHash !== entry.computedHash || categoryChanged) {
           const updatedEntry: SkillEntry = {
             ...entry,
+            ...(category ? { category } : {}),
             computedHash: newHash,
             installedAt: new Date().toISOString(),
           };
           currentManifest = addSkill(currentManifest, name, updatedEntry);
         }
+        await replacement.commit();
 
-        await runAdapterInstalls(projectRoot, agents, resolved, opts.quiet);
+        await runAdapterInstalls(projectRoot, agents, resolved, {
+          quiet: opts.quiet,
+        });
         results.push({ name, source: entry.source, action });
       } finally {
         await cleanup?.();

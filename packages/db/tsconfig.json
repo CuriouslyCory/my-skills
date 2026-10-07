@@ -1,5 +1,9 @@
 {
   "extends": "@curiouslycory/tsconfig/compiled-package.json",
+  "compilerOptions": {
+    /** `src/bin` scripts run under Node's type stripping, which needs `.ts` specifiers. */
+    "allowImportingTsExtensions": true
+  },
   "include": ["src"],
   "exclude": ["node_modules"]
 }

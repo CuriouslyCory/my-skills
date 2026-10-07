@@ -1,11 +1,14 @@
 import { Suspense } from "react";
 
 import { AuthShowcase } from "~/app/_components/auth-showcase";
-import { PostCardSkeleton, PostList } from "~/app/_components/posts";
+import {
+  RecentSkillList,
+  SkillCardSkeleton,
+} from "~/app/_components/recent-skills";
 import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 
 export default function HomePage() {
-  prefetch(trpc.post.all.queryOptions());
+  prefetch(trpc.skill.list.queryOptions());
 
   return (
     <HydrateClient>
@@ -19,13 +22,13 @@ export default function HomePage() {
           <Suspense
             fallback={
               <div className="flex w-full flex-col gap-4">
-                <PostCardSkeleton />
-                <PostCardSkeleton />
-                <PostCardSkeleton />
+                <SkillCardSkeleton />
+                <SkillCardSkeleton />
+                <SkillCardSkeleton />
               </div>
             }
           >
-            <PostList />
+            <RecentSkillList />
           </Suspense>
         </div>
       </div>

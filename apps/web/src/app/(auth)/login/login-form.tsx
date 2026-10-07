@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -9,11 +8,12 @@ import { Input } from "@curiouslycory/ui/input";
 import { Label } from "@curiouslycory/ui/label";
 
 import { signIn } from "~/auth/client";
+import { useAuthForm } from "../use-auth-form";
 
 export function LoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const { error, setError, pending, setPending, handleGithub } =
+    useAuthForm(redirectTo);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,19 +31,6 @@ export function LoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
     }
     router.push(redirectTo);
     router.refresh();
-  };
-
-  const handleGithub = async () => {
-    setError(null);
-    setPending(true);
-    const { error: githubError } = await signIn.social({
-      provider: "github",
-      callbackURL: redirectTo,
-    });
-    if (githubError) {
-      setPending(false);
-      setError(githubError.message ?? "Failed to start GitHub sign-in");
-    }
   };
 
   return (

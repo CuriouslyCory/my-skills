@@ -49,9 +49,18 @@ export function renderArtifactSkill(artifact: PublishArtifact): RenderedFile {
     ...(artifact.version ? { version: artifact.version } : {}),
   };
   return {
-    path: `${artifact.name}/SKILL.md`,
+    path: skillFilePath(artifact.name),
     content: buildSkillContent(frontmatter, artifact.content),
   };
+}
+
+/**
+ * Repo-relative path of an artifact's published SKILL.md. This is the only path
+ * the publish flow ever writes for an artifact, so it is also the only path it
+ * may remove when the artifact is de-selected.
+ */
+export function skillFilePath(name: string): string {
+  return `${name}/SKILL.md`;
 }
 
 /** Renders every artifact to its repo file. */
@@ -132,11 +141,44 @@ export function buildCommitMessage(diff: PublishDiff): string {
   return `Publish ${total} skill${total === 1 ? "" : "s"}${summary}`;
 }
 
-/** The result of a successful tree commit. */
+/** The result of a successful publish. */
 export interface PublishTreeResult {
+  /** The new commit, or the existing head when the tree was already current. */
   commitSha: string;
   branch: string;
   htmlUrl: string;
+  /** False when the repo already held exactly this content (no commit made). */
+  committed: boolean;
+}
+
+/** GitHub repository visibility (`internal` exists on enterprise accounts). */
+export type RepoVisibility = "public" | "private" | "internal";
+
+/**
+ * Thrown before any content is uploaded when an existing repository's visibility
+ * differs from the requested one. Publishing is refused rather than silently
+ * flipping visibility: going private -> public would expose everything already
+ * in the repo, and public -> private permanently drops stars/watchers and breaks
+ * anyone installing from it. Both are repo-level decisions the user makes on
+ * GitHub (or by choosing another repo name).
+ */
+export class PublishVisibilityError extends Error {
+  readonly requested: RepoVisibility;
+  readonly actual: RepoVisibility;
+
+  constructor(opts: {
+    owner: string;
+    repo: string;
+    requested: RepoVisibility;
+    actual: RepoVisibility;
+  }) {
+    super(
+      `Repository ${opts.owner}/${opts.repo} already exists and is ${opts.actual}, but this publish target is set to ${opts.requested}. Change the repository's visibility on GitHub or choose a different repository name.`,
+    );
+    this.name = "PublishVisibilityError";
+    this.requested = opts.requested;
+    this.actual = opts.actual;
+  }
 }
 
 /**
@@ -148,9 +190,14 @@ export type PublishOctokit = Pick<Octokit, "rest">;
 /**
  * Ensures the repo exists (creating a public/private repo with an initial commit
  * when missing) and commits the rendered files as a single tree via the Git Data
- * API: blobs -> tree -> commit -> ref update. The tree is built from scratch (no
- * `base_tree`), so the repo content is exactly the desired set and de-selected
- * artifacts are dropped. Returns the new commit SHA, branch, and repo URL.
+ * API: blobs -> tree -> commit -> ref update.
+ *
+ * The new tree is layered on the current head's tree (`base_tree`), so files the
+ * service does not manage (README, LICENSE, source, workflows) are preserved.
+ * Only `removePaths` (artifacts this service previously published that are no
+ * longer selected) are deleted. An existing repo whose visibility differs from
+ * `isPrivate` is rejected before anything is uploaded. When the resulting tree
+ * equals the head's tree, no commit is made and the head is returned.
  */
 export async function publishTree(
   octokit: PublishOctokit,
@@ -159,17 +206,25 @@ export async function publishTree(
     repo: string;
     isPrivate: boolean;
     files: RenderedFile[];
+    /** Previously published paths to delete; absent paths are ignored. */
+    removePaths?: string[];
     message: string;
   },
 ): Promise<PublishTreeResult> {
-  const { owner, repo, isPrivate, files, message } = opts;
+  const { owner, repo, isPrivate, files, removePaths = [], message } = opts;
+  const requested: RepoVisibility = isPrivate ? "private" : "public";
 
   // 1. Create the repo if it does not exist yet. `auto_init` gives us a base
-  //    branch + initial commit so a ref exists to build the next commit on.
+  //    branch + initial commit so a ref exists to build the next commit on. An
+  //    existing repo must already have the requested visibility.
   let defaultBranch: string;
   let htmlUrl: string;
   try {
     const { data } = await octokit.rest.repos.get({ owner, repo });
+    const actual = toRepoVisibility(data.visibility, data.private);
+    if (actual !== requested) {
+      throw new PublishVisibilityError({ owner, repo, requested, actual });
+    }
     defaultBranch = data.default_branch;
     htmlUrl = data.html_url;
   } catch (err) {
@@ -186,12 +241,19 @@ export async function publishTree(
 
   const ref = `heads/${defaultBranch}`;
 
-  // 2. Resolve the current branch head (the parent of our new commit).
+  // 2. Resolve the current branch head (the parent of our new commit) and its
+  //    tree (the base our changes are layered onto).
   const { data: refData } = await octokit.rest.git.getRef({ owner, repo, ref });
   const baseCommitSha = refData.object.sha;
+  const { data: baseCommit } = await octokit.rest.git.getCommit({
+    owner,
+    repo,
+    commit_sha: baseCommitSha,
+  });
+  const baseTreeSha = baseCommit.tree.sha;
 
   // 3. Blob per file.
-  const tree = await Promise.all(
+  const upserts = await Promise.all(
     files.map(async (file) => {
       const { data: blob } = await octokit.rest.git.createBlob({
         owner,
@@ -208,14 +270,42 @@ export async function publishTree(
     }),
   );
 
-  // 4. Full tree (no base_tree -> exact desired content).
+  // 4. Deletions: a `sha: null` entry removes a path from the base tree. GitHub
+  //    rejects deleting a path that does not exist, so only paths still present
+  //    are removed (a user may have deleted one by hand), and never a path we
+  //    are writing in this same commit.
+  const writing = new Set(files.map((file) => file.path));
+  const present = await findExistingBlobPaths(
+    octokit,
+    { owner, repo, treeSha: baseTreeSha },
+    removePaths.filter((path) => !writing.has(path)),
+  );
+  const deletions = present.map((path) => ({
+    path,
+    mode: "100644" as const,
+    type: "blob" as const,
+    sha: null,
+  }));
+
+  // 5. Tree layered on the current head's tree.
   const { data: treeData } = await octokit.rest.git.createTree({
     owner,
     repo,
-    tree,
+    base_tree: baseTreeSha,
+    tree: [...upserts, ...deletions],
   });
 
-  // 5. Commit pointing at the new tree with the current head as parent.
+  // Git trees are content-addressed: an identical SHA means nothing changed.
+  if (treeData.sha === baseTreeSha) {
+    return {
+      commitSha: baseCommitSha,
+      branch: defaultBranch,
+      htmlUrl,
+      committed: false,
+    };
+  }
+
+  // 6. Commit pointing at the new tree with the current head as parent.
   const { data: commit } = await octokit.rest.git.createCommit({
     owner,
     repo,
@@ -224,7 +314,7 @@ export async function publishTree(
     parents: [baseCommitSha],
   });
 
-  // 6. Fast-forward the branch to the new commit.
+  // 7. Fast-forward the branch to the new commit.
   await octokit.rest.git.updateRef({
     owner,
     repo,
@@ -232,7 +322,79 @@ export async function publishTree(
     sha: commit.sha,
   });
 
-  return { commitSha: commit.sha, branch: defaultBranch, htmlUrl };
+  return {
+    commitSha: commit.sha,
+    branch: defaultBranch,
+    htmlUrl,
+    committed: true,
+  };
+}
+
+/**
+ * Normalizes GitHub's repo visibility. `visibility` is the authoritative field
+ * (it distinguishes `internal`); `private` is the fallback for older payloads.
+ */
+function toRepoVisibility(
+  visibility: string | undefined,
+  isPrivate: boolean,
+): RepoVisibility {
+  if (
+    visibility === "public" ||
+    visibility === "private" ||
+    visibility === "internal"
+  ) {
+    return visibility;
+  }
+  return isPrivate ? "private" : "public";
+}
+
+/** The fields of a Git Data API tree entry the path walk reads. */
+interface TreeEntry {
+  path?: string;
+  type?: string;
+  sha?: string;
+}
+
+/**
+ * Returns the subset of `paths` that exist as blobs under the given tree. Walks
+ * one directory level per request (caching each tree), so it costs nothing when
+ * `paths` is empty and is not subject to recursive-listing truncation.
+ */
+async function findExistingBlobPaths(
+  octokit: PublishOctokit,
+  where: { owner: string; repo: string; treeSha: string },
+  paths: string[],
+): Promise<string[]> {
+  const { owner, repo, treeSha } = where;
+  const entriesByTree = new Map<string, Promise<TreeEntry[]>>();
+  const listTree = (sha: string): Promise<TreeEntry[]> => {
+    let entries = entriesByTree.get(sha);
+    if (!entries) {
+      entries = octokit.rest.git
+        .getTree({ owner, repo, tree_sha: sha })
+        .then(({ data }) => data.tree);
+      entriesByTree.set(sha, entries);
+    }
+    return entries;
+  };
+
+  const existing: string[] = [];
+  for (const path of paths) {
+    const segments = path.split("/");
+    let currentSha: string | undefined = treeSha;
+    for (const [index, segment] of segments.entries()) {
+      if (currentSha === undefined) break;
+      const isLeaf = index === segments.length - 1;
+      const entry: TreeEntry | undefined = (await listTree(currentSha)).find(
+        (candidate) =>
+          candidate.path === segment &&
+          candidate.type === (isLeaf ? "blob" : "tree"),
+      );
+      currentSha = entry?.sha;
+      if (isLeaf && entry) existing.push(path);
+    }
+  }
+  return existing;
 }
 
 /** Narrows an unknown thrown value to an HTTP 404 (Octokit RequestError). */

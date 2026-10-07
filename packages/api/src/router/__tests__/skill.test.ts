@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { readFile, rm } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type Database from "better-sqlite3";
 import {
@@ -193,6 +193,46 @@ describe("skill router", () => {
 
       expect(result?.category).toBe("agent");
     });
+
+    it("does not overwrite an existing skill's SKILL.md on a duplicate name", async () => {
+      await caller.skill.create({
+        name: "dup-skill",
+        description: "Original",
+        content: "original body",
+      });
+
+      await expect(
+        caller.skill.create({
+          name: "dup-skill",
+          description: "Rejected",
+          content: "rejected body",
+        }),
+      ).rejects.toThrow();
+
+      const fileContent = await readFile(
+        join(repoPath, "skills", "dup-skill", "SKILL.md"),
+        "utf-8",
+      );
+      expect(fileContent).toContain("original body");
+      expect(fileContent).not.toContain("rejected body");
+    });
+
+    it("removes the inserted row when the SKILL.md write fails", async () => {
+      // A regular file where the skill directory should go makes mkdir fail.
+      await mkdir(join(repoPath, "skills"), { recursive: true });
+      await writeFile(join(repoPath, "skills", "blocked-skill"), "not a dir");
+
+      await expect(
+        caller.skill.create({
+          name: "blocked-skill",
+          description: "Cannot be written",
+          content: "content",
+        }),
+      ).rejects.toThrow();
+
+      const names = (await caller.skill.list()).map((r) => r.name);
+      expect(names).not.toContain("blocked-skill");
+    });
   });
 
   describe("update", () => {
@@ -242,6 +282,36 @@ describe("skill router", () => {
       );
       const fileContent = await readFile(skillMdPath, "utf-8");
       expect(fileContent).toContain("updated on disk");
+    });
+
+    it("does not rewrite SKILL.md when a rename is rejected as a duplicate", async () => {
+      await caller.skill.create({
+        name: "taken-name",
+        description: "Already here",
+        content: "taken body",
+      });
+      const created = await caller.skill.create({
+        name: "rename-me",
+        description: "Will try to rename",
+        content: "rename body",
+      });
+      const id = (created as { id: string }).id;
+
+      await expect(
+        caller.skill.update({
+          id,
+          name: "taken-name",
+          content: "rejected body",
+        }),
+      ).rejects.toThrow();
+
+      const fileContent = await readFile(
+        join(repoPath, "skills", "rename-me", "SKILL.md"),
+        "utf-8",
+      );
+      expect(fileContent).toContain("name: rename-me");
+      expect(fileContent).toContain("rename body");
+      expect(fileContent).not.toContain("rejected body");
     });
   });
 
@@ -385,6 +455,31 @@ describe("artifact router", () => {
 
       const fileContent = await readFile(skillMdPath, "utf-8");
       expect(fileContent).toContain("agent file content");
+    });
+
+    it("does not overwrite an existing artifact's SKILL.md on a duplicate name", async () => {
+      await caller.artifact.create({
+        name: "dup-agent",
+        description: "Original",
+        category: "agent",
+        content: "original agent body",
+      });
+
+      await expect(
+        caller.artifact.create({
+          name: "dup-agent",
+          description: "Rejected",
+          category: "agent",
+          content: "rejected agent body",
+        }),
+      ).rejects.toThrow();
+
+      const fileContent = await readFile(
+        join(repoPath, "artifacts", "agents", "dup-agent", "SKILL.md"),
+        "utf-8",
+      );
+      expect(fileContent).toContain("original agent body");
+      expect(fileContent).not.toContain("rejected agent body");
     });
 
     it("supports all artifact categories", async () => {

@@ -1,14 +1,16 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
+import { isLocalMode } from "@curiouslycory/api";
+
 import { GitStatus, GitStatusSkeleton } from "~/app/_components/git-status";
-import { env } from "~/env";
 import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 
 export default function GitPage() {
   // The git page is filesystem-coupled and disabled in hosted mode (#26). Return
-  // a 404 for direct navigation so hosted deployments never surface it.
-  if (env.DEPLOY_MODE !== "local") {
+  // a 404 for direct navigation so hosted deployments never surface it. Uses
+  // the same resolver that gates the git router, so page and API never disagree.
+  if (!isLocalMode()) {
     notFound();
   }
 

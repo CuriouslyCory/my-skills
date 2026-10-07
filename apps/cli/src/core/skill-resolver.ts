@@ -21,14 +21,24 @@ export async function resolveSkill(
     throw new Error(`Skill "${skillName}" not found in repository`);
   }
 
-  const skillMdPath = join(match.path, "SKILL.md");
+  return loadSkillDir(match.path);
+}
+
+/**
+ * Load a skill directory (one containing SKILL.md) as a `ResolvedSkill`. Used
+ * for source checkouts and for re-reading an already-installed skill, so
+ * content-writing adapters (Codex, Copilot, Gemini) always receive the skill's
+ * real instructions rather than a placeholder.
+ */
+export async function loadSkillDir(skillDir: string): Promise<ResolvedSkill> {
+  const skillMdPath = join(skillDir, "SKILL.md");
   const rawContent = await readFile(skillMdPath, "utf-8");
   const { frontmatter } = parseSkillFrontmatter(rawContent);
-  const files = await collectAllFiles(match.path);
+  const files = await collectAllFiles(skillDir);
 
   return {
     name: frontmatter.name,
-    sourcePath: match.path,
+    sourcePath: skillDir,
     frontmatter,
     content: rawContent,
     files,

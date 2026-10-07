@@ -130,6 +130,147 @@ describe("searchSkills - sqlite", () => {
       raw.close();
     }
   });
+
+  describe("same-named skills owned by different users", () => {
+    // Per-user uniqueness lets Alice and Bob each own a skill with an identical
+    // name and description. Only Bob's content mentions "confidential".
+    function makeTwinSkillsDb(setupFts: (raw: Database.Database) => void) {
+      const raw = new Database(":memory:");
+      raw.exec(`
+        CREATE TABLE skills (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL,
+          tags TEXT NOT NULL DEFAULT '[]',
+          author TEXT,
+          version TEXT,
+          content TEXT NOT NULL,
+          dir_path TEXT,
+          category TEXT,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          UNIQUE(user_id, name)
+        );
+      `);
+      setupFts(raw);
+      raw.exec(`
+        INSERT INTO skills (id, user_id, name, description, content)
+        VALUES
+          ('alice-deploy', 'alice', 'deploy', 'Deploy helper', 'shared public rollout steps'),
+          ('bob-deploy', 'bob', 'deploy', 'Deploy helper', 'shared rollout uses the confidential staging password');
+      `);
+      const db = drizzle({ client: raw, schema: sqliteSchema });
+      return { db: db as unknown as AppDatabase, raw };
+    }
+
+    async function search(db: AppDatabase, query: string, userId: string) {
+      return searchSkills(
+        db,
+        { query, userId, limit: 20, offset: 0 },
+        "sqlite",
+      );
+    }
+
+    it("never returns another user's FTS document or snippet", async () => {
+      const { db, raw } = makeTwinSkillsDb(initFTS);
+      try {
+        // The term only exists in Bob's document: Alice must get nothing back,
+        // not her own row decorated with Bob's content snippet.
+        expect(await search(db, "confidential", "alice")).toEqual([]);
+
+        const bobHits = await search(db, "confidential", "bob");
+        expect(bobHits.map((r) => r.id)).toEqual(["bob-deploy"]);
+        expect(bobHits[0]?.snippet).toContain("<mark>confidential</mark>");
+
+        // A term in both documents yields exactly one row per user, each with
+        // a snippet drawn from that user's own content.
+        const aliceHits = await search(db, "rollout", "alice");
+        expect(aliceHits.map((r) => r.id)).toEqual(["alice-deploy"]);
+        expect(aliceHits[0]?.snippet).not.toContain("confidential");
+      } finally {
+        raw.close();
+      }
+    });
+
+    it("re-indexes only the edited skill when an identical twin is updated or deleted", async () => {
+      const { db, raw } = makeTwinSkillsDb(initFTS);
+      try {
+        // Make the two documents byte-identical, so nothing but the skill id
+        // tells them apart in the index.
+        raw.exec(`
+          UPDATE skills SET content = 'identical rollout notes';
+        `);
+
+        raw.exec(
+          `UPDATE skills SET content = 'rotated credentials' WHERE id = 'bob-deploy'`,
+        );
+        expect((await search(db, "rotated", "bob")).map((r) => r.id)).toEqual([
+          "bob-deploy",
+        ]);
+        expect(await search(db, "identical", "bob")).toEqual([]);
+        expect(
+          (await search(db, "identical", "alice")).map((r) => r.id),
+        ).toEqual(["alice-deploy"]);
+
+        raw.exec(`DELETE FROM skills WHERE id = 'bob-deploy'`);
+        expect(await search(db, "rotated", "bob")).toEqual([]);
+        expect(
+          (await search(db, "identical", "alice")).map((r) => r.id),
+        ).toEqual(["alice-deploy"]);
+      } finally {
+        raw.close();
+      }
+    });
+
+    it("rebuilds a legacy name/description-keyed FTS index on init", async () => {
+      // The pre-fix index: no skill id, triggers matching rows by value.
+      const legacyFts = (raw: Database.Database) => {
+        raw.exec(`
+          CREATE VIRTUAL TABLE skills_fts USING fts5(name, description, tags, content);
+          CREATE TRIGGER skills_ai AFTER INSERT ON skills BEGIN
+            INSERT INTO skills_fts(name, description, tags, content)
+            VALUES (NEW.name, NEW.description, NEW.tags, NEW.content);
+          END;
+        `);
+      };
+      const { db, raw } = makeTwinSkillsDb(legacyFts);
+      try {
+        initFTS(raw);
+        // Idempotent: a second init on the upgraded index is a no-op.
+        initFTS(raw);
+
+        const ftsColumns = raw
+          .prepare<[], { name: string }>(
+            "SELECT name FROM pragma_table_info('skills_fts')",
+          )
+          .all()
+          .map((c) => c.name);
+        expect(ftsColumns).toContain("skill_id");
+        const indexed = raw
+          .prepare<[], { n: number }>("SELECT count(*) AS n FROM skills_fts")
+          .get();
+        expect(indexed?.n).toBe(2);
+
+        expect(await search(db, "confidential", "alice")).toEqual([]);
+        expect(
+          (await search(db, "confidential", "bob")).map((r) => r.id),
+        ).toEqual(["bob-deploy"]);
+
+        // The legacy insert trigger was replaced, so new rows index once by id.
+        raw.exec(`
+          INSERT INTO skills (id, user_id, name, description, content)
+          VALUES ('carol-deploy', 'carol', 'deploy', 'Deploy helper', 'confidential too');
+        `);
+        expect(
+          (await search(db, "confidential", "carol")).map((r) => r.id),
+        ).toEqual(["carol-deploy"]);
+        expect(await search(db, "confidential", "alice")).toEqual([]);
+      } finally {
+        raw.close();
+      }
+    });
+  });
 });
 
 describe("searchSkills - postgres", () => {

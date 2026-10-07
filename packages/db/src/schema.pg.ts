@@ -48,19 +48,25 @@ export const skills = pgTable(
   ],
 );
 
-export const variations = pgTable("variations", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  name: text("name").notNull(),
-  description: text("description"),
-  tags: text("tags"),
-  content: text("content").notNull(),
-  filePath: text("file_path"),
-  skillId: text("skill_id")
-    .notNull()
-    .references(() => skills.id, { onDelete: "cascade" }),
-});
+export const variations = pgTable(
+  "variations",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    description: text("description"),
+    tags: text("tags"),
+    content: text("content").notNull(),
+    filePath: text("file_path"),
+    skillId: text("skill_id")
+      .notNull()
+      .references(() => skills.id, { onDelete: "cascade" }),
+  },
+  // Postgres does not index referencing columns automatically; this backs the
+  // per-skill lookups and the `ON DELETE CASCADE` scan from `skills`.
+  (table) => [index("variations_skill_id_idx").on(table.skillId)],
+);
 
 export const favorites = pgTable(
   "favorites",
@@ -83,25 +89,31 @@ export const favorites = pgTable(
   (table) => [unique().on(table.userId, table.repoUrl, table.skillName)],
 );
 
-export const compositions = pgTable("compositions", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  description: text("description"),
-  fragments: text("fragments").notNull().default("[]"),
-  order: text("order").notNull().default("[]"),
-  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdateFn(() => new Date()),
-});
+export const compositions = pgTable(
+  "compositions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    fragments: text("fragments").notNull().default("[]"),
+    order: text("order").notNull().default("[]"),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+  },
+  // Every composition query is scoped by owner; unlike the other owned tables
+  // there is no composite unique constraint leading with `user_id` to serve it.
+  (table) => [index("compositions_user_id_idx").on(table.userId)],
+);
 
 export const config = pgTable(
   "config",

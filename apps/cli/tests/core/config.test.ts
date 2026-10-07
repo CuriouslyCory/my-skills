@@ -33,6 +33,7 @@ describe("config", () => {
     // Clear env overrides
     delete process.env.MY_SKILLS_CACHE_DIR;
     delete process.env.MY_SKILLS_SKILLS_DIR;
+    delete process.env.MY_SKILLS_SERVER_URL;
   });
 
   afterEach(async () => {
@@ -81,6 +82,23 @@ describe("config", () => {
       const { loadConfig } = await import("../../src/core/config.js");
       const config = await loadConfig();
       expect(config.skillsDir).toBe("custom/dir");
+    });
+
+    it("applies a valid MY_SKILLS_SERVER_URL env override", async () => {
+      process.env.MY_SKILLS_SERVER_URL = "  https://skills.example.com  ";
+
+      const { loadConfig } = await import("../../src/core/config.js");
+      const config = await loadConfig();
+      expect(config.serverUrl).toBe("https://skills.example.com");
+    });
+
+    it("fails fast with a clear error on an invalid MY_SKILLS_SERVER_URL", async () => {
+      process.env.MY_SKILLS_SERVER_URL = "not a url";
+
+      const { loadConfig } = await import("../../src/core/config.js");
+      await expect(loadConfig()).rejects.toThrow(
+        /Invalid MY_SKILLS_SERVER_URL "not a url"/,
+      );
     });
 
     it("handles invalid JSON in config file gracefully", async () => {

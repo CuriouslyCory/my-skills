@@ -97,42 +97,51 @@ export const artifactRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       // Hosted mode is database-canonical: no SKILL.md is written and `dirPath`
       // stays null. Local mode mirrors the artifact to disk under artifacts/.
-      let dirPath: string | null = null;
-      if (isLocalMode()) {
-        const artifactDir = getArtifactDir(ctx.repoPath, input.category);
-        const absDirPath = join(artifactDir, input.name);
+      const absDirPath = isLocalMode()
+        ? join(getArtifactDir(ctx.repoPath, input.category), input.name)
+        : null;
 
-        await mkdir(absDirPath, { recursive: true });
-
-        const frontmatter = {
-          name: input.name,
-          description: input.description,
-          ...(input.author ? { author: input.author } : {}),
-          ...(input.version ? { version: input.version } : {}),
-        };
-
-        const fileContent = buildSkillContent(frontmatter, input.content);
-        await writeFile(join(absDirPath, "SKILL.md"), fileContent, "utf-8");
-
-        dirPath = relative(ctx.repoPath, absDirPath);
-      }
-
+      // Insert first: a rejected insert (e.g. a duplicate name under
+      // UNIQUE(user_id, name)) must not overwrite an existing artifact's SKILL.md.
       const [row] = await ctx.db
         .insert(skills)
         .values({
-          userId: ctx.session.user.id,
+          userId,
           name: input.name,
           description: input.description,
           tags: JSON.stringify(input.tags ?? []),
           author: input.author ?? null,
           version: input.version ?? null,
           content: input.content,
-          dirPath,
+          dirPath: absDirPath ? relative(ctx.repoPath, absDirPath) : null,
           category: input.category,
         })
         .returning();
+
+      if (absDirPath) {
+        const frontmatter = {
+          name: input.name,
+          description: input.description,
+          ...(input.author ? { author: input.author } : {}),
+          ...(input.version ? { version: input.version } : {}),
+        };
+        const fileContent = buildSkillContent(frontmatter, input.content);
+        try {
+          await mkdir(absDirPath, { recursive: true });
+          await writeFile(join(absDirPath, "SKILL.md"), fileContent, "utf-8");
+        } catch (err) {
+          // Keep create all-or-nothing: without its SKILL.md the row would be
+          // dropped by the next disk sync anyway, so remove it now and surface
+          // the write error.
+          await ctx.db
+            .delete(skills)
+            .where(and(eq(skills.userId, userId), eq(skills.name, input.name)));
+          throw err;
+        }
+      }
 
       return row;
     }),
@@ -165,19 +174,6 @@ export const artifactRouter = {
       const updatedAuthor = input.author ?? existing.author;
       const updatedVersion = input.version ?? existing.version;
 
-      // Write to disk only in local mode and when the row is disk-backed.
-      if (isLocalMode() && existing.dirPath) {
-        const dirPath = join(ctx.repoPath, existing.dirPath);
-        const frontmatter = {
-          name: updatedName,
-          description: updatedDescription,
-          ...(updatedAuthor ? { author: updatedAuthor } : {}),
-          ...(updatedVersion ? { version: updatedVersion } : {}),
-        };
-        const fileContent = buildSkillContent(frontmatter, updatedContent);
-        await writeFile(join(dirPath, "SKILL.md"), fileContent, "utf-8");
-      }
-
       const [row] = await ctx.db
         .update(skills)
         .set({
@@ -196,6 +192,21 @@ export const artifactRouter = {
         })
         .where(and(eq(skills.id, input.id), eq(skills.userId, userId)))
         .returning();
+
+      // Mirror to disk only after the DB accepts the update, so a rejected
+      // rename (UNIQUE(user_id, name)) never rewrites SKILL.md. Only in local
+      // mode and when the row is disk-backed.
+      if (isLocalMode() && existing.dirPath) {
+        const dirPath = join(ctx.repoPath, existing.dirPath);
+        const frontmatter = {
+          name: updatedName,
+          description: updatedDescription,
+          ...(updatedAuthor ? { author: updatedAuthor } : {}),
+          ...(updatedVersion ? { version: updatedVersion } : {}),
+        };
+        const fileContent = buildSkillContent(frontmatter, updatedContent);
+        await writeFile(join(dirPath, "SKILL.md"), fileContent, "utf-8");
+      }
 
       return row;
     }),

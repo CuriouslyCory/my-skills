@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
-import { eq } from "@curiouslycory/db";
+import { eq, LOCAL_USER_EMAIL, LOCAL_USER_NAME } from "@curiouslycory/db";
 import { db, dbDialect } from "@curiouslycory/db/client";
 import { account, session, user, verification } from "@curiouslycory/db/schema";
 
@@ -58,12 +58,34 @@ const socialProviders =
     : undefined;
 
 /**
+ * Well-known fallback secret, acceptable only in local single-user mode where
+ * requests are attributed to the auto-provisioned local user and no signed
+ * session is ever trusted.
+ */
+const LOCAL_DEV_AUTH_SECRET = "dev-secret-do-not-use-in-prod";
+
+/**
+ * Resolves better-auth's signing secret. Multi-user auth signs real sessions, so
+ * it fails fast without `AUTH_SECRET` rather than signing with the known dev
+ * value. This backs up the `authEnv()` check, which is skipped in CI/lint.
+ */
+function resolveAuthSecret(): string {
+  if (env.AUTH_SECRET) return env.AUTH_SECRET;
+  if (isMultiUserAuthEnabled()) {
+    throw new Error(
+      "AUTH_SECRET is required when GitHub OAuth (multi-user auth) is enabled. Generate one with `openssl rand -base64 32`.",
+    );
+  }
+  return LOCAL_DEV_AUTH_SECRET;
+}
+
+/**
  * The better-auth server instance. The drizzle adapter is pointed at the shared
  * dialect-agnostic client from `@curiouslycory/db`; `provider` is derived from
  * the active dialect so better-auth emits correct SQL on either backend.
  */
 export const auth = betterAuth({
-  secret: env.AUTH_SECRET ?? "dev-secret-do-not-use-in-prod",
+  secret: resolveAuthSecret(),
   baseURL: env.BETTER_AUTH_URL ?? "http://localhost:3000",
   database: drizzleAdapter(db, {
     provider: dbDialect === "postgres" ? "pg" : "sqlite",
@@ -76,8 +98,8 @@ export const auth = betterAuth({
 });
 
 // Local single-user mode: a fixed synthetic account auto-provisioned on demand.
-const LOCAL_EMAIL = "local@my-skills.local";
-const LOCAL_NAME = "Local";
+// The identity is shared with the db package's legacy-ownership upgrade, which
+// backfills pre-ownership rows to this same user.
 
 /**
  * Ensures the single local user exists (local mode only) and returns it.
@@ -87,7 +109,7 @@ export async function ensureLocalUser(): Promise<Session["user"]> {
   const existing = await db
     .select()
     .from(user)
-    .where(eq(user.email, LOCAL_EMAIL))
+    .where(eq(user.email, LOCAL_USER_EMAIL))
     .limit(1);
 
   const found = existing[0];
@@ -104,8 +126,8 @@ export async function ensureLocalUser(): Promise<Session["user"]> {
   const created = await db
     .insert(user)
     .values({
-      name: LOCAL_NAME,
-      email: LOCAL_EMAIL,
+      name: LOCAL_USER_NAME,
+      email: LOCAL_USER_EMAIL,
       emailVerified: true,
       createdAt: now,
       updatedAt: now,

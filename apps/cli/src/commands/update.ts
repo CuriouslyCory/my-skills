@@ -1,4 +1,3 @@
-import { rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { Command } from "commander";
@@ -6,22 +5,21 @@ import chalk from "chalk";
 import ora from "ora";
 
 import type {
-  AgentId,
+  ArtifactCategory,
   Manifest,
   SkillEntry,
 } from "@curiouslycory/shared-types";
 
-import type { AdapterSkillEntry } from "../adapters/index.js";
 import type { ResolvedSkill } from "../core/skill-resolver.js";
 import { cloudSourceName, sourceToGitHub } from "../services/source-parser.js";
-import { getEnabledAdapters } from "../adapters/index.js";
 import {
   cloudDeployDir,
   createCloudClient,
+  entryDeployDir,
   fetchCloudArtifact,
   materializeCloudArtifact,
-  normalizeCategory,
 } from "../services/cloud-source.js";
+import { runAdapterInstalls } from "../core/adapter-runner.js";
 import { loadConfig } from "../core/config.js";
 import {
   addSkill,
@@ -29,41 +27,12 @@ import {
   loadManifest,
   saveManifest,
 } from "../core/manifest.js";
-import { installSkill } from "../core/skill-installer.js";
+import { replaceSkill } from "../core/skill-installer.js";
 import { resolveSkill } from "../core/skill-resolver.js";
 import { fetchRepo } from "../services/cache.js";
 
 interface UpdateOptions {
   global?: boolean;
-}
-
-/**
- * Run adapter.install() for each enabled agent, logging results.
- */
-async function runAdapterInstalls(
-  projectRoot: string,
-  agents: AgentId[],
-  skill: AdapterSkillEntry,
-): Promise<void> {
-  const adapters = getEnabledAdapters(agents);
-  const deployed: string[] = [];
-
-  for (const adapter of adapters) {
-    try {
-      await adapter.install(projectRoot, skill);
-      deployed.push(adapter.displayName);
-    } catch (err) {
-      console.warn(
-        chalk.yellow(
-          `  Warning: ${adapter.displayName} adapter failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-        ),
-      );
-    }
-  }
-
-  if (deployed.length > 0) {
-    console.log(chalk.cyan(`  Deployed to: ${deployed.join(", ")}`));
-  }
 }
 
 /**
@@ -84,9 +53,11 @@ async function updateSingleSkill(
   try {
     // Resolve the latest version + its install target per source type. Cloud
     // (`@me`) entries fetch from the personal library over the API and deploy to
-    // their category's DEPLOY_PATH_MAP target; github deploys to the skills dir.
+    // their (current, upstream) category's DEPLOY_PATH_MAP target; github
+    // deploys to the skills dir.
     let resolved: ResolvedSkill;
     let installTarget = targetDir;
+    let category: ArtifactCategory | undefined;
     let cleanup: (() => Promise<void>) | undefined;
 
     if (entry.sourceType === "github") {
@@ -103,10 +74,8 @@ async function updateSingleSkill(
       const materialized = await materializeCloudArtifact(artifact);
       resolved = materialized.resolved;
       cleanup = materialized.cleanup;
-      installTarget = cloudDeployDir(
-        projectRoot,
-        normalizeCategory(entry.category),
-      );
+      category = materialized.category;
+      installTarget = cloudDeployDir(projectRoot, category);
     } else {
       spinner.fail(
         `${skillName} - unsupported source type "${entry.sourceType}"`,
@@ -115,12 +84,24 @@ async function updateSingleSkill(
     }
 
     try {
-      // Remove old files and install the new version to compute its hash.
-      const destPath = join(installTarget, skillName);
-      await rm(destPath, { recursive: true, force: true });
-      const newHash = await installSkill(resolved, installTarget);
+      // Install the new version to compute its hash. The previous install
+      // (wherever the manifest says it lives) is set aside rather than deleted,
+      // so a failed install or manifest write restores it untouched.
+      const previousPath = join(
+        entryDeployDir(entry, projectRoot, targetDir),
+        skillName,
+      );
+      const replacement = await replaceSkill(
+        resolved,
+        installTarget,
+        previousPath,
+      );
+      const newHash = replacement.hash;
+      const categoryChanged =
+        category !== undefined && category !== entry.category;
 
-      if (newHash === entry.computedHash) {
+      if (newHash === entry.computedHash && !categoryChanged) {
+        await replacement.commit();
         spinner.succeed(`${chalk.bold(skillName)}: already up to date`);
         return { manifest, status: "up-to-date" };
       }
@@ -128,12 +109,20 @@ async function updateSingleSkill(
       // Update manifest entry
       const updatedEntry: SkillEntry = {
         ...entry,
+        ...(category ? { category } : {}),
         computedHash: newHash,
         installedAt: new Date().toISOString(),
       };
 
-      manifest = addSkill(manifest, skillName, updatedEntry);
-      await saveManifest(projectRoot, manifest);
+      const nextManifest = addSkill(manifest, skillName, updatedEntry);
+      try {
+        await saveManifest(projectRoot, nextManifest);
+      } catch (err) {
+        await replacement.rollback();
+        throw err;
+      }
+      await replacement.commit();
+      manifest = nextManifest;
 
       spinner.succeed(`${chalk.bold(skillName)}: updated`);
 

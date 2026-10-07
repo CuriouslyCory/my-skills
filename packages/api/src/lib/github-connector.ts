@@ -110,8 +110,36 @@ export async function resolveGithubConnection(
 /** Injectable Octokit factory so tests can supply a mock client. */
 export type OctokitFactory = (accessToken: string) => Octokit;
 
+/** Per-attempt deadline for a single GitHub HTTP request. */
+export const GITHUB_REQUEST_TIMEOUT_MS = 15_000;
+
+/**
+ * Wraps `fetch` so every call gets its own `AbortSignal.timeout`, combined with
+ * any caller-supplied signal. `@octokit/request` (v10, fetch-based) has no
+ * `timeout` option and only forwards `request.signal`, and a single shared
+ * signal would start its countdown at client creation and abort every later
+ * request once it fired. Wrapping `fetch` instead gives each attempt (including
+ * plugin-retry retries) a fresh deadline, so a stalled GitHub response surfaces
+ * as an error instead of hanging verifyConnection or publish.
+ */
+export function withRequestTimeout(
+  timeoutMs: number,
+  fetchImpl: typeof fetch = (input, init) => globalThis.fetch(input, init),
+): typeof fetch {
+  return (input, init) => {
+    const timeout = AbortSignal.timeout(timeoutMs);
+    const signal = init?.signal
+      ? AbortSignal.any([init.signal, timeout])
+      : timeout;
+    return fetchImpl(input, { ...init, signal });
+  };
+}
+
 const defaultOctokitFactory: OctokitFactory = (accessToken) =>
-  new Octokit({ auth: accessToken });
+  new Octokit({
+    auth: accessToken,
+    request: { fetch: withRequestTimeout(GITHUB_REQUEST_TIMEOUT_MS) },
+  });
 
 export interface GithubClientDeps {
   createOctokit?: OctokitFactory;

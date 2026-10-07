@@ -53,6 +53,9 @@ describe("token-auth primitives", () => {
     const { token } = generateToken();
     expect(extractBearerToken(`Bearer ${token}`)).toBe(token);
     expect(extractBearerToken(`bearer ${token}`)).toBe(token);
+    // The auth scheme is case-insensitive (RFC 7235) and whitespace is trimmed.
+    expect(extractBearerToken(`BEARER ${token}`)).toBe(token);
+    expect(extractBearerToken(`  Bearer   ${token}  `)).toBe(token);
     // Wrong scheme, wrong prefix, or absent -> null.
     expect(extractBearerToken(`Basic ${token}`)).toBeNull();
     expect(extractBearerToken("Bearer ghp_something")).toBeNull();

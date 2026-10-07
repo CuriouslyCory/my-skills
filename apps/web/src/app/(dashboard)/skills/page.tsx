@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { Suspense } from "react";
 
-import { scanAndSync } from "@curiouslycory/api";
+import { isLocalMode, scanAndSync } from "@curiouslycory/api";
 import { db } from "@curiouslycory/db/client";
 
 import { SkillList, SkillListSkeleton } from "~/app/_components/skill-list";
@@ -17,7 +17,7 @@ export default async function SkillsPage() {
   // (multi-user mode, signed out) we skip the sync; the scoped skill.list below
   // simply returns no rows.
   const session = await getSession();
-  if (env.DEPLOY_MODE === "local" && session) {
+  if (isLocalMode() && session) {
     await scanAndSync(repoPath, db, session.user.id);
   }
   prefetch(trpc.skill.list.queryOptions());

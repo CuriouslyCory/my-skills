@@ -109,8 +109,12 @@ async function addToGeminiMd(
   }
 
   const { before, managed, after } = parseSections(existing);
-  const trimmedManaged = managed.trimEnd();
-  const newManaged = trimmedManaged ? trimmedManaged + "\n" + ref : ref;
+  // Drop any existing reference for this skill so a re-install (e.g. every
+  // in-sync `ms apply`) replaces it instead of appending a duplicate.
+  const kept = managed
+    .split("\n")
+    .filter((line) => line.trim() && !line.includes(`**${skill.name}**`));
+  const newManaged = [...kept, ref].join("\n");
   await writeFileEnsureDir(
     filePath,
     before + MANAGED_START + "\n" + newManaged + "\n" + MANAGED_END + after,

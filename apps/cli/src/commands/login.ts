@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { hostname, platform } from "node:os";
@@ -26,6 +26,15 @@ export interface CallbackServer {
   waitForCallback: () => Promise<CallbackResult>;
   /** Tears down the server. Safe to call multiple times. */
   close: () => void;
+}
+
+/**
+ * Constant-time string equality. Compares fixed-length SHA-256 digests so
+ * `timingSafeEqual` never sees unequal lengths (mirrors the server's token-auth).
+ */
+function safeEqual(a: string, b: string): boolean {
+  const digest = (value: string) => createHash("sha256").update(value).digest();
+  return timingSafeEqual(digest(a), digest(b));
 }
 
 /**
@@ -60,7 +69,7 @@ export async function startCallbackServer(opts: {
       fail?.(new Error(`Authorization failed: ${error}`));
       return;
     }
-    if (state !== opts.state) {
+    if (state === null || !safeEqual(state, opts.state)) {
       respond(400, "Invalid authorization state. You can close this tab.");
       fail?.(new Error("Callback state mismatch; aborting for safety."));
       return;
@@ -121,15 +130,31 @@ export function buildAuthorizeUrl(opts: {
   return url.toString();
 }
 
-/** Opens a URL in the default browser without pulling in a dependency. */
+/**
+ * The command that opens `url` in the default browser on `os`. Never routes
+ * through a shell: on Windows `cmd /c start` re-parses `&` in the authorize
+ * URL's query string as a command separator (truncating the URL, and a CWE-78
+ * injection vector), so the URL goes to `rundll32 url.dll,FileProtocolHandler`
+ * as a single argv entry instead.
+ */
+export function browserOpenCommand(
+  url: string,
+  os: NodeJS.Platform = platform(),
+): { command: string; args: string[] } {
+  if (os === "darwin") return { command: "open", args: [url] };
+  if (os === "win32") {
+    return { command: "rundll32", args: ["url.dll,FileProtocolHandler", url] };
+  }
+  return { command: "xdg-open", args: [url] };
+}
+
+/** Opens an http(s) URL in the default browser without pulling in a dependency. */
 function openBrowser(url: string): void {
-  const command =
-    platform() === "darwin"
-      ? "open"
-      : platform() === "win32"
-        ? "cmd"
-        : "xdg-open";
-  const args = platform() === "win32" ? ["/c", "start", "", url] : [url];
+  // Only ever hand a web URL to the OS handler (never file:, custom schemes...).
+  const { protocol } = new URL(url);
+  if (protocol !== "http:" && protocol !== "https:") return;
+
+  const { command, args } = browserOpenCommand(url);
   try {
     const child = spawn(command, args, { stdio: "ignore", detached: true });
     child.on("error", () => {

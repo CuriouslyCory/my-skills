@@ -18,9 +18,11 @@ const { createTestCaller } = await import("../../test-utils");
 const {
   GithubConnectorError,
   assertGithubTokenValid,
+  createGithubClient,
   getAuthenticatedGithubClient,
   parseScopes,
   resolveGithubConnection,
+  withRequestTimeout,
 } = await import("../github-connector");
 
 /** Builds a fake Octokit whose `getAuthenticated` behaves as configured. */
@@ -182,5 +184,78 @@ describe("github-connector lib", () => {
         }),
       ).rejects.toMatchObject({ reason: "token_revoked" });
     });
+  });
+});
+
+describe("request timeout", () => {
+  /** A fetch that never settles on its own; it only rejects when aborted. */
+  function stalledFetch(): typeof fetch {
+    return (_input, init) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(init.signal?.reason as Error);
+        });
+      });
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("aborts a stalled request once the deadline passes", async () => {
+    const timedFetch = withRequestTimeout(20, stalledFetch());
+    await expect(
+      timedFetch("https://api.github.com/user"),
+    ).rejects.toMatchObject({ name: "TimeoutError" });
+  });
+
+  it("gives every request its own deadline instead of one shared signal", async () => {
+    const signals: AbortSignal[] = [];
+    const timedFetch = withRequestTimeout(20, (_input, init) => {
+      if (init?.signal) signals.push(init.signal);
+      return Promise.resolve(new Response("ok"));
+    });
+
+    await timedFetch("https://api.github.com/a");
+    // Outlive the first deadline; a shared signal would now be aborted.
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    await timedFetch("https://api.github.com/b");
+
+    expect(signals).toHaveLength(2);
+    expect(signals[0]).not.toBe(signals[1]);
+    expect(signals[1]?.aborted).toBe(false);
+  });
+
+  it("still honors a caller-supplied abort signal", async () => {
+    const timedFetch = withRequestTimeout(60_000, stalledFetch());
+    const controller = new AbortController();
+    const pending = timedFetch("https://api.github.com/user", {
+      signal: controller.signal,
+    });
+    controller.abort(new Error("caller cancelled"));
+    await expect(pending).rejects.toThrow("caller cancelled");
+  });
+
+  it("wires the timeout into the default Octokit client", async () => {
+    const seen: (AbortSignal | null | undefined)[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_input: unknown, init?: RequestInit) => {
+        seen.push(init?.signal);
+        return Promise.resolve(
+          new Response(JSON.stringify({ login: "octocat" }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        );
+      }),
+    );
+
+    const octokit = createGithubClient("tok-default");
+    await expect(assertGithubTokenValid(octokit)).resolves.toEqual({
+      login: "octocat",
+    });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBeInstanceOf(AbortSignal);
   });
 });

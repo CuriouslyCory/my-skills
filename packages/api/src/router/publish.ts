@@ -21,9 +21,11 @@ import {
   computeArtifactState,
   diffPublish,
   hashContent,
+  PublishVisibilityError,
+  publishTree,
   renderArtifactSkill,
   renderArtifacts,
-  publishTree,
+  skillFilePath,
 } from "../lib/publish";
 import { protectedProcedure } from "../trpc";
 
@@ -43,9 +45,14 @@ const VisibilitySchema = z.enum(["public", "private"]);
 /**
  * Maps a connector error to a distinct, actionable tRPC error (mirrors the github
  * router): missing connection/scope is FORBIDDEN (connect/grant), a revoked token
- * is UNAUTHORIZED (reconnect). Anything else is a generic 500.
+ * is UNAUTHORIZED (reconnect), and an existing repo whose visibility differs from
+ * the target is CONFLICT (fix it on GitHub or pick another repo). Anything else
+ * is a generic 500.
  */
 function toTRPCError(err: unknown): TRPCError {
+  if (err instanceof PublishVisibilityError) {
+    return new TRPCError({ code: "CONFLICT", message: err.message });
+  }
   if (err instanceof GithubConnectorError) {
     switch (err.reason) {
       case "not_connected":
@@ -91,6 +98,36 @@ function parseArtifactState(raw: string): ArtifactState {
     }
   } catch {
     // fall through to empty
+  }
+  return {};
+}
+
+/**
+ * The publication-state columns to clear when `configure` changes the
+ * destination. The stored publication (owner, commit, per-artifact hashes)
+ * describes the old destination:
+ * - A different repo starts from nothing, so all of it is dropped; otherwise
+ *   `run` would see "unchanged" and never publish there. GitHub repo names are
+ *   case-insensitive, so a case-only edit is the same repo.
+ * - A visibility change keeps the per-artifact hashes (the content is still in
+ *   that repo and they mark which paths this service manages) but clears the
+ *   commit, so the next `run` re-checks the repo on GitHub instead of
+ *   short-circuiting as "unchanged".
+ */
+function publicationResetFor(
+  existing: { repoName: string; visibility: string },
+  next: { repoName: string; visibility: string },
+) {
+  if (existing.repoName.toLowerCase() !== next.repoName.toLowerCase()) {
+    return {
+      repoOwner: null,
+      lastCommitSha: null,
+      lastPublishedAt: null,
+      artifactState: "{}",
+    };
+  }
+  if (existing.visibility !== next.visibility) {
+    return { lastCommitSha: null };
   }
   return {};
 }
@@ -235,6 +272,7 @@ export function createPublishRouter(deps: PublishRouterDeps = {}) {
               repoName: input.repoName,
               visibility: input.visibility,
               selection: selectionJson,
+              ...publicationResetFor(existing, input),
             })
             .where(eq(publishTargets.userId, userId));
         } else {
@@ -255,9 +293,11 @@ export function createPublishRouter(deps: PublishRouterDeps = {}) {
 
     /**
      * Renders the selected artifacts and publishes them to GitHub. Idempotent: if
-     * the desired content matches the last publish, it makes NO commit and returns
-     * `committed: false`. Otherwise it creates the repo if missing and commits the
-     * full tree via the Git Data API, then records the new state.
+     * the desired content matches the last publish to this destination, it makes
+     * NO commit and returns `committed: false`. Otherwise it creates the repo if
+     * missing (or verifies an existing repo's visibility), commits the selected
+     * files on top of the repo's existing tree, removing only de-selected
+     * artifacts it previously published, then records the new state.
      */
     run: protectedProcedure.mutation(async ({ ctx }) => {
       const userId = ctx.session.user.id;
@@ -315,6 +355,10 @@ export function createPublishRouter(deps: PublishRouterDeps = {}) {
 
       const files = renderArtifacts(artifacts);
       const message = buildCommitMessage(diff);
+      // Only paths this service published into this same owner's repo are ours
+      // to delete; everything else in the repo is left untouched.
+      const removePaths =
+        target.repoOwner === login ? diff.removed.map(skillFilePath) : [];
 
       let result;
       try {
@@ -323,6 +367,7 @@ export function createPublishRouter(deps: PublishRouterDeps = {}) {
           repo: target.repoName,
           isPrivate: target.visibility === "private",
           files,
+          removePaths,
           message,
         });
       } catch (err) {
@@ -340,11 +385,13 @@ export function createPublishRouter(deps: PublishRouterDeps = {}) {
         .where(eq(publishTargets.userId, userId));
 
       return {
-        committed: true,
-        unchanged: false,
+        committed: result.committed,
+        unchanged: !result.committed,
         url: result.htmlUrl,
         commitSha: result.commitSha,
-        summary: message,
+        summary: result.committed
+          ? message
+          : "Already up to date; nothing to publish.",
       };
     }),
   } satisfies TRPCRouterRecord;

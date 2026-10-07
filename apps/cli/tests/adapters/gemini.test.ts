@@ -105,6 +105,16 @@ describe("GeminiAdapter", () => {
       await access(tomlFile("first"));
       await access(tomlFile("second"));
     });
+
+    it("replaces (not duplicates) a skill's reference on re-install", async () => {
+      await adapter.install(projectRoot, makeSkill("first"));
+      await adapter.install(projectRoot, makeSkill("again"));
+      await adapter.install(projectRoot, makeSkill("again"));
+
+      const content = await readFile(geminiMd(), "utf-8");
+      expect(content.match(/\*\*again\*\*/g)).toHaveLength(1);
+      expect(content).toContain("**first**");
+    });
   });
 
   describe("remove", () => {

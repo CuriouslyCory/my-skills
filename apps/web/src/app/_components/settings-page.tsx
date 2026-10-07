@@ -64,9 +64,7 @@ export function SettingsContent() {
 function ConnectorsSection() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const { data: status } = useSuspenseQuery(
-    trpc.github.status.queryOptions(),
-  );
+  const { data: status } = useSuspenseQuery(trpc.github.status.queryOptions());
 
   const [connecting, setConnecting] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
@@ -210,14 +208,17 @@ const PUBLISH_STATE_LABEL: Record<string, string> = {
   excluded: "Excluded",
 };
 
-function formatDateTime(value: Date | null | undefined): string {
+/** Formats a timestamp for display (`Never` when unset), optionally with time. */
+function formatDate(
+  value: Date | null | undefined,
+  { withTime = false }: { withTime?: boolean } = {},
+): string {
   if (!value) return "Never";
   return new Date(value).toLocaleString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    ...(withTime && { hour: "2-digit", minute: "2-digit" }),
   });
 }
 
@@ -225,6 +226,9 @@ function PublishSection() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const { data: status } = useSuspenseQuery(trpc.publish.status.queryOptions());
+  // Same query as ConnectorsSection (deduped by React Query), so connecting or
+  // disconnecting GitHub above updates the Publish button here.
+  const { data: github } = useSuspenseQuery(trpc.github.status.queryOptions());
 
   const [repoName, setRepoName] = useState(status.repoName ?? "");
   const [visibility, setVisibility] = useState<"public" | "private">(
@@ -301,6 +305,7 @@ function PublishSection() {
   };
 
   const canPublish =
+    github.connected &&
     repoName.trim().length > 0 &&
     selected.size > 0 &&
     !runMutation.isPending &&
@@ -313,8 +318,8 @@ function PublishSection() {
         <CardDescription>
           Publish your selected skills to a GitHub repository in the
           agentskills.io layout, so anyone can install them with{" "}
-          <code className="font-mono text-xs">ms add owner/repo</code>. Requires a
-          connected GitHub account with repo access (see Connectors above).
+          <code className="font-mono text-xs">ms add owner/repo</code>. Requires
+          a connected GitHub account with repo access (see Connectors above).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -354,7 +359,8 @@ function PublishSection() {
           <Label>Artifacts to include</Label>
           {status.artifacts.length === 0 ? (
             <p className="text-muted-foreground text-sm">
-              Your library is empty. Create skills first, then publish them here.
+              Your library is empty. Create skills first, then publish them
+              here.
             </p>
           ) : (
             <div className="divide-y rounded-md border">
@@ -391,7 +397,7 @@ function PublishSection() {
         <div className="bg-muted/50 space-y-1 rounded-md border p-4 text-sm">
           <p>
             <span className="text-muted-foreground">Last published:</span>{" "}
-            {formatDateTime(status.lastPublishedAt)}
+            {formatDate(status.lastPublishedAt, { withTime: true })}
           </p>
           {status.lastCommitSha && (
             <p className="text-muted-foreground font-mono text-xs">
@@ -428,19 +434,15 @@ function PublishSection() {
           >
             {runMutation.isPending ? "Publishing..." : "Publish"}
           </Button>
+          {!github.connected && (
+            <p className="text-muted-foreground text-sm">
+              Connect GitHub above to publish.
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
   );
-}
-
-function formatDate(value: Date | null | undefined): string {
-  if (!value) return "Never";
-  return new Date(value).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 }
 
 function TokensSection() {
@@ -506,8 +508,8 @@ function TokensSection() {
       <CardHeader>
         <CardTitle>API Tokens</CardTitle>
         <CardDescription>
-          Personal access tokens let the CLI and CI act on your behalf. A token is
-          shown in full only once, right after you create it.
+          Personal access tokens let the CLI and CI act on your behalf. A token
+          is shown in full only once, right after you create it.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -594,9 +596,9 @@ function TokensSection() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Revoke token</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Revoking &quot;{token.name}&quot; immediately stops it from
-                        authenticating. Any CLI or CI using it will need a new
-                        token.
+                        Revoking &quot;{token.name}&quot; immediately stops it
+                        from authenticating. Any CLI or CI using it will need a
+                        new token.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

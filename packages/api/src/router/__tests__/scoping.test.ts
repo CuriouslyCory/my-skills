@@ -22,6 +22,7 @@ vi.mock("../../lib/config-sync", () => ({
 
 // Import after mocks are set up
 const { createTestCaller } = await import("../../test-utils");
+const { appRouter } = await import("../../root");
 
 /**
  * Per-user scoping (#21): two users share one deployment. Every router read must
@@ -246,6 +247,59 @@ describe("per-user data scoping", () => {
       // Empty-query (recent) path is scoped too.
       const aRecent = await userA.search.query({});
       expect(aRecent.map((h) => h.name)).toEqual(["alpha-widget"]);
+    });
+  });
+
+  describe("anonymous callers", () => {
+    /**
+     * The only procedures reachable without a session. `/api/trpc` is public in
+     * the web middleware, so anything else that skips `protectedProcedure` (like
+     * the removed legacy `post.all`) would expose users' private library rows.
+     * The git queries read the local checkout and are local-mode only.
+     */
+    const PUBLIC_PROCEDURES = new Set([
+      "auth.getSession",
+      "git.status",
+      "git.log",
+      "git.diff",
+      "git.branches",
+    ]);
+
+    it("rejects every other procedure with UNAUTHORIZED", async () => {
+      const ctx = await createTestCaller();
+      try {
+        await ctx.callerFor({ id: "user-a" }).skill.create({
+          name: "private-skill",
+          description: "private",
+          content: "secret content",
+        });
+        const anonymous = appRouter.createCaller({
+          session: null,
+          db: ctx.db,
+          repoPath: ctx.repoPath,
+        });
+
+        const paths = Object.keys(appRouter._def.procedures).filter(
+          (path) => !PUBLIC_PROCEDURES.has(path),
+        );
+        expect(paths.length).toBeGreaterThan(0);
+        // In parallel: the timing middleware adds an artificial delay per call.
+        await Promise.all(
+          paths.map((path) => {
+            let target: unknown = anonymous;
+            for (const segment of path.split(".")) {
+              target = (target as Record<string, unknown>)[segment];
+            }
+            return expect(
+              (target as () => Promise<unknown>)(),
+              path,
+            ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+          }),
+        );
+      } finally {
+        ctx.rawDb.close();
+        await rm(ctx.repoPath, { recursive: true, force: true });
+      }
     });
   });
 

@@ -292,6 +292,12 @@ pnpm --filter @curiouslycory/db migrate:pg     # apply committed migrations
 pnpm --filter @curiouslycory/db push:pg
 ```
 
+Upgrading a database created before per-user ownership is safe in both dialects.
+On SQLite, `pnpm db:push` first runs `migrate:sqlite`, which assigns every existing
+skill, favorite, composition, and config row to the local user
+(`local@my-skills.local`) before the schema push. On Postgres, migration `0002`
+backfills existing rows to the same local user before enforcing `NOT NULL`.
+
 ### Running the CLI locally
 
 ```sh

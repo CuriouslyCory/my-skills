@@ -16,13 +16,23 @@ import {
  * - Local single-user mode (no OAuth env): returns the auto-provisioned local
  *   user without any sign-in, preserving the existing self-hosted workflow.
  * - Multi-user mode: resolves the better-auth session from the request cookies.
+ *   A transient auth/DB failure is logged and treated as signed-out (`null`)
+ *   rather than crashing every page render that resolves the session.
  */
 export const getSession = cache(async (): Promise<Session | null> => {
   if (!isMultiUserAuthEnabled()) {
     return getLocalSession();
   }
 
-  const result = await auth.api.getSession({ headers: await headers() });
+  // Read outside the try: `headers()` signals dynamic rendering by throwing,
+  // and Next.js needs that to propagate.
+  const requestHeaders = await headers();
+  const result = await auth.api
+    .getSession({ headers: requestHeaders })
+    .catch((error: unknown) => {
+      console.error("getSession: failed to resolve the auth session", error);
+      return null;
+    });
   if (!result) return null;
 
   return {

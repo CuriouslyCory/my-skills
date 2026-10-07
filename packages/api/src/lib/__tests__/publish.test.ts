@@ -12,6 +12,7 @@ import {
   computeArtifactState,
   diffPublish,
   hashContent,
+  PublishVisibilityError,
   publishTree,
   renderArtifactSkill,
   renderArtifacts,
@@ -143,21 +144,39 @@ interface RecordedCalls {
   treePaths: string[];
   treeModes: string[];
   treeTypes: string[];
+  treeShas: (string | null)[];
+  baseTree: string | undefined;
   commitParents: string[];
   commitTree: string;
   updateRef: { ref: string; sha: string } | null;
 }
 
+interface FakeTreeEntry {
+  path: string;
+  type: "blob" | "tree";
+  sha: string;
+}
+
 /** A fake octokit that records Git Data API calls for assertions. */
-function makeFakeOctokit(opts: { repoExists: boolean }) {
+function makeFakeOctokit(opts: {
+  repoExists: boolean;
+  visibility?: "public" | "private" | "internal";
+  /** Tree listings by SHA; `base-tree-sha` is the head commit's root tree. */
+  trees?: Record<string, FakeTreeEntry[]>;
+  /** SHA createTree returns; defaults to a tree distinct from the base. */
+  createdTreeSha?: string;
+}) {
   const recorded: RecordedCalls = {
     treePaths: [],
     treeModes: [],
     treeTypes: [],
+    treeShas: [],
+    baseTree: undefined,
     commitParents: [],
     commitTree: "",
     updateRef: null,
   };
+  const visibility = opts.visibility ?? "public";
   const repos = {
     get: vi.fn(() =>
       opts.repoExists
@@ -165,6 +184,8 @@ function makeFakeOctokit(opts: { repoExists: boolean }) {
             data: {
               default_branch: "main",
               html_url: "https://github.com/octocat/my-skills",
+              private: visibility !== "public",
+              visibility,
             },
           })
         : Promise.reject(
@@ -184,17 +205,33 @@ function makeFakeOctokit(opts: { repoExists: boolean }) {
     getRef: vi.fn(() =>
       Promise.resolve({ data: { object: { sha: "base-sha" } } }),
     ),
+    getCommit: vi.fn(() =>
+      Promise.resolve({ data: { tree: { sha: "base-tree-sha" } } }),
+    ),
+    getTree: vi.fn(({ tree_sha }: { tree_sha: string }) =>
+      Promise.resolve({ data: { tree: opts.trees?.[tree_sha] ?? [] } }),
+    ),
     createBlob: vi.fn(({ content }: { content: string }) =>
       Promise.resolve({ data: { sha: `blob-${hashContent(content).slice(0, 8)}` } }),
     ),
     createTree: vi.fn(
       (args: {
-        tree: { path: string; mode: string; type: string }[];
+        base_tree?: string;
+        tree: {
+          path: string;
+          mode: string;
+          type: string;
+          sha: string | null;
+        }[];
       }) => {
+        recorded.baseTree = args.base_tree;
         recorded.treePaths = args.tree.map((t) => t.path);
         recorded.treeModes = args.tree.map((t) => t.mode);
         recorded.treeTypes = args.tree.map((t) => t.type);
-        return Promise.resolve({ data: { sha: "tree-sha" } });
+        recorded.treeShas = args.tree.map((t) => t.sha);
+        return Promise.resolve({
+          data: { sha: opts.createdTreeSha ?? "tree-sha" },
+        });
       },
     ),
     createCommit: vi.fn((args: { parents: string[]; tree: string }) => {
@@ -254,11 +291,15 @@ describe("publishTree (Git Data API flow)", () => {
       commitSha: "commit-sha",
       branch: "main",
       htmlUrl: "https://github.com/octocat/my-skills",
+      committed: true,
     });
   });
 
   it("does not create the repo when it already exists", async () => {
-    const { octokit, repos, git } = makeFakeOctokit({ repoExists: true });
+    const { octokit, repos, git } = makeFakeOctokit({
+      repoExists: true,
+      visibility: "private",
+    });
     await publishTree(octokit, {
       owner: "octocat",
       repo: "my-skills",
@@ -268,5 +309,144 @@ describe("publishTree (Git Data API flow)", () => {
     });
     expect(repos.createForAuthenticatedUser).not.toHaveBeenCalled();
     expect(git.createCommit).toHaveBeenCalledTimes(1);
+  });
+
+  it("layers the commit on the head's tree so unrelated files survive", async () => {
+    const { octokit, git, recorded } = makeFakeOctokit({
+      repoExists: true,
+      trees: {
+        "base-tree-sha": [
+          { path: "README.md", type: "blob", sha: "readme-blob" },
+          { path: "LICENSE", type: "blob", sha: "license-blob" },
+          { path: "src", type: "tree", sha: "src-tree" },
+        ],
+      },
+    });
+
+    await publishTree(octokit, {
+      owner: "octocat",
+      repo: "my-skills",
+      isPrivate: false,
+      files,
+      message: "Publish 2 skills",
+    });
+
+    expect(git.getCommit).toHaveBeenCalledWith(
+      expect.objectContaining({ commit_sha: "base-sha" }),
+    );
+    expect(recorded.baseTree).toBe("base-tree-sha");
+    // Only the selected files are written; nothing else is touched or deleted.
+    expect([...recorded.treePaths].sort()).toEqual([
+      "code-review/SKILL.md",
+      "commit-writer/SKILL.md",
+    ]);
+    expect(recorded.treeShas).not.toContain(null);
+    // No removals requested -> no tree listing calls at all.
+    expect(git.getTree).not.toHaveBeenCalled();
+  });
+
+  it("deletes only previously published paths that still exist", async () => {
+    const { octokit, recorded } = makeFakeOctokit({
+      repoExists: true,
+      trees: {
+        "base-tree-sha": [
+          { path: "README.md", type: "blob", sha: "readme-blob" },
+          { path: "old-skill", type: "tree", sha: "old-skill-tree" },
+          { path: "code-review", type: "tree", sha: "code-review-tree" },
+        ],
+        "old-skill-tree": [
+          { path: "SKILL.md", type: "blob", sha: "old-skill-blob" },
+          { path: "notes.md", type: "blob", sha: "notes-blob" },
+        ],
+      },
+    });
+
+    await publishTree(octokit, {
+      owner: "octocat",
+      repo: "my-skills",
+      isPrivate: false,
+      files,
+      // `gone-skill` was removed by hand on GitHub; deleting it would 422.
+      removePaths: ["old-skill/SKILL.md", "gone-skill/SKILL.md"],
+      message: "Publish 2 skills",
+    });
+
+    const deleted = recorded.treePaths.filter(
+      (_path, index) => recorded.treeShas[index] === null,
+    );
+    expect(deleted).toEqual(["old-skill/SKILL.md"]);
+    // A user's extra file next to the managed SKILL.md is not ours to delete.
+    expect(recorded.treePaths).not.toContain("old-skill/notes.md");
+    expect(recorded.treePaths).not.toContain("README.md");
+  });
+
+  it("never deletes a path it is writing in the same commit", async () => {
+    const { octokit, git, recorded } = makeFakeOctokit({ repoExists: true });
+
+    await publishTree(octokit, {
+      owner: "octocat",
+      repo: "my-skills",
+      isPrivate: false,
+      files,
+      removePaths: ["code-review/SKILL.md"],
+      message: "Publish 2 skills",
+    });
+
+    expect(recorded.treeShas).not.toContain(null);
+    expect(git.getTree).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { actual: "public", isPrivate: true },
+    { actual: "private", isPrivate: false },
+    { actual: "internal", isPrivate: true },
+  ] as const)(
+    "refuses an existing $actual repo when isPrivate=$isPrivate, before uploading anything",
+    async ({ actual, isPrivate }) => {
+      const { octokit, repos, git } = makeFakeOctokit({
+        repoExists: true,
+        visibility: actual,
+      });
+
+      await expect(
+        publishTree(octokit, {
+          owner: "octocat",
+          repo: "my-skills",
+          isPrivate,
+          files,
+          message: "Publish 2 skills",
+        }),
+      ).rejects.toBeInstanceOf(PublishVisibilityError);
+
+      expect(repos.createForAuthenticatedUser).not.toHaveBeenCalled();
+      expect(git.createBlob).not.toHaveBeenCalled();
+      expect(git.createTree).not.toHaveBeenCalled();
+      expect(git.createCommit).not.toHaveBeenCalled();
+      expect(git.updateRef).not.toHaveBeenCalled();
+    },
+  );
+
+  it("makes no commit when the resulting tree equals the head's tree", async () => {
+    const { octokit, git } = makeFakeOctokit({
+      repoExists: true,
+      createdTreeSha: "base-tree-sha",
+    });
+
+    const result = await publishTree(octokit, {
+      owner: "octocat",
+      repo: "my-skills",
+      isPrivate: false,
+      files,
+      message: "Publish 2 skills",
+    });
+
+    expect(result).toEqual({
+      commitSha: "base-sha",
+      branch: "main",
+      htmlUrl: "https://github.com/octocat/my-skills",
+      committed: false,
+    });
+    expect(git.createCommit).not.toHaveBeenCalled();
+    expect(git.updateRef).not.toHaveBeenCalled();
   });
 });

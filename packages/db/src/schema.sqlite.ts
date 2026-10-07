@@ -40,19 +40,25 @@ export const skills = sqliteTable(
   ],
 );
 
-export const variations = sqliteTable("variations", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  name: text("name").notNull(),
-  description: text("description"),
-  tags: text("tags"),
-  content: text("content").notNull(),
-  filePath: text("file_path"),
-  skillId: text("skill_id")
-    .notNull()
-    .references(() => skills.id, { onDelete: "cascade" }),
-});
+export const variations = sqliteTable(
+  "variations",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    description: text("description"),
+    tags: text("tags"),
+    content: text("content").notNull(),
+    filePath: text("file_path"),
+    skillId: text("skill_id")
+      .notNull()
+      .references(() => skills.id, { onDelete: "cascade" }),
+  },
+  // SQLite does not index foreign-key child columns automatically; this backs
+  // the per-skill lookups and the `ON DELETE CASCADE` scan from `skills`.
+  (table) => [index("variations_skill_id_idx").on(table.skillId)],
+);
 
 export const favorites = sqliteTable(
   "favorites",
@@ -75,25 +81,31 @@ export const favorites = sqliteTable(
   (table) => [unique().on(table.userId, table.repoUrl, table.skillName)],
 );
 
-export const compositions = sqliteTable("compositions", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  description: text("description"),
-  fragments: text("fragments").notNull().default("[]"),
-  order: text("order").notNull().default("[]"),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`)
-    .$onUpdateFn(() => new Date()),
-});
+export const compositions = sqliteTable(
+  "compositions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    fragments: text("fragments").notNull().default("[]"),
+    order: text("order").notNull().default("[]"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`)
+      .$onUpdateFn(() => new Date()),
+  },
+  // Every composition query is scoped by owner; unlike the other owned tables
+  // there is no composite unique constraint leading with `user_id` to serve it.
+  (table) => [index("compositions_user_id_idx").on(table.userId)],
+);
 
 export const config = sqliteTable(
   "config",
