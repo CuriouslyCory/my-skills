@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import type { RouterOutputs } from "@curiouslycory/api";
@@ -7,14 +8,18 @@ import { cn } from "@curiouslycory/ui";
 
 import { useTRPC } from "~/trpc/react";
 
-export function PostList() {
-  const trpc = useTRPC();
-  const { data: posts } = useSuspenseQuery(trpc.post.all.queryOptions());
+const RECENT_SKILL_LIMIT = 10;
 
-  if (posts.length === 0) {
+export function RecentSkillList() {
+  const trpc = useTRPC();
+  // `skill.list` is scoped to the signed-in user and ordered newest first.
+  const { data: skills } = useSuspenseQuery(trpc.skill.list.queryOptions());
+  const recent = skills.slice(0, RECENT_SKILL_LIMIT);
+
+  if (recent.length === 0) {
     return (
       <div className="relative flex w-full flex-col gap-4">
-        <PostCardSkeleton pulse={false} />
+        <SkillCardSkeleton pulse={false} />
 
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/10">
           <p className="text-2xl font-bold text-white">No skills yet</p>
@@ -25,27 +30,30 @@ export function PostList() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      {posts.map((p) => {
-        return <PostCard key={p.id} post={p} />;
+      {recent.map((skill) => {
+        return <SkillCard key={skill.id} skill={skill} />;
       })}
     </div>
   );
 }
 
-export function PostCard(props: {
-  post: RouterOutputs["post"]["all"][number];
+export function SkillCard(props: {
+  skill: RouterOutputs["skill"]["list"][number];
 }) {
   return (
-    <div className="bg-muted flex flex-row rounded-lg p-4">
+    <Link
+      href={`/skills/${props.skill.id}`}
+      className="bg-muted hover:bg-muted/80 flex flex-row rounded-lg p-4"
+    >
       <div className="grow">
-        <h2 className="text-primary text-2xl font-bold">{props.post.name}</h2>
-        <p className="mt-2 text-sm">{props.post.description}</p>
+        <h2 className="text-primary text-2xl font-bold">{props.skill.name}</h2>
+        <p className="mt-2 text-sm">{props.skill.description}</p>
       </div>
-    </div>
+    </Link>
   );
 }
 
-export function PostCardSkeleton(props: { pulse?: boolean }) {
+export function SkillCardSkeleton(props: { pulse?: boolean }) {
   const { pulse = true } = props;
   return (
     <div className="bg-muted flex flex-row rounded-lg p-4">

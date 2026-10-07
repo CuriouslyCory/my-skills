@@ -9,6 +9,9 @@ import { HydrateClient, prefetch, trpc } from "~/trpc/server";
 export default function SettingsPage() {
   prefetch(trpc.config.getAll.queryOptions());
   prefetch(trpc.favorite.list.queryOptions());
+  prefetch(trpc.github.status.queryOptions());
+  prefetch(trpc.publish.status.queryOptions());
+  prefetch(trpc.token.list.queryOptions());
 
   return (
     <HydrateClient>

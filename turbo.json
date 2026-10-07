@@ -52,12 +52,21 @@
   "globalEnv": [
     "DB_DIALECT",
     "DB_PATH",
+    "POSTGRES_URL",
+    "DEPLOY_MODE",
     "AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
     "PORT",
     "ADMIN_USER",
     "ADMIN_PASSWORD",
     "MY_SKILLS_CACHE_DIR",
-    "MY_SKILLS_SKILLS_DIR"
+    "MY_SKILLS_SKILLS_DIR",
+    "MY_SKILLS_SERVER_URL",
+    "MY_SKILLS_TOKEN",
+    "MY_SKILLS_SKIP",
+    "MY_SKILLS_CI"
   ],
   "globalPassThroughEnv": [
     "NODE_ENV",
@@ -65,6 +74,7 @@
     "VERCEL",
     "VERCEL_ENV",
     "VERCEL_URL",
-    "npm_lifecycle_event"
+    "npm_lifecycle_event",
+    "INIT_CWD"
   ]
 }

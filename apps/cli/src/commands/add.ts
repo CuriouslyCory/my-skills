@@ -13,11 +13,12 @@ import type {
 } from "@curiouslycory/shared-types";
 import { AgentIdSchema } from "@curiouslycory/shared-types";
 
-import type { AdapterSkillEntry } from "../adapters/index.js";
 import type { GitHubSource } from "../services/source-parser.js";
 import { sourceToGitHub } from "../services/source-parser.js";
-import { getEnabledAdapters, resolveAgents } from "../adapters/index.js";
-import { loadConfig, saveConfig } from "../core/config.js";
+import { resolveAgents } from "../adapters/index.js";
+import { runAdapterInstalls } from "../core/adapter-runner.js";
+import { loadConfig } from "../core/config.js";
+import { addRepoFavorite } from "../core/favorites.js";
 import {
   addSkill,
   getSkill,
@@ -27,10 +28,11 @@ import {
 import { migrateFromSkillsLock } from "../core/migration.js";
 import { computeSkillHash } from "../core/skill-hasher.js";
 import { installSkill } from "../core/skill-installer.js";
-import { resolveSkill } from "../core/skill-resolver.js";
+import { loadSkillDir, resolveSkill } from "../core/skill-resolver.js";
 import type { DiscoveredSkill } from "../services/cache.js";
 import { discoverSkills, fetchRepo } from "../services/cache.js";
 import { parseSource } from "../services/source-parser.js";
+import { addFromCloud } from "./add-cloud.js";
 
 interface AddOptions {
   skill?: string;
@@ -117,13 +119,13 @@ export async function restoreFromManifest(
       try {
         const localHash = await computeSkillHash(destPath);
         if (localHash === entry.computedHash) {
-          // Skill files are up to date, but still ensure symlinks exist
+          // Skill files are up to date, but still ensure symlinks exist. Feed
+          // adapters the installed skill's real content so content-writing
+          // adapters (Codex, Copilot, Gemini) don't blank its instructions.
+          const installed = await loadSkillDir(destPath);
           await runAdapterInstalls(projectRoot, entry.agents ?? agents, {
+            ...installed,
             name: skillName,
-            sourcePath: destPath,
-            frontmatter: { name: skillName, description: "" },
-            content: "",
-            files: [],
           });
           console.log(
             chalk.dim(`  ${skillName} - already up to date (${entry.source})`),
@@ -174,36 +176,6 @@ export async function restoreFromManifest(
   if (upToDate > 0) parts.push(chalk.dim(`${upToDate} already up-to-date`));
   if (failed > 0) parts.push(chalk.red(`${failed} failed`));
   console.log(`Summary: ${parts.join(", ")}`);
-}
-
-/**
- * Run adapter.install() for each enabled agent, logging results.
- * Adapter failures are warnings and don't fail the overall command.
- */
-async function runAdapterInstalls(
-  projectRoot: string,
-  agents: AgentId[],
-  skill: AdapterSkillEntry,
-): Promise<void> {
-  const adapters = getEnabledAdapters(agents);
-  const deployed: string[] = [];
-
-  for (const adapter of adapters) {
-    try {
-      await adapter.install(projectRoot, skill);
-      deployed.push(adapter.displayName);
-    } catch (err) {
-      console.warn(
-        chalk.yellow(
-          `  Warning: ${adapter.displayName} adapter failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-        ),
-      );
-    }
-  }
-
-  if (deployed.length > 0) {
-    console.log(chalk.cyan(`  Deployed to: ${deployed.join(", ")}`));
-  }
 }
 
 /**
@@ -360,6 +332,14 @@ export function registerAddCommand(program: Command): void {
       };
 
       const parsed = parseSource(source);
+
+      // Personal cloud library (`@me` / `@me/<name>`): install from the user's
+      // library over the API. Self-contained; does not touch the github/favorite
+      // paths below.
+      if (parsed.type === "cloud") {
+        await addFromCloud(parsed, opts, projectRoot, manifest, agents);
+        return;
+      }
 
       if (parsed.type === "local") {
         console.log(
@@ -532,15 +512,11 @@ export function registerAddCommand(program: Command): void {
         );
       }
 
-      // Add repo to favorites if --favorite flag is present
-      if (opts.favorite && !config.favoriteRepos.includes(githubSource.url)) {
-        config.favoriteRepos.push(githubSource.url);
-        await saveConfig(config);
-        console.log(
-          chalk.yellow(
-            `★ Added ${githubSource.owner}/${githubSource.repo} to favorites`,
-          ),
-        );
+      // Add repo to favorites if --favorite flag is present. Resolves the same
+      // source `ms fav` uses: the account when authenticated, local config
+      // otherwise.
+      if (opts.favorite) {
+        await addRepoFavorite(githubSource, config);
       }
     });
 }

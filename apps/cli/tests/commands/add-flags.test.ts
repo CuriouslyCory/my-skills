@@ -46,6 +46,7 @@ const {
       skillsDir: ".agents/skills",
       autoDetectAgents: true,
       symlinkBehavior: "copy",
+      serverUrl: "https://my-skills.dev",
     }),
     mockSaveConfig: vi.fn<[], Promise<void>>().mockResolvedValue(undefined),
     mockLoadManifest: vi.fn().mockResolvedValue(null),
@@ -181,6 +182,7 @@ describe("add command — flag tests", () => {
       skillsDir: ".agents/skills",
       autoDetectAgents: true,
       symlinkBehavior: "copy",
+      serverUrl: "https://my-skills.dev",
     });
     mockSaveConfig.mockResolvedValue(undefined);
   });
@@ -322,6 +324,7 @@ describe("add command — flag tests", () => {
         skillsDir: ".agents/skills",
         autoDetectAgents: true,
         symlinkBehavior: "copy",
+        serverUrl: "https://my-skills.dev",
       });
       mockResolveSkill.mockResolvedValue(makeResolvedSkill("test-skill"));
       mockInstallSkill.mockResolvedValue("hash");

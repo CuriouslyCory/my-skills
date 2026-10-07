@@ -15,6 +15,7 @@ const DEFAULT_CONFIG: Config = {
   skillsDir: ".agents/skills",
   autoDetectAgents: true,
   symlinkBehavior: "copy",
+  serverUrl: "https://my-skills.dev",
 };
 
 export async function loadConfig(): Promise<Config> {
@@ -36,6 +37,19 @@ export async function loadConfig(): Promise<Config> {
   }
   if (process.env.MY_SKILLS_SKILLS_DIR) {
     config.skillsDir = process.env.MY_SKILLS_SKILLS_DIR;
+  }
+  // Trimmed to match resolveServerUrl's reading of the same variable.
+  const envServerUrl = process.env.MY_SKILLS_SERVER_URL?.trim();
+  if (envServerUrl) {
+    // Validate with the same schema rule as the config file so a bad override
+    // fails fast here instead of surfacing later as an opaque request error.
+    const serverUrl = ConfigSchema.shape.serverUrl.safeParse(envServerUrl);
+    if (!serverUrl.success) {
+      throw new Error(
+        `Invalid MY_SKILLS_SERVER_URL "${envServerUrl}": expected an absolute URL such as https://my-skills.dev`,
+      );
+    }
+    config.serverUrl = serverUrl.data;
   }
 
   return config;

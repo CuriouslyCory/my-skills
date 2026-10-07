@@ -1,17 +1,19 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
 
-import { desc, eq, inArray } from "@curiouslycory/db";
+import { and, desc, eq, inArray } from "@curiouslycory/db";
 import { compositions, skills } from "@curiouslycory/db/schema";
 
 import { mergeFragments } from "../lib/merge";
-import { protectedProcedure, publicProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 
 export const compositionRouter = {
-  list: publicProcedure.query(async ({ ctx }) => {
+  list: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
     const rows = await ctx.db
       .select()
       .from(compositions)
+      .where(eq(compositions.userId, userId))
       .orderBy(desc(compositions.updatedAt));
 
     // Check for outdated compositions by comparing fragment updatedAt vs composition updatedAt
@@ -23,7 +25,9 @@ export const compositionRouter = {
           const fragments = await ctx.db
             .select({ updatedAt: skills.updatedAt })
             .from(skills)
-            .where(inArray(skills.id, fragmentIds));
+            .where(
+              and(inArray(skills.id, fragmentIds), eq(skills.userId, userId)),
+            );
 
           outdated = fragments.some((f) => f.updatedAt > comp.updatedAt);
         }
@@ -34,11 +38,15 @@ export const compositionRouter = {
     return results;
   }),
 
-  byId: publicProcedure
+  byId: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const composition = await ctx.db.query.compositions.findFirst({
-        where: eq(compositions.id, input.id),
+        where: and(
+          eq(compositions.id, input.id),
+          eq(compositions.userId, userId),
+        ),
       });
       if (!composition) return null;
 
@@ -50,7 +58,7 @@ export const compositionRouter = {
       const fragments = await ctx.db
         .select()
         .from(skills)
-        .where(inArray(skills.id, fragmentIds));
+        .where(and(inArray(skills.id, fragmentIds), eq(skills.userId, userId)));
 
       // Preserve the order from the composition's fragments array
       const fragmentMap = new Map(fragments.map((f) => [f.id, f]));
@@ -74,6 +82,7 @@ export const compositionRouter = {
       const [row] = await ctx.db
         .insert(compositions)
         .values({
+          userId: ctx.session.user.id,
           name: input.name,
           description: input.description ?? null,
           fragments: JSON.stringify(input.fragments),
@@ -95,8 +104,12 @@ export const compositionRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const existing = await ctx.db.query.compositions.findFirst({
-        where: eq(compositions.id, input.id),
+        where: and(
+          eq(compositions.id, input.id),
+          eq(compositions.userId, userId),
+        ),
       });
       if (!existing) {
         throw new Error(`Composition not found: ${input.id}`);
@@ -117,7 +130,9 @@ export const compositionRouter = {
             : {}),
           updatedAt: new Date(),
         })
-        .where(eq(compositions.id, input.id))
+        .where(
+          and(eq(compositions.id, input.id), eq(compositions.userId, userId)),
+        )
         .returning();
 
       return row;
@@ -126,19 +141,27 @@ export const compositionRouter = {
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const existing = await ctx.db.query.compositions.findFirst({
-        where: eq(compositions.id, input.id),
+        where: and(
+          eq(compositions.id, input.id),
+          eq(compositions.userId, userId),
+        ),
       });
       if (!existing) {
         throw new Error(`Composition not found: ${input.id}`);
       }
 
-      await ctx.db.delete(compositions).where(eq(compositions.id, input.id));
+      await ctx.db
+        .delete(compositions)
+        .where(
+          and(eq(compositions.id, input.id), eq(compositions.userId, userId)),
+        );
 
       return { success: true };
     }),
 
-  preview: publicProcedure
+  preview: protectedProcedure
     .input(
       z.object({
         fragmentIds: z.array(z.string()),
@@ -151,7 +174,12 @@ export const compositionRouter = {
       const fragments = await ctx.db
         .select({ id: skills.id, content: skills.content })
         .from(skills)
-        .where(inArray(skills.id, input.fragmentIds));
+        .where(
+          and(
+            inArray(skills.id, input.fragmentIds),
+            eq(skills.userId, ctx.session.user.id),
+          ),
+        );
 
       // Order fragments according to the provided order
       const fragmentMap = new Map(fragments.map((f) => [f.id, f.content]));
@@ -164,11 +192,15 @@ export const compositionRouter = {
       return mergeFragments(orderedContent);
     }),
 
-  exportMarkdown: publicProcedure
+  exportMarkdown: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const composition = await ctx.db.query.compositions.findFirst({
-        where: eq(compositions.id, input.id),
+        where: and(
+          eq(compositions.id, input.id),
+          eq(compositions.userId, userId),
+        ),
       });
       if (!composition) {
         throw new Error(`Composition not found: ${input.id}`);
@@ -182,7 +214,7 @@ export const compositionRouter = {
       const fragments = await ctx.db
         .select({ id: skills.id, content: skills.content })
         .from(skills)
-        .where(inArray(skills.id, fragmentIds));
+        .where(and(inArray(skills.id, fragmentIds), eq(skills.userId, userId)));
 
       const fragmentMap = new Map(fragments.map((f) => [f.id, f.content]));
       const orderedIds = order.length > 0 ? order : fragmentIds;

@@ -3,10 +3,16 @@ import { z } from "zod/v4";
 
 import { GitService } from "@curiouslycory/git-service";
 
-import { protectedProcedure, publicProcedure } from "../trpc";
+import {
+  localOnlyProtectedProcedure,
+  localOnlyPublicProcedure,
+} from "../trpc";
 
+// The git router is filesystem-coupled (it shells out against a local repo
+// checkout) and is disabled in hosted mode (#26). Local-only procedures are a
+// pass-through in local mode, so self-hosted behavior is unchanged.
 export const gitRouter = {
-  status: publicProcedure.query(async ({ ctx }) => {
+  status: localOnlyPublicProcedure.query(async ({ ctx }) => {
     const git = new GitService(ctx.repoPath);
     const status = await git.status();
     return {
@@ -26,7 +32,7 @@ export const gitRouter = {
     };
   }),
 
-  log: publicProcedure
+  log: localOnlyPublicProcedure
     .input(
       z
         .object({
@@ -50,7 +56,7 @@ export const gitRouter = {
       return { commits, total: result.total };
     }),
 
-  diff: publicProcedure
+  diff: localOnlyPublicProcedure
     .input(
       z.object({
         commit: z.string().optional(),
@@ -73,7 +79,7 @@ export const gitRouter = {
       return { diff: diffText };
     }),
 
-  commit: protectedProcedure
+  commit: localOnlyProtectedProcedure
     .input(
       z.object({
         files: z.array(z.string()).min(1),
@@ -86,25 +92,25 @@ export const gitRouter = {
       return { hash: commitHash };
     }),
 
-  push: protectedProcedure.mutation(async ({ ctx }) => {
+  push: localOnlyProtectedProcedure.mutation(async ({ ctx }) => {
     const git = new GitService(ctx.repoPath);
     await git.push();
     return { success: true };
   }),
 
-  pull: protectedProcedure.mutation(async ({ ctx }) => {
+  pull: localOnlyProtectedProcedure.mutation(async ({ ctx }) => {
     const git = new GitService(ctx.repoPath);
     await git.pull();
     return { success: true };
   }),
 
-  fetch: protectedProcedure.mutation(async ({ ctx }) => {
+  fetch: localOnlyProtectedProcedure.mutation(async ({ ctx }) => {
     const git = new GitService(ctx.repoPath);
     await git.fetch();
     return { success: true };
   }),
 
-  branches: publicProcedure.query(async ({ ctx }) => {
+  branches: localOnlyPublicProcedure.query(async ({ ctx }) => {
     const git = new GitService(ctx.repoPath);
     const result = await git.branches();
     return {
@@ -119,7 +125,7 @@ export const gitRouter = {
     };
   }),
 
-  checkout: protectedProcedure
+  checkout: localOnlyProtectedProcedure
     .input(z.object({ branch: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const git = new GitService(ctx.repoPath);

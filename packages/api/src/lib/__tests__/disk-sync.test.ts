@@ -55,8 +55,10 @@ describe("scanAndSync", () => {
 
   async function runScanAndSync(repoDir: string) {
     const { scanAndSync } = await import("../disk-sync");
-    // Cast db — test drizzle instance lacks $client property present on the real client
-    return scanAndSync(repoDir, db as Parameters<typeof scanAndSync>[1]);
+    // Cast db — test drizzle instance lacks $client property present on the real client.
+    // 'test-user' matches the default user_id on the test tables, so raw-inserted
+    // fixtures (which default to 'test-user') are in scope.
+    return scanAndSync(repoDir, db as Parameters<typeof scanAndSync>[1], "test-user");
   }
 
   it("adds new skills found on disk to DB", async () => {

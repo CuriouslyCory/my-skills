@@ -15,11 +15,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@curiouslycory/db": "workspace:*",
     "@t3-oss/env-core": "^0.13.8",
-    "jose": "^6.0.11",
+    "better-auth": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@better-auth/cli": "catalog:",
     "@curiouslycory/eslint-config": "workspace:*",
     "@curiouslycory/prettier-config": "workspace:*",
     "@curiouslycory/tsconfig": "workspace:*",

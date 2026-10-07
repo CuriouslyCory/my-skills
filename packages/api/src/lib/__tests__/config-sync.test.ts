@@ -70,7 +70,7 @@ describe("syncConfigToFile", () => {
     const { syncConfigToFile } = await import("../config-sync");
     const db = await getDb();
 
-    await syncConfigToFile(db);
+    await syncConfigToFile(db, "test-user");
 
     const cfg = await readConfig();
     expect(cfg.defaultAgents).toEqual([]);
@@ -91,7 +91,7 @@ describe("syncConfigToFile", () => {
       INSERT INTO config (id, key, value) VALUES ('4', 'symlinkBehavior', 'symlink');
     `);
 
-    await syncConfigToFile(db);
+    await syncConfigToFile(db, "test-user");
 
     const cfg = await readConfig();
     expect(cfg.cacheDir).toBe("/tmp/custom-cache");
@@ -108,7 +108,7 @@ describe("syncConfigToFile", () => {
       INSERT INTO config (id, key, value) VALUES ('1', 'defaultAgents', '["claude-code","cursor"]');
     `);
 
-    await syncConfigToFile(db);
+    await syncConfigToFile(db, "test-user");
 
     const cfg = await readConfig();
     expect(cfg.defaultAgents).toEqual(["claude-code", "cursor"]);
@@ -122,7 +122,7 @@ describe("syncConfigToFile", () => {
       INSERT INTO config (id, key, value) VALUES ('1', 'defaultAgents', 'not-json');
     `);
 
-    await syncConfigToFile(db);
+    await syncConfigToFile(db, "test-user");
 
     // Should keep default empty array when JSON parse fails
     const cfg = await readConfig();
@@ -139,7 +139,7 @@ describe("syncConfigToFile", () => {
       INSERT INTO favorites (id, repo_url, name, type) VALUES ('f3', 'https://github.com/owner/repo3', 'skill1', 'skill');
     `);
 
-    await syncConfigToFile(db);
+    await syncConfigToFile(db, "test-user");
 
     const cfg = await readConfig();
     // Only 'repo' type favorites should appear in favoriteRepos
@@ -147,6 +147,24 @@ describe("syncConfigToFile", () => {
       "https://github.com/owner/repo1",
       "https://github.com/owner/repo2",
     ]);
+  });
+
+  it("only includes the target user's favorites and config", async () => {
+    const { syncConfigToFile } = await import("../config-sync");
+    const db = await getDb();
+
+    rawDb.exec(`
+      INSERT INTO favorites (id, user_id, repo_url, name, type) VALUES ('f1', 'user-a', 'https://github.com/a/repo', 'a', 'repo');
+      INSERT INTO favorites (id, user_id, repo_url, name, type) VALUES ('f2', 'user-b', 'https://github.com/b/repo', 'b', 'repo');
+      INSERT INTO config (id, user_id, key, value) VALUES ('c1', 'user-a', 'skillsDir', 'a/skills');
+      INSERT INTO config (id, user_id, key, value) VALUES ('c2', 'user-b', 'skillsDir', 'b/skills');
+    `);
+
+    await syncConfigToFile(db, "user-a");
+
+    const cfg = await readConfig();
+    expect(cfg.favoriteRepos).toEqual(["https://github.com/a/repo"]);
+    expect(cfg.skillsDir).toBe("a/skills");
   });
 
   it("ignores invalid symlinkBehavior values", async () => {
@@ -157,7 +175,7 @@ describe("syncConfigToFile", () => {
       INSERT INTO config (id, key, value) VALUES ('1', 'symlinkBehavior', 'invalid-value');
     `);
 
-    await syncConfigToFile(db);
+    await syncConfigToFile(db, "test-user");
 
     const cfg = await readConfig();
     // Should keep default "copy" when value is invalid

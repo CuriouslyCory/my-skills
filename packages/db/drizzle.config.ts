@@ -4,7 +4,7 @@ import type { Config } from "drizzle-kit";
 const dbPath = resolve(process.env.DB_PATH ?? "./data/my-skills.db");
 
 export default {
-  schema: "./src/schema.ts",
+  schema: "./src/schema.sqlite.ts",
   dialect: "sqlite",
   dbCredentials: { url: dbPath },
   tablesFilter: ["!skills_fts*"],

@@ -1,13 +1,60 @@
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Manifest, SkillEntry } from "@curiouslycory/shared-types";
+import type { Manifest } from "@curiouslycory/shared-types";
 
+import { AuthRequiredError } from "../../src/core/api-client.js";
 import { registerUpdateCommand } from "../../src/commands/update.js";
 import { saveManifest } from "../../src/core/manifest.js";
+import { replaceSkill } from "../../src/core/skill-installer.js";
 import { fetchRepo } from "../../src/services/cache.js";
+import {
+  createCloudClient,
+  materializeCloudArtifact,
+} from "../../src/services/cloud-source.js";
 
 let mockManifest: Manifest | null = null;
+
+const cloudCleanup = vi.fn(() => Promise.resolve());
+
+vi.mock("../../src/services/cloud-source.js", () => ({
+  createCloudClient: vi.fn(() =>
+    Promise.resolve({ client: {}, serverUrl: "https://srv.example" }),
+  ),
+  fetchCloudArtifact: vi.fn(() =>
+    Promise.resolve({
+      id: "id-1",
+      name: "cloud-skill",
+      description: "d",
+      category: "skill",
+      content: "body",
+      author: null,
+      version: null,
+      tags: [],
+      updatedAt: new Date(),
+    }),
+  ),
+  materializeCloudArtifact: vi.fn(() =>
+    Promise.resolve({
+      resolved: { name: "cloud-skill", sourcePath: "/tmp/cloud-skill", files: [] },
+      category: "skill",
+      cleanup: cloudCleanup,
+    }),
+  ),
+  cloudDeployDir: vi.fn(
+    (root: string, category: string) => `${root}/.agents/${category}s`,
+  ),
+  entryDeployDir: vi.fn(
+    (
+      entry: { sourceType: string; category?: string },
+      root: string,
+      defaultDir: string,
+    ) =>
+      entry.sourceType === "cloud"
+        ? `${root}/.agents/${entry.category ?? "skill"}s`
+        : defaultDir,
+  ),
+}));
 
 vi.mock("../../src/core/manifest.js", () => ({
   loadManifest: vi.fn(() => Promise.resolve(mockManifest)),
@@ -30,6 +77,7 @@ vi.mock("../../src/core/config.js", () => ({
       skillsDir: ".agents/skills",
       autoDetectAgents: true,
       symlinkBehavior: "copy",
+      serverUrl: "https://my-skills.dev",
     }),
   ),
 }));
@@ -49,9 +97,17 @@ vi.mock("../../src/core/skill-resolver.js", () => ({
 }));
 
 let mockInstallHash = "newhashnewhash12";
+const replacementCommit = vi.fn(() => Promise.resolve());
+const replacementRollback = vi.fn(() => Promise.resolve());
 
 vi.mock("../../src/core/skill-installer.js", () => ({
-  installSkill: vi.fn(() => Promise.resolve(mockInstallHash)),
+  replaceSkill: vi.fn(() =>
+    Promise.resolve({
+      hash: mockInstallHash,
+      commit: replacementCommit,
+      rollback: replacementRollback,
+    }),
+  ),
 }));
 
 vi.mock("../../src/adapters/index.js", () => ({
@@ -177,6 +233,94 @@ describe("update command", () => {
     );
   });
 
+  describe("cloud (@me) entries", () => {
+    it("updates a cloud entry when its content hash changed", async () => {
+      mockInstallHash = "cloudnewhash11111";
+      mockManifest = makeManifest({
+        "cloud-skill": {
+          source: "@me/cloud-skill",
+          sourceType: "cloud",
+          category: "skill",
+          computedHash: "cloudoldhash00000",
+          installedAt: "2026-01-01T00:00:00.000Z",
+          agents: [],
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "update"]);
+
+      expect(saveManifest).toHaveBeenCalled();
+      const saved = vi.mocked(saveManifest).mock
+        .calls[0][1] as unknown as Manifest;
+      expect(saved.skills["cloud-skill"]).toHaveProperty(
+        "computedHash",
+        "cloudnewhash11111",
+      );
+      expect(cloudCleanup).toHaveBeenCalled();
+    });
+
+    it("installs to and records the refreshed upstream category", async () => {
+      vi.mocked(materializeCloudArtifact).mockResolvedValueOnce({
+        resolved: {
+          name: "cloud-skill",
+          sourcePath: "/tmp/cloud-skill",
+          frontmatter: { name: "cloud-skill", description: "d" },
+          content: "",
+          files: [],
+        },
+        category: "agent",
+        cleanup: cloudCleanup,
+      });
+      // Same content hash: the category move alone must still be applied.
+      mockInstallHash = "cloudhash00000000";
+      mockManifest = makeManifest({
+        "cloud-skill": {
+          source: "@me/cloud-skill",
+          sourceType: "cloud",
+          category: "skill",
+          computedHash: "cloudhash00000000",
+          installedAt: "2026-01-01T00:00:00.000Z",
+          agents: [],
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "update"]);
+
+      expect(replaceSkill).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "cloud-skill" }),
+        expect.stringMatching(/\.agents\/agents$/),
+        expect.stringMatching(/\.agents\/skills\/cloud-skill$/),
+      );
+      const saved = vi.mocked(saveManifest).mock
+        .calls[0][1] as unknown as Manifest;
+      expect(saved.skills["cloud-skill"]).toHaveProperty("category", "agent");
+      expect(replacementCommit).toHaveBeenCalled();
+    });
+
+    it("fails a cloud entry clearly when not logged in", async () => {
+      vi.mocked(createCloudClient).mockRejectedValueOnce(
+        new AuthRequiredError("Not logged in. Run `ms login`."),
+      );
+      mockManifest = makeManifest({
+        "cloud-skill": {
+          source: "@me/cloud-skill",
+          sourceType: "cloud",
+          category: "skill",
+          computedHash: "cloudoldhash00000",
+          installedAt: new Date().toISOString(),
+          agents: [],
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "update"]);
+
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining("1 failed"),
+      );
+      expect(process.exitCode).toBe(1);
+    });
+  });
+
   describe("single skill argument", () => {
     it("updates only the named skill", async () => {
       const oldHash = "oldhasholdhashold";
@@ -223,6 +367,66 @@ describe("update command", () => {
         expect.stringContaining("not installed"),
       );
       expect(saveManifest).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("atomic replacement", () => {
+    it("keeps the manifest untouched when the install fails", async () => {
+      vi.mocked(replaceSkill).mockRejectedValueOnce(new Error("disk full"));
+      mockManifest = makeManifest({
+        "test-skill": {
+          source: "owner/repo",
+          sourceType: "github",
+          computedHash: "oldhasholdhashold",
+          installedAt: new Date().toISOString(),
+          agents: [],
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "update"]);
+
+      expect(saveManifest).not.toHaveBeenCalled();
+      expect(replacementCommit).not.toHaveBeenCalled();
+      expect(process.exitCode).toBe(1);
+    });
+
+    it("rolls back to the previous install when the manifest write fails", async () => {
+      vi.mocked(saveManifest).mockRejectedValueOnce(new Error("EACCES"));
+      mockManifest = makeManifest({
+        "test-skill": {
+          source: "owner/repo",
+          sourceType: "github",
+          computedHash: "oldhasholdhashold",
+          installedAt: new Date().toISOString(),
+          agents: [],
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "update"]);
+
+      expect(replacementRollback).toHaveBeenCalledTimes(1);
+      expect(replacementCommit).not.toHaveBeenCalled();
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining("1 failed"),
+      );
+    });
+
+    it("commits the replacement after the manifest is saved", async () => {
+      mockManifest = makeManifest({
+        "test-skill": {
+          source: "owner/repo",
+          sourceType: "github",
+          computedHash: "oldhasholdhashold",
+          installedAt: new Date().toISOString(),
+          agents: [],
+        },
+      });
+
+      await program.parseAsync(["node", "ms", "update"]);
+
+      expect(saveManifest).toHaveBeenCalledTimes(1);
+      expect(replacementCommit).toHaveBeenCalledTimes(1);
+      expect(replacementRollback).not.toHaveBeenCalled();
     });
   });
 
@@ -348,7 +552,7 @@ describe("update command", () => {
       const saved = vi.mocked(saveManifest).mock.calls[0][1] as unknown as Manifest;
       expect(saved.skills["test-skill"]).toHaveProperty("computedHash", "brandnewhash1234");
       expect(saved.skills["test-skill"]).toHaveProperty("installedAt");
-      const installedAt = (saved.skills["test-skill"] as SkillEntry).installedAt;
+      const installedAt = saved.skills["test-skill"]?.installedAt;
       expect(installedAt).not.toBe(oldDate);
     });
   });

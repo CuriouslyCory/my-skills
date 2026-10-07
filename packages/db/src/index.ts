@@ -1,4 +1,14 @@
 export * from "drizzle-orm/sql";
-export { isNull } from "drizzle-orm/sql/expressions/conditions";
+export { eq, isNull } from "drizzle-orm/sql/expressions/conditions";
 export { alias } from "drizzle-orm/sqlite-core";
 export { initFTS } from "./fts";
+export { searchSkills } from "./search";
+export {
+  LOCAL_USER_EMAIL,
+  LOCAL_USER_NAME,
+  upgradeLegacySqlite,
+} from "./sqlite-upgrade";
+export type { LegacyUpgradeResult } from "./sqlite-upgrade";
+export type { SearchSkillsParams, SkillSearchResult } from "./search";
+export { resolveDialect } from "./types";
+export type { Database, DbDialect } from "./types";

@@ -16,6 +16,7 @@ import {
   removeSkill,
   saveManifest,
 } from "../core/manifest.js";
+import { entryDeployDir } from "../services/cloud-source.js";
 
 interface RemoveOptions {
   skill?: string;
@@ -78,7 +79,9 @@ async function runAdapterRemoves(
 }
 
 /**
- * Remove a single skill by name.
+ * Remove a single skill by name. Cloud (`@me`) entries are removed from their
+ * recorded category's deploy dir (e.g. `.agents/agents`); other entries from
+ * `targetDir`.
  */
 export async function removeSingleSkill(
   skillName: string,
@@ -108,7 +111,10 @@ export async function removeSingleSkill(
 
   const spinner = ora(`Removing ${skillName}...`).start();
   try {
-    const skillPath = join(targetDir, skillName);
+    const skillPath = join(
+      entryDeployDir(existing, projectRoot, targetDir),
+      skillName,
+    );
     const exists = await stat(skillPath)
       .then(() => true)
       .catch(() => false);

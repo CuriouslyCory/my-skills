@@ -4,15 +4,16 @@ import { join, relative } from "node:path";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
 
-import { desc, eq } from "@curiouslycory/db";
+import { and, desc, eq } from "@curiouslycory/db";
 import { skills } from "@curiouslycory/db/schema";
 import {
   buildSkillContent,
   CATEGORY_DIR_MAP,
 } from "@curiouslycory/shared-types";
 
+import { isLocalMode } from "../lib/deploy-mode";
 import { scanAndSync } from "../lib/disk-sync";
-import { protectedProcedure, publicProcedure } from "../trpc";
+import { protectedProcedure } from "../trpc";
 
 // Artifact categories (excluding "skill" which has its own router)
 const artifactCategorySchema = z.enum(["agent", "prompt", "claudemd"]);
@@ -23,7 +24,7 @@ function getArtifactDir(repoPath: string, category: ArtifactCategory): string {
 }
 
 export const artifactRouter = {
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z
         .object({
@@ -32,17 +33,21 @@ export const artifactRouter = {
         .optional(),
     )
     .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       if (input?.category) {
         return ctx.db
           .select()
           .from(skills)
-          .where(eq(skills.category, input.category))
+          .where(
+            and(eq(skills.userId, userId), eq(skills.category, input.category)),
+          )
           .orderBy(desc(skills.updatedAt));
       }
       // Return all non-skill artifacts
       const allRows = await ctx.db
         .select()
         .from(skills)
+        .where(eq(skills.userId, userId))
         .orderBy(desc(skills.updatedAt));
       return allRows.filter(
         (row) =>
@@ -52,21 +57,29 @@ export const artifactRouter = {
       );
     }),
 
-  listByCategory: publicProcedure
+  listByCategory: protectedProcedure
     .input(z.object({ category: artifactCategorySchema }))
     .query(async ({ ctx, input }) => {
       return ctx.db
         .select()
         .from(skills)
-        .where(eq(skills.category, input.category))
+        .where(
+          and(
+            eq(skills.userId, ctx.session.user.id),
+            eq(skills.category, input.category),
+          ),
+        )
         .orderBy(desc(skills.updatedAt));
     }),
 
-  byId: publicProcedure
+  byId: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const row = await ctx.db.query.skills.findFirst({
-        where: eq(skills.id, input.id),
+        where: and(
+          eq(skills.id, input.id),
+          eq(skills.userId, ctx.session.user.id),
+        ),
       });
       return row ?? null;
     }),
@@ -84,34 +97,51 @@ export const artifactRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const artifactDir = getArtifactDir(ctx.repoPath, input.category);
-      const dirPath = join(artifactDir, input.name);
+      const userId = ctx.session.user.id;
+      // Hosted mode is database-canonical: no SKILL.md is written and `dirPath`
+      // stays null. Local mode mirrors the artifact to disk under artifacts/.
+      const absDirPath = isLocalMode()
+        ? join(getArtifactDir(ctx.repoPath, input.category), input.name)
+        : null;
 
-      await mkdir(dirPath, { recursive: true });
-
-      const frontmatter = {
-        name: input.name,
-        description: input.description,
-        ...(input.author ? { author: input.author } : {}),
-        ...(input.version ? { version: input.version } : {}),
-      };
-
-      const fileContent = buildSkillContent(frontmatter, input.content);
-      await writeFile(join(dirPath, "SKILL.md"), fileContent, "utf-8");
-
+      // Insert first: a rejected insert (e.g. a duplicate name under
+      // UNIQUE(user_id, name)) must not overwrite an existing artifact's SKILL.md.
       const [row] = await ctx.db
         .insert(skills)
         .values({
+          userId,
           name: input.name,
           description: input.description,
           tags: JSON.stringify(input.tags ?? []),
           author: input.author ?? null,
           version: input.version ?? null,
           content: input.content,
-          dirPath: relative(ctx.repoPath, dirPath),
+          dirPath: absDirPath ? relative(ctx.repoPath, absDirPath) : null,
           category: input.category,
         })
         .returning();
+
+      if (absDirPath) {
+        const frontmatter = {
+          name: input.name,
+          description: input.description,
+          ...(input.author ? { author: input.author } : {}),
+          ...(input.version ? { version: input.version } : {}),
+        };
+        const fileContent = buildSkillContent(frontmatter, input.content);
+        try {
+          await mkdir(absDirPath, { recursive: true });
+          await writeFile(join(absDirPath, "SKILL.md"), fileContent, "utf-8");
+        } catch (err) {
+          // Keep create all-or-nothing: without its SKILL.md the row would be
+          // dropped by the next disk sync anyway, so remove it now and surface
+          // the write error.
+          await ctx.db
+            .delete(skills)
+            .where(and(eq(skills.userId, userId), eq(skills.name, input.name)));
+          throw err;
+        }
+      }
 
       return row;
     }),
@@ -130,8 +160,9 @@ export const artifactRouter = {
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const existing = await ctx.db.query.skills.findFirst({
-        where: eq(skills.id, input.id),
+        where: and(eq(skills.id, input.id), eq(skills.userId, userId)),
       });
       if (!existing) {
         throw new Error(`Artifact not found: ${input.id}`);
@@ -142,18 +173,6 @@ export const artifactRouter = {
       const updatedContent = input.content ?? existing.content;
       const updatedAuthor = input.author ?? existing.author;
       const updatedVersion = input.version ?? existing.version;
-
-      if (existing.dirPath) {
-        const dirPath = join(ctx.repoPath, existing.dirPath);
-        const frontmatter = {
-          name: updatedName,
-          description: updatedDescription,
-          ...(updatedAuthor ? { author: updatedAuthor } : {}),
-          ...(updatedVersion ? { version: updatedVersion } : {}),
-        };
-        const fileContent = buildSkillContent(frontmatter, updatedContent);
-        await writeFile(join(dirPath, "SKILL.md"), fileContent, "utf-8");
-      }
 
       const [row] = await ctx.db
         .update(skills)
@@ -171,8 +190,23 @@ export const artifactRouter = {
           ...(input.category !== undefined ? { category: input.category } : {}),
           updatedAt: new Date(),
         })
-        .where(eq(skills.id, input.id))
+        .where(and(eq(skills.id, input.id), eq(skills.userId, userId)))
         .returning();
+
+      // Mirror to disk only after the DB accepts the update, so a rejected
+      // rename (UNIQUE(user_id, name)) never rewrites SKILL.md. Only in local
+      // mode and when the row is disk-backed.
+      if (isLocalMode() && existing.dirPath) {
+        const dirPath = join(ctx.repoPath, existing.dirPath);
+        const frontmatter = {
+          name: updatedName,
+          description: updatedDescription,
+          ...(updatedAuthor ? { author: updatedAuthor } : {}),
+          ...(updatedVersion ? { version: updatedVersion } : {}),
+        };
+        const fileContent = buildSkillContent(frontmatter, updatedContent);
+        await writeFile(join(dirPath, "SKILL.md"), fileContent, "utf-8");
+      }
 
       return row;
     }),
@@ -180,26 +214,34 @@ export const artifactRouter = {
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const existing = await ctx.db.query.skills.findFirst({
-        where: eq(skills.id, input.id),
+        where: and(eq(skills.id, input.id), eq(skills.userId, userId)),
       });
       if (!existing) {
         throw new Error(`Artifact not found: ${input.id}`);
       }
 
-      if (existing.dirPath) {
+      // Remove from disk only in local mode and when the row is disk-backed.
+      if (isLocalMode() && existing.dirPath) {
         const dirPath = join(ctx.repoPath, existing.dirPath);
         if (existsSync(dirPath)) {
           await rm(dirPath, { recursive: true, force: true });
         }
       }
 
-      await ctx.db.delete(skills).where(eq(skills.id, input.id));
+      await ctx.db
+        .delete(skills)
+        .where(and(eq(skills.id, input.id), eq(skills.userId, userId)));
 
       return { success: true };
     }),
 
   syncFromDisk: protectedProcedure.mutation(async ({ ctx }) => {
-    return scanAndSync(ctx.repoPath, ctx.db);
+    // Disk sync is a local-mode-only concern; hosted mode has nothing to scan.
+    if (!isLocalMode()) {
+      return { added: 0, updated: 0, removed: 0 };
+    }
+    return scanAndSync(ctx.repoPath, ctx.db, ctx.session.user.id);
   }),
 } satisfies TRPCRouterRecord;

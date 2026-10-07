@@ -4,8 +4,13 @@ import ora from "ora";
 
 import type { SkillEntry } from "@curiouslycory/shared-types";
 
-import { sourceToGitHub } from "../services/source-parser.js";
+import { cloudSourceName, sourceToGitHub } from "../services/source-parser.js";
 import { loadManifest } from "../core/manifest.js";
+import {
+  createCloudClient,
+  fetchCloudArtifact,
+  materializeCloudArtifact,
+} from "../services/cloud-source.js";
 import { computeSkillHash } from "../core/skill-hasher.js";
 import { resolveSkill } from "../core/skill-resolver.js";
 import { fetchRepo } from "../services/cache.js";
@@ -29,7 +34,27 @@ async function checkSingleSkill(
   const currentHash = entry.computedHash.slice(0, 8);
 
   try {
-    if (entry.sourceType !== "github") {
+    // Resolve the latest version's source files per source type. Cloud (`@me`)
+    // entries fetch from the personal library over the API and materialize to a
+    // temp dir; github clones to the cache. Both then hash-compare below.
+    let sourcePath: string;
+    let cleanup: (() => Promise<void>) | undefined;
+
+    if (entry.sourceType === "github") {
+      const githubSource = sourceToGitHub(entry.source);
+      const cachePath = await fetchRepo(githubSource);
+      const resolved = await resolveSkill(skillName, cachePath);
+      sourcePath = resolved.sourcePath;
+    } else if (entry.sourceType === "cloud") {
+      const { client } = await createCloudClient();
+      const artifact = await fetchCloudArtifact(
+        client,
+        cloudSourceName(entry.source),
+      );
+      const materialized = await materializeCloudArtifact(artifact);
+      sourcePath = materialized.resolved.sourcePath;
+      cleanup = materialized.cleanup;
+    } else {
       console.warn(
         chalk.yellow(
           `Skipping ${skillName}: unsupported source type "${entry.sourceType}"`,
@@ -43,23 +68,23 @@ async function checkSingleSkill(
       };
     }
 
-    const githubSource = sourceToGitHub(entry.source);
-    const cachePath = await fetchRepo(githubSource);
-    const resolved = await resolveSkill(skillName, cachePath);
+    try {
+      // Compute hash of the remote version by hashing its source files
+      const latestHash = await computeSkillHash(sourcePath);
+      const latestHashShort = latestHash.slice(0, 8);
 
-    // Compute hash of the remote version by hashing its source files
-    const latestHash = await computeSkillHash(resolved.sourcePath);
-    const latestHashShort = latestHash.slice(0, 8);
+      const status: CheckStatus =
+        latestHash === entry.computedHash ? "up-to-date" : "update available";
 
-    const status: CheckStatus =
-      latestHash === entry.computedHash ? "up-to-date" : "update available";
-
-    return {
-      name: skillName,
-      status,
-      currentHash,
-      latestHash: latestHashShort,
-    };
+      return {
+        name: skillName,
+        status,
+        currentHash,
+        latestHash: latestHashShort,
+      };
+    } finally {
+      await cleanup?.();
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.warn(

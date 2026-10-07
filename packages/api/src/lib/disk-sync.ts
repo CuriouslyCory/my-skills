@@ -3,7 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
 import type { db as dbInstance } from "@curiouslycory/db/client";
-import { eq } from "@curiouslycory/db";
+import { and, eq } from "@curiouslycory/db";
 import { skills } from "@curiouslycory/db/schema";
 import {
   CATEGORY_DIR_MAP,
@@ -43,12 +43,17 @@ async function walkDirs(
  * Scan the filesystem for skills and artifacts, then sync them to the database.
  *
  * Walks skills/SKILL.md and artifacts/CATEGORY/SKILL.md,
- * upserts each found item into the skills DB table matched on dirPath,
- * and removes DB records whose dirPath no longer exists on disk.
+ * upserts each found item into the skills DB table matched on (userId, dirPath),
+ * and removes the user's DB records whose dirPath no longer exists on disk.
+ *
+ * All reads and writes are scoped to `userId` so a disk sync only ever touches
+ * the calling user's rows (per-user correctness; disk coupling is local-only for
+ * this slice).
  */
 export async function scanAndSync(
   repoPath: string,
   db: DB,
+  userId: string,
 ): Promise<ScanResult> {
   let added = 0;
   let updated = 0;
@@ -76,7 +81,7 @@ export async function scanAndSync(
     }
 
     const existing = await db.query.skills.findFirst({
-      where: eq(skills.dirPath, relDirPath),
+      where: and(eq(skills.dirPath, relDirPath), eq(skills.userId, userId)),
     });
 
     if (existing) {
@@ -89,10 +94,11 @@ export async function scanAndSync(
           tags: JSON.stringify([]),
           updatedAt: new Date(),
         })
-        .where(eq(skills.id, existing.id));
+        .where(and(eq(skills.id, existing.id), eq(skills.userId, userId)));
       updated++;
     } else {
       await db.insert(skills).values({
+        userId,
         name: frontmatter.name,
         description: frontmatter.description,
         content: body,
@@ -127,7 +133,7 @@ export async function scanAndSync(
       }
 
       const existing = await db.query.skills.findFirst({
-        where: eq(skills.dirPath, relDirPath),
+        where: and(eq(skills.dirPath, relDirPath), eq(skills.userId, userId)),
       });
 
       if (existing) {
@@ -141,10 +147,11 @@ export async function scanAndSync(
             category,
             updatedAt: new Date(),
           })
-          .where(eq(skills.id, existing.id));
+          .where(and(eq(skills.id, existing.id), eq(skills.userId, userId)));
         updated++;
       } else {
         await db.insert(skills).values({
+          userId,
           name: frontmatter.name,
           description: frontmatter.description,
           content: body,
@@ -158,10 +165,16 @@ export async function scanAndSync(
   }
 
   // --- Remove stale DB entries whose dirPath no longer exists on disk ---
-  const allDbRows = await db.select().from(skills);
+  // Scoped to this user so a sync never deletes another user's rows.
+  const allDbRows = await db
+    .select()
+    .from(skills)
+    .where(eq(skills.userId, userId));
   for (const row of allDbRows) {
     if (row.dirPath && !seenDirPaths.has(row.dirPath)) {
-      await db.delete(skills).where(eq(skills.id, row.id));
+      await db
+        .delete(skills)
+        .where(and(eq(skills.id, row.id), eq(skills.userId, userId)));
       removed++;
     }
   }

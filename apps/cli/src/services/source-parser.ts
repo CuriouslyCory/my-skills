@@ -13,11 +13,39 @@ export interface LocalSource {
   path: string;
 }
 
-export type SkillSource = GitHubSource | LocalSource;
+/**
+ * The authenticated user's personal cloud library. `@me` browses everything;
+ * `@me/<name>` targets a single artifact. Resolved through the `library.*` tRPC
+ * procedures rather than a git remote.
+ */
+export interface CloudSource {
+  type: "cloud";
+  /** Artifact name, or undefined when browsing the whole library (`@me`). */
+  name: string | undefined;
+}
+
+export type SkillSource = GitHubSource | LocalSource | CloudSource;
 
 const GITHUB_URL_RE =
   /^https?:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/([^/]+))?$/;
 const SHORTHAND_RE = /^([^/.][^/]*)\/([^/]+)(?:\/(.+))?$/;
+/** `@me` (browse all) or `@me/<name>` (single artifact). */
+const CLOUD_RE = /^@me(?:\/(.+))?$/;
+
+/** The manifest `source` prefix for a personal-library (cloud) entry. */
+export const CLOUD_SOURCE_PREFIX = "@me";
+
+/**
+ * Recover the artifact name from a cloud manifest `source` string
+ * (`@me/<name>` -> `<name>`).
+ */
+export function cloudSourceName(source: string): string {
+  const match = CLOUD_RE.exec(source);
+  if (!match?.[1]) {
+    throw new Error(`Invalid cloud source: "${source}" (expected @me/<name>)`);
+  }
+  return match[1];
+}
 
 /**
  * Parse an "owner/repo" source string from a manifest entry into a GitHubSource.
@@ -47,6 +75,13 @@ export function parseSource(source: string): SkillSource {
       type: "local",
       path: resolve(source),
     };
+  }
+
+  // Personal cloud library: `@me` (browse) or `@me/<name>` (single artifact).
+  // Checked before the shorthand regex so `@me/foo` is not read as owner/repo.
+  const cloudMatch = CLOUD_RE.exec(source);
+  if (cloudMatch) {
+    return { type: "cloud", name: cloudMatch[1] ?? undefined };
   }
 
   // GitHub URL
