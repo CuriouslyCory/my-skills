@@ -10,7 +10,7 @@
     "my-skills": "dist/bin/my-skills.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": "^20.17.0 || ^22.13.0 || >=23.5.0"
   },
   "license": "MIT",
   "repository": {

@@ -17,6 +17,10 @@ Think of it like npm, but for the prompts, workflows, and capabilities you give 
 
 ## Install
 
+Requires Node.js `^20.17.0 || ^22.13.0 || >=23.5.0` (Node.js 24 recommended).
+Node.js 18 is no longer supported by the prompt dependencies; upgrade Node before
+installing this version.
+
 ```sh
 npm install -g my-skills
 # or
@@ -135,6 +139,14 @@ my-skills automatically detects which AI coding tools are configured in your pro
 ---
 
 ## Troubleshooting
+
+### SSH authentication
+
+Use your SSH agent or `~/.ssh/config` to select keys for private repositories.
+Simple Git 4 filters inherited `GIT_SSH_COMMAND` and `GIT_SSH`; move key selection
+from those variables into SSH configuration. See the repository's
+[SSH key setup](https://github.com/CuriouslyCory/my-skills#ssh-keys-for-private-repositories)
+for a host and identity-file example.
 
 <details>
 <summary><strong>Command not found: ms</strong></summary>

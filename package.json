@@ -5,7 +5,7 @@
     "url": "https://github.com/CuriouslyCory/my-skills"
   },
   "engines": {
-    "node": "^22.13.0 || >=23.5.0"
+    "node": "^22.18.0 || >=23.6.0"
   },
   "packageManager": "pnpm@10.34.9",
   "scripts": {
