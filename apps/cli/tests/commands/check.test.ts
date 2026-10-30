@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Manifest } from "@curiouslycory/shared-types";
 
-import { AuthRequiredError } from "../../src/core/api-client.js";
 import { registerCheckCommand } from "../../src/commands/check.js";
+import { AuthRequiredError } from "../../src/core/api-client.js";
 import { fetchRepo } from "../../src/services/cache.js";
 import { createCloudClient } from "../../src/services/cloud-source.js";
 
@@ -76,6 +76,7 @@ describe("check command", () => {
   let program: Command;
 
   beforeEach(() => {
+    vi.resetAllMocks();
     program = new Command();
     program.exitOverride();
     registerCheckCommand(program);
@@ -261,9 +262,7 @@ describe("check command", () => {
     });
 
     it("logs actual error message when resolveSkill throws", async () => {
-      const { resolveSkill } = await import(
-        "../../src/core/skill-resolver.js"
-      );
+      const { resolveSkill } = await import("../../src/core/skill-resolver.js");
       vi.mocked(resolveSkill).mockImplementation(() =>
         Promise.reject(new Error('Skill "missing" not found in repository')),
       );

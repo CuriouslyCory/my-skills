@@ -1,8 +1,10 @@
-import type { ReactElement, ReactNode } from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render as rtlRender, screen, waitFor } from "@testing-library/react";
 import type * as TanStackQuery from "@tanstack/react-query";
+import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render as rtlRender, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { FavoriteList } from "../favorite-list";
 
 // Stable references for navigation mocks — must be defined BEFORE vi.mock
@@ -61,9 +63,10 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
   return {
     ...actual,
     useSuspenseQuery: (...args: unknown[]): { data: unknown } =>
-      mockUseSuspenseQuery(...args) as { data: unknown },
-    useMutation: (...args: unknown[]): { mutate: unknown; isPending: boolean } =>
-      mockUseMutation(...args) as { mutate: unknown; isPending: boolean },
+      mockUseSuspenseQuery(...args),
+    useMutation: (
+      ...args: unknown[]
+    ): { mutate: unknown; isPending: boolean } => mockUseMutation(...args),
     useQueryClient: () => ({
       invalidateQueries: mockInvalidateQueries,
     }),
@@ -233,9 +236,6 @@ describe("FavoriteList component", () => {
     });
 
     it("updates search value on typing", async () => {
-      const { default: userEvent } = await import(
-        "@testing-library/user-event"
-      );
       const user = userEvent.setup();
       setupMocks([makeFavorite()]);
       render(<FavoriteList />);
@@ -256,9 +256,6 @@ describe("FavoriteList component", () => {
     });
 
     it("clicking Repos filter calls router.replace with type param", async () => {
-      const { default: userEvent } = await import(
-        "@testing-library/user-event"
-      );
       const user = userEvent.setup();
       setupMocks([makeFavorite()]);
       render(<FavoriteList />);
@@ -273,9 +270,6 @@ describe("FavoriteList component", () => {
     });
 
     it("clicking Skills filter calls router.replace with type param", async () => {
-      const { default: userEvent } = await import(
-        "@testing-library/user-event"
-      );
       const user = userEvent.setup();
       setupMocks([makeFavorite()]);
       render(<FavoriteList />);
@@ -349,9 +343,6 @@ describe("FavoriteList component", () => {
     });
 
     it("clicking Remove opens confirmation dialog", async () => {
-      const { default: userEvent } = await import(
-        "@testing-library/user-event"
-      );
       const user = userEvent.setup();
       setupMocks([makeFavorite({ name: "My Favorite" })]);
       render(<FavoriteList />);
@@ -366,9 +357,6 @@ describe("FavoriteList component", () => {
     });
 
     it("confirmation dialog has Cancel and Remove buttons", async () => {
-      const { default: userEvent } = await import(
-        "@testing-library/user-event"
-      );
       const user = userEvent.setup();
       setupMocks([makeFavorite()]);
       render(<FavoriteList />);
@@ -382,9 +370,6 @@ describe("FavoriteList component", () => {
     });
 
     it("confirming removal calls mutate with correct id", async () => {
-      const { default: userEvent } = await import(
-        "@testing-library/user-event"
-      );
       const user = userEvent.setup();
       setupMocks([makeFavorite({ id: "fav-42" })]);
       render(<FavoriteList />);

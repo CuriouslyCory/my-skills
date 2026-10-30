@@ -28,7 +28,7 @@
     "@trpc/server": "catalog:",
     "gray-matter": "^4.0.3",
     "octokit": "^5.0.5",
-    "superjson": "2.2.3",
+    "superjson": "2.2.6",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -37,11 +37,11 @@
     "@curiouslycory/tsconfig": "workspace:*",
     "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^11.10.0",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.4",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:",
-    "vitest": "^3.2.3"
+    "vitest": "^5.0.5"
   },
   "prettier": "@curiouslycory/prettier-config"
 }

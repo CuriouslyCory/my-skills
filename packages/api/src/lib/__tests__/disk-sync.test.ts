@@ -55,10 +55,9 @@ describe("scanAndSync", () => {
 
   async function runScanAndSync(repoDir: string) {
     const { scanAndSync } = await import("../disk-sync");
-    // Cast db — test drizzle instance lacks $client property present on the real client.
     // 'test-user' matches the default user_id on the test tables, so raw-inserted
     // fixtures (which default to 'test-user') are in scope.
-    return scanAndSync(repoDir, db as Parameters<typeof scanAndSync>[1], "test-user");
+    return scanAndSync(repoDir, db, "test-user");
   }
 
   it("adds new skills found on disk to DB", async () => {
@@ -76,8 +75,16 @@ describe("scanAndSync", () => {
     expect(result.removed).toBe(0);
 
     const rows = rawDb
-      .prepare("SELECT name, description, content, category, dir_path FROM skills")
-      .all() as { name: string; description: string; content: string; category: string; dir_path: string }[];
+      .prepare(
+        "SELECT name, description, content, category, dir_path FROM skills",
+      )
+      .all() as {
+      name: string;
+      description: string;
+      content: string;
+      category: string;
+      dir_path: string;
+    }[];
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       name: "my-skill",
@@ -111,7 +118,9 @@ describe("scanAndSync", () => {
     expect(result.added).toBe(0);
 
     const row = rawDb
-      .prepare("SELECT description, content FROM skills WHERE name = 'updatable'")
+      .prepare(
+        "SELECT description, content FROM skills WHERE name = 'updatable'",
+      )
       .get() as { description: string; content: string };
     expect(row.description).toBe("Updated desc");
     expect(row.content).toBe("Updated body");
@@ -137,10 +146,7 @@ describe("scanAndSync", () => {
   it("handles invalid frontmatter by skipping the file", async () => {
     const skillDir = join(repoPath, "skills", "bad-skill");
     await mkdir(skillDir, { recursive: true });
-    await writeFile(
-      join(skillDir, "SKILL.md"),
-      "not valid frontmatter at all",
-    );
+    await writeFile(join(skillDir, "SKILL.md"), "not valid frontmatter at all");
 
     const result = await runScanAndSync(repoPath);
 

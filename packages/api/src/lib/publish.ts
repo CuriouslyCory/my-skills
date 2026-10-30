@@ -1,9 +1,8 @@
 import { createHash } from "node:crypto";
-
 import type { Octokit } from "octokit";
 
-import { buildSkillContent } from "@curiouslycory/shared-types";
 import type { SkillFrontmatter } from "@curiouslycory/shared-types";
+import { buildSkillContent } from "@curiouslycory/shared-types";
 
 /**
  * Library publishing lib (#29).
@@ -403,6 +402,6 @@ function isNotFound(err: unknown): boolean {
     typeof err === "object" &&
     err !== null &&
     "status" in err &&
-    (err as { status: unknown }).status === 404
+    err.status === 404
   );
 }

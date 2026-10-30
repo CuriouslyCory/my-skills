@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "~/test-utils";
 import type * as TanStackQuery from "@tanstack/react-query";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { render, screen, waitFor } from "~/test-utils";
 import { SearchResults } from "../search-results";
 
 // Stable search params instance to avoid re-render loops
@@ -49,7 +50,7 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
   return {
     ...actual,
     useQuery: (...args: unknown[]): { data: unknown; isLoading: boolean } =>
-      mockUseQuery(...args) as { data: unknown; isLoading: boolean },
+      mockUseQuery(...args),
   };
 });
 
@@ -65,14 +66,16 @@ vi.mock("~/trpc/react", () => ({
   }),
 }));
 
-function makeResult(overrides: Partial<{
-  id: string;
-  name: string;
-  description: string;
-  category: string | null;
-  tags: string;
-  snippet: string | null;
-}> = {}) {
+function makeResult(
+  overrides: Partial<{
+    id: string;
+    name: string;
+    description: string;
+    category: string | null;
+    tags: string;
+    snippet: string | null;
+  }> = {},
+) {
   return {
     id: overrides.id ?? "test-id",
     name: overrides.name ?? "Test Skill",
@@ -85,7 +88,10 @@ function makeResult(overrides: Partial<{
 
 describe("parseTags (via component rendering)", () => {
   beforeEach(() => {
-    mockQueryOptions.mockReturnValue({ queryKey: ["search"], queryFn: vi.fn() });
+    mockQueryOptions.mockReturnValue({
+      queryKey: ["search"],
+      queryFn: vi.fn(),
+    });
   });
 
   it("renders tags from valid JSON array", () => {
@@ -112,7 +118,10 @@ describe("parseTags (via component rendering)", () => {
 
 describe("SearchResults component", () => {
   beforeEach(() => {
-    mockQueryOptions.mockReturnValue({ queryKey: ["search"], queryFn: vi.fn() });
+    mockQueryOptions.mockReturnValue({
+      queryKey: ["search"],
+      queryFn: vi.fn(),
+    });
     mockUseQuery.mockReturnValue({ data: undefined, isLoading: false });
   });
 
@@ -185,9 +194,7 @@ describe("SearchResults component", () => {
 
   it("renders snippet with dangerouslySetInnerHTML", () => {
     mockUseQuery.mockReturnValue({
-      data: [
-        makeResult({ snippet: "matched <mark>term</mark> here" }),
-      ],
+      data: [makeResult({ snippet: "matched <mark>term</mark> here" })],
       isLoading: false,
     });
     render(<SearchResults />);

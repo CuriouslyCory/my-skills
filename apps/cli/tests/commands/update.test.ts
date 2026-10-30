@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Manifest } from "@curiouslycory/shared-types";
 
-import { AuthRequiredError } from "../../src/core/api-client.js";
 import { registerUpdateCommand } from "../../src/commands/update.js";
+import { AuthRequiredError } from "../../src/core/api-client.js";
 import { saveManifest } from "../../src/core/manifest.js";
 import { replaceSkill } from "../../src/core/skill-installer.js";
 import { fetchRepo } from "../../src/services/cache.js";
@@ -36,7 +36,11 @@ vi.mock("../../src/services/cloud-source.js", () => ({
   ),
   materializeCloudArtifact: vi.fn(() =>
     Promise.resolve({
-      resolved: { name: "cloud-skill", sourcePath: "/tmp/cloud-skill", files: [] },
+      resolved: {
+        name: "cloud-skill",
+        sourcePath: "/tmp/cloud-skill",
+        files: [],
+      },
       category: "skill",
       cleanup: cloudCleanup,
     }),
@@ -250,8 +254,7 @@ describe("update command", () => {
       await program.parseAsync(["node", "ms", "update"]);
 
       expect(saveManifest).toHaveBeenCalled();
-      const saved = vi.mocked(saveManifest).mock
-        .calls[0][1] as unknown as Manifest;
+      const saved = vi.mocked(saveManifest).mock.calls[0][1];
       expect(saved.skills["cloud-skill"]).toHaveProperty(
         "computedHash",
         "cloudnewhash11111",
@@ -291,8 +294,7 @@ describe("update command", () => {
         expect.stringMatching(/\.agents\/agents$/),
         expect.stringMatching(/\.agents\/skills\/cloud-skill$/),
       );
-      const saved = vi.mocked(saveManifest).mock
-        .calls[0][1] as unknown as Manifest;
+      const saved = vi.mocked(saveManifest).mock.calls[0][1];
       expect(saved.skills["cloud-skill"]).toHaveProperty("category", "agent");
       expect(replacementCommit).toHaveBeenCalled();
     });
@@ -346,9 +348,15 @@ describe("update command", () => {
 
       // Only skill-a should trigger saveManifest
       expect(saveManifest).toHaveBeenCalledTimes(1);
-      const saved = vi.mocked(saveManifest).mock.calls[0][1] as unknown as Manifest;
-      expect(saved.skills["skill-a"]).toHaveProperty("computedHash", "newhashnewhash12");
-      expect(saved.skills["skill-b"]).toHaveProperty("computedHash", "untouchedhash123");
+      const saved = vi.mocked(saveManifest).mock.calls[0][1];
+      expect(saved.skills["skill-a"]).toHaveProperty(
+        "computedHash",
+        "newhashnewhash12",
+      );
+      expect(saved.skills["skill-b"]).toHaveProperty(
+        "computedHash",
+        "untouchedhash123",
+      );
     });
 
     it("shows error when named skill is not installed", async () => {
@@ -549,8 +557,11 @@ describe("update command", () => {
       await program.parseAsync(["node", "ms", "update"]);
 
       expect(saveManifest).toHaveBeenCalledTimes(1);
-      const saved = vi.mocked(saveManifest).mock.calls[0][1] as unknown as Manifest;
-      expect(saved.skills["test-skill"]).toHaveProperty("computedHash", "brandnewhash1234");
+      const saved = vi.mocked(saveManifest).mock.calls[0][1];
+      expect(saved.skills["test-skill"]).toHaveProperty(
+        "computedHash",
+        "brandnewhash1234",
+      );
       expect(saved.skills["test-skill"]).toHaveProperty("installedAt");
       const installedAt = saved.skills["test-skill"]?.installedAt;
       expect(installedAt).not.toBe(oldDate);

@@ -16,15 +16,15 @@
   },
   "dependencies": {
     "@curiouslycory/db": "workspace:*",
-    "@t3-oss/env-core": "^0.13.8",
+    "@t3-oss/env-core": "^0.13.11",
     "better-auth": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@better-auth/cli": "catalog:",
     "@curiouslycory/eslint-config": "workspace:*",
     "@curiouslycory/prettier-config": "workspace:*",
     "@curiouslycory/tsconfig": "workspace:*",
+    "auth": "catalog:",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:"

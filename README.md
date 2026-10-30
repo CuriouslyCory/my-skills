@@ -46,6 +46,10 @@ AI coding agents are powerful, but their skills live scattered across projects â
 
 ## Quick Start
 
+The CLI's prompt dependencies require Node.js `^20.17.0 || ^22.13.0 || >=23.5.0`;
+Node.js 24 is recommended. Node.js 18 is no longer supported. Upgrade Node before
+installing this version if you previously used the CLI on Node.js 18.
+
 ### Install
 
 ```sh
@@ -242,7 +246,7 @@ Contributions are welcome! Whether it's a bug fix, a new adapter for another AI 
 
 ### Prerequisites
 
-- **Node.js** >= 18
+- **Node.js** 24 (use the exact version in `.nvmrc` for development and tests)
 - **pnpm** (the repo uses pnpm workspaces)
 
 ### Setup
@@ -433,6 +437,28 @@ Want to support another AI coding tool? Adapters live in `apps/cli/src/adapters/
 
 ## Troubleshooting
 
+### SSH keys for private repositories
+
+Git operations use your SSH agent and standard `~/.ssh/config`. To select a key
+for GitHub, configure SSH on the machine running the CLI or self-hosted web app:
+
+```sshconfig
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+```
+
+For multiple GitHub identities, use separate SSH host aliases in `~/.ssh/config`
+and reference the alias in the repository URL, for example
+`git@github-work:owner/repo.git`.
+
+Simple Git 4 filters inherited `GIT_SSH_COMMAND` and `GIT_SSH` values. If you used
+these variables to choose a key, move that configuration into `~/.ssh/config` or
+load the key into your SSH agent. Repository-provided SSH commands are not enabled
+by this application.
+
 <details>
 <summary><strong>Command not found: ms</strong></summary>
 
@@ -480,7 +506,7 @@ export PATH="$HOME/.npm-global/bin:$PATH"
 <details>
 <summary><strong>pnpm install fails during development</strong></summary>
 
-Make sure you're using the correct pnpm version. The repo specifies `pnpm@10.32.0` via `packageManager` in `package.json`. Enable corepack to use the exact version:
+Make sure you're using the correct pnpm version. The repo specifies `pnpm@10.34.9` via `packageManager` in `package.json`. Enable corepack to use the exact version:
 
 ```sh
 corepack enable

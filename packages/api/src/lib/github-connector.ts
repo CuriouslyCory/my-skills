@@ -1,7 +1,7 @@
 import { Octokit } from "octokit";
 
-import { and, eq } from "@curiouslycory/db";
 import type { Database } from "@curiouslycory/db";
+import { and, eq } from "@curiouslycory/db";
 import { account } from "@curiouslycory/db/schema";
 
 /**
@@ -28,9 +28,7 @@ export const REPO_SCOPE = "repo";
  * 500 so the UI can tell the user exactly what to do.
  */
 export type GithubConnectorErrorReason =
-  | "not_connected"
-  | "missing_scope"
-  | "token_revoked";
+  "not_connected" | "missing_scope" | "token_revoked";
 
 /** Error thrown by the connector, tagged with a machine-readable `reason`. */
 export class GithubConnectorError extends Error {
@@ -198,6 +196,6 @@ function isUnauthorized(err: unknown): boolean {
     typeof err === "object" &&
     err !== null &&
     "status" in err &&
-    (err as { status: unknown }).status === 401
+    err.status === 401
   );
 }
