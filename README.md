@@ -242,7 +242,7 @@ Contributions are welcome! Whether it's a bug fix, a new adapter for another AI 
 
 ### Prerequisites
 
-- **Node.js** >= 18
+- **Node.js** 24 (use the exact version in `.nvmrc` for development and tests)
 - **pnpm** (the repo uses pnpm workspaces)
 
 ### Setup
