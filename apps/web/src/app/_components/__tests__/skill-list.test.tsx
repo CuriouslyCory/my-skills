@@ -1,8 +1,9 @@
-import type { ReactElement, ReactNode } from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render as rtlRender, screen } from "@testing-library/react";
 import type * as TanStackQuery from "@tanstack/react-query";
+import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render as rtlRender, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { SkillList, SkillListSkeleton } from "../skill-list";
 
 // Mock next/link
@@ -27,7 +28,7 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
   return {
     ...actual,
     useSuspenseQuery: (...args: unknown[]): { data: unknown } =>
-      mockUseSuspenseQuery(...args) as { data: unknown },
+      mockUseSuspenseQuery(...args),
   };
 });
 
@@ -105,9 +106,7 @@ function setupMocks(skills: SkillItem[] = []) {
 function getFilterButton(name: string): HTMLElement {
   const filterButtons = screen
     .getAllByRole("button")
-    .filter(
-      (btn) => btn.closest(".flex.flex-wrap.gap-2") != null,
-    );
+    .filter((btn) => btn.closest(".flex.flex-wrap.gap-2") != null);
   const btn = filterButtons.find((b) => b.textContent === name);
   if (!btn) {
     throw new Error(
@@ -167,9 +166,7 @@ describe("collectAllTags (via tag filter rendering)", () => {
     // The filter bar renders tags in sorted order
     const buttons = screen
       .getAllByRole("button")
-      .filter(
-        (btn) => btn.closest(".flex.flex-wrap.gap-2") != null,
-      );
+      .filter((btn) => btn.closest(".flex.flex-wrap.gap-2") != null);
     const tagTexts = buttons.map((btn) => btn.textContent);
     expect(tagTexts).toEqual(["alpha", "middle", "zebra"]);
   });
@@ -212,9 +209,7 @@ describe("SkillList component", () => {
     });
 
     it("renders correct links to skill detail pages", () => {
-      setupMocks([
-        makeSkill({ id: "skill-42", name: "Link Test" }),
-      ]);
+      setupMocks([makeSkill({ id: "skill-42", name: "Link Test" })]);
       render(<SkillList />);
       const link = screen.getByRole("link");
       expect(link).toHaveAttribute("href", "/skills/skill-42");
@@ -236,9 +231,8 @@ describe("SkillList component", () => {
 
   describe("tag filtering", () => {
     it("clicking a tag badge filters to matching skills", async () => {
-      const { default: userEvent } = await import(
-        "@testing-library/user-event"
-      );
+      const { default: userEvent } =
+        await import("@testing-library/user-event");
       const user = userEvent.setup();
 
       setupMocks([
@@ -259,9 +253,8 @@ describe("SkillList component", () => {
     });
 
     it("clicking a selected tag deselects it and shows all skills", async () => {
-      const { default: userEvent } = await import(
-        "@testing-library/user-event"
-      );
+      const { default: userEvent } =
+        await import("@testing-library/user-event");
       const user = userEvent.setup();
 
       setupMocks([
@@ -280,9 +273,8 @@ describe("SkillList component", () => {
     });
 
     it("shows 'No skills match' message when tag filter matches nothing", async () => {
-      const { default: userEvent } = await import(
-        "@testing-library/user-event"
-      );
+      const { default: userEvent } =
+        await import("@testing-library/user-event");
       const user = userEvent.setup();
 
       setupMocks([
@@ -304,7 +296,9 @@ describe("SkillList component", () => {
       setupMocks([]);
       render(<SkillList />);
       expect(
-        screen.getByText("No skills found. Add skills to the skills/ directory."),
+        screen.getByText(
+          "No skills found. Add skills to the skills/ directory.",
+        ),
       ).toBeInTheDocument();
     });
 

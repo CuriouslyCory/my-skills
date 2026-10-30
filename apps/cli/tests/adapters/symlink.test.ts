@@ -3,8 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { AgentId } from "@curiouslycory/shared-types";
-
 import type { AdapterSkillEntry } from "../../src/adapters/types.js";
 import { SymlinkAdapter } from "../../src/adapters/symlink.js";
 
@@ -132,10 +130,7 @@ describe("SymlinkAdapter", () => {
 
   describe("unknown agent fallback", () => {
     // Use an agent ID that doesn't have a specific directory mapping
-    const adapter = new SymlinkAdapter(
-      "codex" as AgentId,
-      "Codex (no symlink dir)",
-    );
+    const adapter = new SymlinkAdapter("codex", "Codex (no symlink dir)");
 
     it("getSkillsPath falls back to .agents/skills", () => {
       expect(adapter.getSkillsPath(projectRoot)).toBe(

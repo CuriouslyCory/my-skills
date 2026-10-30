@@ -480,7 +480,7 @@ export PATH="$HOME/.npm-global/bin:$PATH"
 <details>
 <summary><strong>pnpm install fails during development</strong></summary>
 
-Make sure you're using the correct pnpm version. The repo specifies `pnpm@10.32.0` via `packageManager` in `package.json`. Enable corepack to use the exact version:
+Make sure you're using the correct pnpm version. The repo specifies `pnpm@10.34.9` via `packageManager` in `package.json`. Enable corepack to use the exact version:
 
 ```sh
 corepack enable

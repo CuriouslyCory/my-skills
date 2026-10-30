@@ -19,7 +19,7 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "simple-git": "^3.27.0"
+    "simple-git": "^4.0.2"
   },
   "devDependencies": {
     "@curiouslycory/eslint-config": "workspace:*",

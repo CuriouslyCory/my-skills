@@ -3,13 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Config } from "@curiouslycory/shared-types";
 
-import { registerFavoriteCommand } from "../../src/commands/favorite.js";
 import type { ApiClient } from "../../src/core/api-client.js";
-import { saveConfig } from "../../src/core/config.js";
 import type {
   AccountFavorite,
   FavoritesContext,
 } from "../../src/core/favorites.js";
+import { registerFavoriteCommand } from "../../src/commands/favorite.js";
+import { saveConfig } from "../../src/core/config.js";
 
 const {
   mockResolveContext,
@@ -106,7 +106,7 @@ function makeFavorite(over: Partial<AccountFavorite>): AccountFavorite {
     type: "repo",
     addedAt: new Date("2026-01-02T00:00:00.000Z"),
     ...over,
-  } as AccountFavorite;
+  };
 }
 
 function run(args: string[]) {
@@ -256,7 +256,10 @@ describe("favorite command", () => {
     it("removes an account favorite by id", async () => {
       mockResolveContext.mockResolvedValue(authedContext());
       mockFetchAll.mockResolvedValue([
-        makeFavorite({ id: "row-1", repoUrl: "https://github.com/owner/repo.git" }),
+        makeFavorite({
+          id: "row-1",
+          repoUrl: "https://github.com/owner/repo.git",
+        }),
       ]);
       mockRemove.mockResolvedValue({ success: true });
 

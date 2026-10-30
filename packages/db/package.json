@@ -35,9 +35,9 @@
     "with-env": "dotenv -e ../../.env --"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.0",
+    "@neondatabase/serverless": "^0.10.4",
     "better-sqlite3": "^11.10.0",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.4",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -45,11 +45,11 @@
     "@curiouslycory/prettier-config": "workspace:*",
     "@curiouslycory/tsconfig": "workspace:*",
     "@types/better-sqlite3": "^7.6.13",
-    "drizzle-kit": "^0.31.5",
+    "drizzle-kit": "^0.31.11",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:",
-    "vitest": "^3.2.3"
+    "vitest": "^5.0.5"
   },
   "prettier": "@curiouslycory/prettier-config"
 }

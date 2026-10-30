@@ -38,9 +38,9 @@ describe("init command", () => {
     vi.spyOn(process, "cwd").mockReturnValue(projectRoot);
     vi.spyOn(console, "log").mockImplementation(vi.fn());
     vi.spyOn(console, "error").mockImplementation(vi.fn());
-    vi.spyOn(process, "exit").mockImplementation((() => {
+    vi.spyOn(process, "exit").mockImplementation(() => {
       throw new Error("process.exit called");
-    }) as never);
+    });
   });
 
   afterEach(async () => {

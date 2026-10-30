@@ -9,9 +9,8 @@
  */
 
 import type { Value } from "platejs";
-import type { PlateEditor } from "platejs/react";
+import type { PlateEditor, usePlateEditor } from "platejs/react";
 import { MarkdownPlugin } from "@platejs/markdown";
-import type { usePlateEditor } from "platejs/react";
 
 /**
  * Extract the plugins type that `usePlateEditor` expects.
@@ -30,10 +29,9 @@ interface MarkdownEditorApi {
 
 /**
  * Returns a typed handle to the MarkdownPlugin API on the given editor.
- * Uses a two-step cast (any → unknown → typed) to provide a clean boundary.
  */
 function getMarkdownApi(editor: PlateEditor): MarkdownEditorApi {
-  return editor.getApi(MarkdownPlugin) as unknown as MarkdownEditorApi;
+  return editor.getApi(MarkdownPlugin);
 }
 
 /** Deserialize a markdown string into Plate editor Value (Descendant[]). */
