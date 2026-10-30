@@ -1,10 +1,11 @@
+import type { MockInstance } from "vitest";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Config } from "@curiouslycory/shared-types";
 
-import { registerPublishCommand } from "../../src/commands/publish.js";
 import type { ApiClient } from "../../src/core/api-client.js";
+import { registerPublishCommand } from "../../src/commands/publish.js";
 import * as config from "../../src/core/config.js";
 import * as credentials from "../../src/core/credentials.js";
 
@@ -41,8 +42,8 @@ function run() {
 }
 
 describe("publish command", () => {
-  let logSpy: ReturnType<typeof vi.spyOn>;
-  let errorSpy: ReturnType<typeof vi.spyOn>;
+  let logSpy: MockInstance<typeof console.log>;
+  let errorSpy: MockInstance<typeof console.error>;
 
   beforeEach(() => {
     vi.spyOn(config, "loadConfig").mockResolvedValue(mockConfig);
@@ -61,7 +62,9 @@ describe("publish command", () => {
     vi.spyOn(credentials, "loadCredentials").mockResolvedValue(null);
     await run();
     expect(process.exitCode).toBe(1);
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("Not logged in"));
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Not logged in"),
+    );
   });
 
   it("triggers publish.run and prints the result URL", async () => {
